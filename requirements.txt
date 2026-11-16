@@ -5,3 +5,4 @@ rich
 pyyaml
 langsmith
 pyinstaller
+python-bidi>=0.6,<0.7

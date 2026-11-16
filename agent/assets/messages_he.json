@@ -10,7 +10,7 @@
     "cost_line": "[COST] קריאות={calls} | קלט={prompt_tokens} | פלט={completion_tokens} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}"
   },
   "llm": {
-    "switch_model": "[INFO] המודל {model} נכשל ({error}), עוברים ל-{next_model}"
+    "switch_model": "[INFO] המודל {model} נכשל ({error}). עוברים למודל הבא: {next_model}"
   },
   "tracing": {
     "enabled": "[INFO] ניטור LangSmith פעיל (פרויקט: {project})",

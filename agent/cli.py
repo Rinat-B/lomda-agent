@@ -2,10 +2,8 @@
 
 import sys
 
-from rich.markup import escape
-
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
-from agent.console import console, log
+from agent.console import ask, log, say, show_markdown
 from agent.graph import build_graph
 from agent.llm import AllModelsFailedError, MissingApiKeyError
 from agent.messages import msg
@@ -18,34 +16,35 @@ def main() -> None:
     configure_stdio()
     load_env()
     if not ensure_openrouter_key():
-        console.print(f"[red]{escape(msg('cli.missing_api_key'))}[/red]")
+        say(msg("cli.missing_api_key"), style="red")
         sys.exit(1)
 
     tracing_enabled = setup_tracing()
     graph = build_graph()
-    console.print(escape(msg("cli.welcome")))
+    say(msg("cli.welcome"))
 
     while True:
         try:
-            question = console.input(f"\n[bold cyan]{escape(msg('cli.question_prompt'))}[/bold cyan]").strip()
+            print()
+            question = ask(msg("cli.question_prompt"), style="bold cyan").strip()
         except (EOFError, KeyboardInterrupt):
             break
         if question.lower() in QUIT_WORDS:
             break
         if not question:
-            console.print(f"[yellow]{escape(msg('cli.no_question'))}[/yellow]")
+            say(msg("cli.no_question"), style="yellow")
             continue
 
         try:
             state = graph.invoke({"question": question})
         except MissingApiKeyError:
-            console.print(f"[red]{escape(msg('cli.missing_api_key'))}[/red]")
+            say(msg("cli.missing_api_key"), style="red")
             sys.exit(1)
         except AllModelsFailedError as e:
-            console.print(f"[red]{escape(msg('cli.all_models_failed', error=e))}[/red]")
+            say(msg("cli.all_models_failed", error=e), style="red")
             continue
 
-        console.print(state["answer"], markup=False)
+        show_markdown(state["answer"])
         log(
             msg(
                 "cli.cost_line",
@@ -59,7 +58,7 @@ def main() -> None:
 
     if tracing_enabled:
         flush_traces()
-    console.print(escape(msg("cli.goodbye")))
+    say(msg("cli.goodbye"))
 
 
 if __name__ == "__main__":

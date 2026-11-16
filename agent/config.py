@@ -7,6 +7,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from agent.console import visual_prompt
 from agent.messages import msg
 
 
@@ -41,7 +42,7 @@ def ensure_openrouter_key() -> bool:
     if os.getenv("OPENROUTER_API_KEY"):
         return True
     try:
-        key = getpass.getpass(msg("cli.ask_api_key")).strip()
+        key = getpass.getpass(visual_prompt(msg("cli.ask_api_key"))).strip()
     except (EOFError, KeyboardInterrupt):
         return False
     if not key:
