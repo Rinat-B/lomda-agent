@@ -69,8 +69,11 @@ def _visual_order(text: str, base_dir: str) -> list[tuple[str, int]]:
     return [(ch["ch"], ch["idx"]) for ch in storage["chars"]]
 
 
-def _reorder_line(segments: list[Segment]) -> Text:
-    """Turn one rendered line into a styled Text in visual (display) order."""
+def _reorder_line(segments: list[Segment], base_dir: str | None = None) -> Text:
+    """Turn one rendered line into a styled Text in visual (display) order.
+
+    base_dir "L"/"R" forces the line direction; None picks it with _base_dir().
+    """
     chars: list[str] = []
     styles: list[Style | None] = []
     for seg in segments:
@@ -81,7 +84,7 @@ def _reorder_line(segments: list[Segment]) -> Text:
     line = "".join(chars)
 
     if _HEBREW.search(line):
-        ordered = [(ch, styles[idx]) for ch, idx in _visual_order(line, _base_dir(line))]
+        ordered = [(ch, styles[idx]) for ch, idx in _visual_order(line, base_dir or _base_dir(line))]
     else:
         ordered = list(zip(chars, styles))
 
@@ -98,8 +101,11 @@ def _reorder_line(segments: list[Segment]) -> Text:
     return out
 
 
-def show(renderable: RenderableType, style: str | None = None) -> None:
-    """Print any rich renderable, reordering Hebrew per wrapped line when enabled."""
+def show(renderable: RenderableType, style: str | None = None, base_dir: str | None = None) -> None:
+    """Print any rich renderable, reordering Hebrew per wrapped line when enabled.
+
+    base_dir forces every line's direction ("L" or "R"); by default each line picks its own.
+    """
     if not bidi_enabled():
         console.print(renderable, style=style)
         return
@@ -107,12 +113,20 @@ def show(renderable: RenderableType, style: str | None = None) -> None:
     options = console.options.update_width(max(console.width - 1, 20))
     lines = console.render_lines(renderable, options, style=Style.parse(style) if style else None, pad=True)
     for line in lines:
-        console.print(_reorder_line(line), soft_wrap=True)
+        console.print(_reorder_line(line, base_dir), soft_wrap=True)
 
 
 def say(text: str, style: str | None = None) -> None:
     """Print a plain message (no markup), e.g. a string from messages_he.json."""
     show(Text(text), style=style)
+
+
+def say_path(text: str, style: str | None = "dim") -> None:
+    """Print a line that is a file path, always left-to-right.
+
+    Path parts keep their order, and Hebrew folder names inside still read correctly.
+    """
+    show(Text(text), style=style, base_dir="L")
 
 
 def log(line: str) -> None:

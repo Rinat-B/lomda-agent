@@ -71,7 +71,7 @@ def test_add_missing_file(handler, session, tmp_path, output):
     missing = tmp_path / "nope.pdf"
     result = handler.handle(f"/add {missing}")
     assert session.files == [] and not result.quit
-    assert msg("commands.add.not_found", path=str(missing)) in output()
+    assert msg("commands.add.not_found") in output() and str(missing) in output()
 
 
 def test_add_unsupported_type(handler, session, tmp_path, output):
@@ -85,7 +85,7 @@ def test_add_unsupported_type(handler, session, tmp_path, output):
 def test_add_directory(handler, session, tmp_path, output):
     handler.handle(f"/add {tmp_path}")
     assert session.files == []
-    assert msg("commands.add.not_a_file", path=str(tmp_path)) in output()
+    assert msg("commands.add.not_a_file") in output() and str(tmp_path) in output()
 
 
 def test_add_without_argument(handler, output):
@@ -136,7 +136,7 @@ def test_message_with_missing_path_warns_and_continues(handler, session, tmp_pat
     result = handler.handle(f"use {missing} for the lesson")
     assert session.files == []
     assert result.question is not None
-    assert msg("commands.add.detected_not_found", path=str(missing)) in output()
+    assert msg("commands.add.detected_not_found") in output() and str(missing) in output()
 
 
 def test_bare_filename_that_does_not_exist_is_just_text(handler, session, output):

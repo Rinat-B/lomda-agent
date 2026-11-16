@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from agent.console import say, show_markdown
+from agent.console import say, say_path, show_markdown
 from agent.messages import msg
 from agent.session import SUPPORTED_EXTENSIONS, Session, UsageTotals
 
@@ -59,10 +59,13 @@ class CommandHandler:
         session: Session,
         out: Callable[..., None] = say,
         out_markdown: Callable[[str], None] = show_markdown,
+        out_path: Callable[[str], None] = say_path,
     ):
         self.session = session
         self.out = out
         self.out_markdown = out_markdown
+        # File paths are printed on their own left-to-right line, never inside a Hebrew sentence.
+        self.out_path = out_path
 
     # ---- dispatch -------------------------------------------------------------------
     def handle(self, line: str) -> TurnResult:
@@ -108,10 +111,12 @@ class CommandHandler:
 
     def _add_path(self, path: Path) -> bool:
         if not path.exists():
-            self.out(msg("commands.add.not_found", path=str(path)), style="yellow")
+            self.out(msg("commands.add.not_found"), style="yellow")
+            self.out_path(str(path))
             return False
         if not path.is_file():
-            self.out(msg("commands.add.not_a_file", path=str(path)), style="yellow")
+            self.out(msg("commands.add.not_a_file"), style="yellow")
+            self.out_path(str(path))
             return False
         if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             self.out(
@@ -139,8 +144,7 @@ class CommandHandler:
             size = format_size(path.stat().st_size) if path.exists() else msg("commands.files.missing")
             kind = path.suffix.lstrip(".").upper()
             self.out(msg("commands.files.item", index=i, name=path.name, kind=kind, size=size))
-            # The full path goes on its own line so it is not mixed into a Hebrew sentence.
-            self.out(msg("commands.files.item_path", path=str(path)), style="dim")
+            self.out_path("   " + str(path))
 
     def cost(self) -> None:
         if not self.session.usage:
@@ -182,7 +186,8 @@ class CommandHandler:
             if existing is not None:
                 self._add_path(existing)
             elif quoted or _looks_like_path(token):
-                self.out(msg("commands.add.detected_not_found", path=_path_candidates(token)[-1]), style="yellow")
+                self.out(msg("commands.add.detected_not_found"), style="yellow")
+                self.out_path(_path_candidates(token)[-1])
             else:
                 continue  # a bare name like "README.md" that is not a local file: leave it as text
             remaining = remaining.replace(match.group(0), " ")

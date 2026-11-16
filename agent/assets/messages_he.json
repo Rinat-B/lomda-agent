@@ -20,16 +20,15 @@
       "usage": "שימוש: /add <path>. לדוגמה: /add C:\\docs\\lesson.docx",
       "added": "הקובץ {name} נוסף לשיחה (סה\"כ {count} קבצים).",
       "duplicate": "הקובץ {name} כבר ברשימה.",
-      "not_found": "הקובץ לא נמצא: {path}. בדקו את הנתיב ונסו שוב.",
-      "not_a_file": "{path} היא תיקייה ולא קובץ. ציינו קובץ אחד.",
+      "not_found": "הקובץ לא נמצא. בדקו את הנתיב ונסו שוב:",
+      "not_a_file": "הנתיב הוא תיקייה ולא קובץ. ציינו קובץ אחד:",
       "unsupported": "סוג הקובץ של {name} לא נתמך. סוגים נתמכים: {extensions}.",
-      "detected_not_found": "זיהיתי נתיב בהודעה, אבל הקובץ לא נמצא: {path}"
+      "detected_not_found": "זיהיתי נתיב בהודעה, אבל הקובץ לא נמצא:"
     },
     "files": {
       "empty": "עדיין לא נוספו קבצים. הוסיפו קובץ עם /add <path>.",
       "header": "קבצים בשיחה ({count}):",
       "item": "{index}. {name} ({kind}, {size})",
-      "item_path": "   {path}",
       "missing": "הקובץ כבר לא קיים"
     },
     "cost": {
