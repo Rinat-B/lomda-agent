@@ -120,6 +120,11 @@ def log(line: str) -> None:
     say(line)
 
 
+def show_traceback(text: str) -> None:
+    """Print a raw traceback (debug mode only). Not reordered: it is code, not prose."""
+    console.print(Text(text, style="dim"), soft_wrap=True)
+
+
 def show_markdown(text: str) -> None:
     """Render model output as formatted Markdown."""
     show(Markdown(text))

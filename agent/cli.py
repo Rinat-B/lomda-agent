@@ -1,63 +1,97 @@
-"""Interactive CLI: ask questions in a loop and run each one through the agent graph."""
+"""Interactive CLI: read a line, run a command or send it through the agent graph."""
 
-import sys
+import argparse
 
+from agent.commands import CommandHandler
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, show_markdown
+from agent.errors import report_error, setup_logging
 from agent.graph import build_graph
-from agent.llm import AllModelsFailedError, MissingApiKeyError
 from agent.messages import msg
+from agent.session import Session
 from agent.tracing import flush_traces, setup_tracing
 
-QUIT_WORDS = {"quit", "exit"}
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="agent", description="E-learning lesson agent")
+    parser.add_argument("--debug", action="store_true", help="show full tracebacks on screen")
+    return parser.parse_args(argv)
 
 
-def main() -> None:
+def run_question(question: str, session: Session, graph) -> None:
+    """Run one question through the graph; errors are reported and never escape."""
+    start = len(session.usage)
+    try:
+        state = graph.invoke(
+            {"question": question},
+            config={"configurable": {"usage_recorder": session.record_usage}},
+        )
+    except KeyboardInterrupt:
+        say(msg("cli.cancelled"), style="yellow")
+        return
+    except Exception as e:
+        report_error(e)
+        return
+
+    show_markdown(state["answer"])
+    totals = session.totals(session.usage[start:])
+    log(
+        msg(
+            "cli.cost_line",
+            calls=totals.calls,
+            prompt_tokens=totals.prompt_tokens,
+            completion_tokens=totals.completion_tokens,
+            total_tokens=totals.total_tokens,
+            cost=totals.cost,
+        )
+    )
+
+
+def run_turn(line: str, handler: CommandHandler, graph) -> bool:
+    """Handle one input line. Returns False when the user asked to quit."""
+    result = handler.handle(line)
+    if result.quit:
+        return False
+    if result.question:
+        run_question(result.question, handler.session, graph)
+    return True
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
     configure_stdio()
     load_env()
+    log_file = setup_logging(debug=args.debug)
+    if args.debug:
+        log(msg("cli.debug_on", log_file=str(log_file)))
+
     if not ensure_openrouter_key():
-        say(msg("cli.missing_api_key"), style="red")
-        sys.exit(1)
+        say(msg("cli.no_key_warning"), style="yellow")
 
     tracing_enabled = setup_tracing()
     graph = build_graph()
+    handler = CommandHandler(Session())
     say(msg("cli.welcome"))
 
     while True:
         try:
             print()
-            question = ask(msg("cli.question_prompt"), style="bold cyan").strip()
+            line = ask(msg("cli.question_prompt"), style="bold cyan")
         except (EOFError, KeyboardInterrupt):
             break
-        if question.lower() in QUIT_WORDS:
-            break
-        if not question:
-            say(msg("cli.no_question"), style="yellow")
-            continue
-
         try:
-            state = graph.invoke({"question": question})
-        except MissingApiKeyError:
-            say(msg("cli.missing_api_key"), style="red")
-            sys.exit(1)
-        except AllModelsFailedError as e:
-            say(msg("cli.all_models_failed", error=e), style="red")
-            continue
-
-        show_markdown(state["answer"])
-        log(
-            msg(
-                "cli.cost_line",
-                calls=len(state.get("models_used", [])),
-                prompt_tokens=state.get("prompt_tokens", 0),
-                completion_tokens=state.get("completion_tokens", 0),
-                total_tokens=state.get("prompt_tokens", 0) + state.get("completion_tokens", 0),
-                cost=state.get("cost", 0.0),
-            )
-        )
+            if not run_turn(line, handler, graph):
+                break
+        except KeyboardInterrupt:
+            say(msg("cli.cancelled"), style="yellow")
+        except Exception as e:
+            report_error(e, node="cli")
 
     if tracing_enabled:
-        flush_traces()
+        try:
+            flush_traces()
+        except Exception as e:
+            report_error(e, node="tracing")
     say(msg("cli.goodbye"))
 
 

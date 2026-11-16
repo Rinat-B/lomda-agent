@@ -1,14 +1,74 @@
 {
   "cli": {
-    "welcome": "שלום! שאלו אותי על בניית לומדות. כדי לצאת כתבו quit.",
+    "welcome": "שלום! אני עוזר לבנות לומדות. כתבו שאלה, או help לרשימת הפקודות.",
     "question_prompt": "שאלה: ",
-    "no_question": "לא הוזנה שאלה.",
+    "no_question": "לא הוזנה שאלה. כתבו help לעזרה.",
     "goodbye": "להתראות!",
-    "missing_api_key": "חסר OPENROUTER_API_KEY. העתיקו את .env.example לקובץ .env והגדירו בו את המפתח.",
+    "cancelled": "הפעולה בוטלה.",
+    "debug_on": "[INFO] מצב debug פעיל: שגיאות יוצגו במלואן, והן נשמרות גם ב-{log_file}",
+    "no_key_warning": "לא הוגדר OPENROUTER_API_KEY. אפשר להשתמש בפקודות, אבל כדי לשאול שאלות צריך להוסיף מפתח לקובץ .env ולהפעיל מחדש.",
     "ask_api_key": "לא נמצא OPENROUTER_API_KEY. הדביקו את המפתח (הקלט מוסתר ולא נשמר): ",
     "invalid_api_key": "המפתח שהוזן מכיל תווים לא תקינים. נסו שוב: הדביקו עם Ctrl+V או בלחיצה ימנית, ולחצו Enter.",
-    "all_models_failed": "כל המודלים ברשימה נכשלו (שגיאה אחרונה: {error}). נסו שוב בעוד רגע, או ערכו את agent/models.yaml.",
     "cost_line": "[COST] קריאות={calls} | קלט={prompt_tokens} | פלט={completion_tokens} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}"
+  },
+  "help": {
+    "text": "## מה הסוכן עושה\nעוזר לבנות לומדות: עונה על שאלות בעיצוב הדרכה, כתיבת תוכן, תרגולים ומבחנים. שאלות שלא קשורות ללמידה יקבלו סירוב מנומס.\n\n## פקודות\n- `help` או `?` – המדריך הזה\n- `/add <path>` – הוספת קובץ מקור לשיחה ({extensions})\n- `/files` – הקבצים שנוספו לשיחה\n- `/cost` – טוקנים ועלות מתחילת השיחה, לפי צומת ולפי מודל\n- `/new` – שיחה חדשה (מאפס קבצים ועלות)\n- `/quit` או `exit` – יציאה\n\nאפשר גם לכתוב נתיב לקובץ בתוך הודעה רגילה, והוא יתווסף אוטומטית.\n\n## דוגמה\n`/add C:\\docs\\safety.pptx`\n\nואז: **בנה לי מבנה לומדה של 5 מסכים על בטיחות בעבודה, עם שאלה בסוף כל מסך.**\n\nלהפעלה עם פרטי שגיאות מלאים: `agent.exe --debug`"
+  },
+  "commands": {
+    "unknown": "הפקודה {command} לא מוכרת. כתבו help לרשימת הפקודות.",
+    "add": {
+      "usage": "שימוש: /add <path>. לדוגמה: /add C:\\docs\\lesson.docx",
+      "added": "הקובץ {name} נוסף לשיחה (סה\"כ {count} קבצים).",
+      "duplicate": "הקובץ {name} כבר ברשימה.",
+      "not_found": "הקובץ לא נמצא: {path}. בדקו את הנתיב ונסו שוב.",
+      "not_a_file": "{path} היא תיקייה ולא קובץ. ציינו קובץ אחד.",
+      "unsupported": "סוג הקובץ של {name} לא נתמך. סוגים נתמכים: {extensions}.",
+      "detected_not_found": "זיהיתי נתיב בהודעה, אבל הקובץ לא נמצא: {path}"
+    },
+    "files": {
+      "empty": "עדיין לא נוספו קבצים. הוסיפו קובץ עם /add <path>.",
+      "header": "קבצים בשיחה ({count}):",
+      "item": "{index}. {name} ({kind}, {size})",
+      "item_path": "   {path}",
+      "missing": "הקובץ כבר לא קיים"
+    },
+    "cost": {
+      "empty": "עדיין לא היו קריאות למודל בשיחה הזו.",
+      "total": "[COST] סה\"כ בשיחה: קריאות={calls} | קלט={prompt_tokens} | פלט={completion_tokens} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}",
+      "by_node": "לפי צומת:",
+      "by_model": "לפי מודל:",
+      "item": "  {name}: קריאות={calls} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}"
+    },
+    "new": {
+      "done": "התחלנו שיחה חדשה. רשימת הקבצים והעלות אופסו."
+    }
+  },
+  "errors": {
+    "format": "[ERROR] Node: {node} - {what} - {todo}",
+    "missing_key": {
+      "what": "חסר מפתח OPENROUTER_API_KEY",
+      "todo": "הוסיפו OPENROUTER_API_KEY לקובץ .env שליד הסוכן והפעילו אותו מחדש"
+    },
+    "unauthorized": {
+      "what": "OpenRouter דחה את המפתח (401)",
+      "todo": "בדקו שהמפתח ב-.env נכון ופעיל ב-openrouter.ai/settings/keys"
+    },
+    "no_credit": {
+      "what": "אין מספיק קרדיט בחשבון OpenRouter (402)",
+      "todo": "הוסיפו קרדיט ב-openrouter.ai/settings/credits, או השאירו ב-agent/models.yaml רק מודלים חינמיים (:free)"
+    },
+    "rate_limited": {
+      "what": "כל המודלים ברשימה עמוסים כרגע (429)",
+      "todo": "נסו שוב בעוד דקה, או הוסיפו מודל חינמי נוסף ל-agent/models.yaml"
+    },
+    "offline": {
+      "what": "אין חיבור לאינטרנט, או ש-OpenRouter לא זמין",
+      "todo": "בדקו את החיבור לרשת ונסו שוב"
+    },
+    "unknown": {
+      "what": "שגיאה לא צפויה ({detail})",
+      "todo": "נסו שוב. הפרטים המלאים נשמרו ב-{log_file}"
+    }
   },
   "llm": {
     "switch_model": "[INFO] המודל {model} נכשל ({error}). עוברים למודל הבא: {next_model}"
