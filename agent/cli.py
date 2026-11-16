@@ -1,11 +1,10 @@
 """Interactive CLI: ask questions in a loop and run each one through the agent graph."""
 
-import os
 import sys
 
-from dotenv import load_dotenv
 from rich.markup import escape
 
+from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import console, log
 from agent.graph import build_graph
 from agent.llm import AllModelsFailedError, MissingApiKeyError
@@ -16,8 +15,9 @@ QUIT_WORDS = {"quit", "exit"}
 
 
 def main() -> None:
-    load_dotenv()
-    if not os.getenv("OPENROUTER_API_KEY"):
+    configure_stdio()
+    load_env()
+    if not ensure_openrouter_key():
         console.print(f"[red]{escape(msg('cli.missing_api_key'))}[/red]")
         sys.exit(1)
 

@@ -5,6 +5,7 @@
     "no_question": "לא הוזנה שאלה.",
     "goodbye": "להתראות!",
     "missing_api_key": "חסר OPENROUTER_API_KEY. העתיקו את .env.example לקובץ .env והגדירו בו את המפתח.",
+    "ask_api_key": "לא נמצא OPENROUTER_API_KEY. הדביקו את המפתח (הקלט מוסתר ולא נשמר): ",
     "all_models_failed": "כל המודלים ברשימה נכשלו (שגיאה אחרונה: {error}). נסו שוב בעוד רגע, או ערכו את agent/models.yaml.",
     "cost_line": "[COST] קריאות={calls} | קלט={prompt_tokens} | פלט={completion_tokens} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}"
   },
