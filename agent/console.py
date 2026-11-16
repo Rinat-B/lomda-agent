@@ -14,15 +14,18 @@ import re
 import sys
 
 from bidi import algorithm as bidi_alg
+from rich.cells import cell_len
 from rich.console import Console, RenderableType
+from rich.control import Control
 from rich.markdown import Markdown
-from rich.segment import Segment
+from rich.segment import ControlType, Segment
 from rich.style import Style
 from rich.text import Text
 
 console = Console()
 
-_HEBREW = re.compile(r"[֐-׿יִ-ﭏ]")
+# Hebrew block U+0590-U+05FF and Hebrew presentation forms U+FB1D-U+FB4F.
+_HEBREW = re.compile(f"[{chr(0x0590)}-{chr(0x05FF)}{chr(0xFB1D)}-{chr(0xFB4F)}]")
 _ON_VALUES = {"on", "true", "1", "yes"}
 _OFF_VALUES = {"off", "false", "0", "no"}
 
@@ -132,5 +135,22 @@ def visual_prompt(prompt: str) -> str:
 
 
 def ask(prompt: str, style: str | None = None) -> str:
-    """Read a line of input after a (possibly Hebrew) single-line prompt."""
-    return console.input(Text(visual_prompt(prompt), style=style or ""))
+    """Read a line of input after a (possibly Hebrew) single-line prompt.
+
+    The terminal echoes typed text left-to-right, which we cannot control while typing.
+    After Enter, if the answer has Hebrew, the echoed line(s) are erased and redrawn
+    in display order so the screen history reads correctly.
+    """
+    shown_prompt = visual_prompt(prompt)
+    answer = console.input(Text(shown_prompt, style=style or ""))
+    if bidi_enabled() and console.is_terminal and _HEBREW.search(answer):
+        used = cell_len(shown_prompt) + cell_len(answer)
+        rows = max(1, -(-used // console.width))  # ceil division
+        for _ in range(rows):
+            console.control(
+                Control.move(0, -1),
+                Control.move_to_column(0),
+                Control((ControlType.ERASE_IN_LINE, 2)),
+            )
+        show(Text.assemble((prompt.rstrip() + " ", style or ""), answer))
+    return answer
