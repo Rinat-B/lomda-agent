@@ -6,13 +6,24 @@ from agent.console import log
 from agent.messages import msg
 
 DEFAULT_PROJECT = "lomda-agent"
+FALSE_VALUES = {"false", "0", "no", "off"}
 
 
 def setup_tracing() -> bool:
-    """Enable LangSmith tracing if an API key is present; otherwise disable it and say so once."""
+    """Enable LangSmith tracing if an API key is present and LANGSMITH_TRACING is not false.
+
+    Otherwise disable it and print a single message saying why.
+    """
     if not os.getenv("LANGSMITH_API_KEY"):
+        reason = msg("tracing.reason_no_key")
+    elif os.getenv("LANGSMITH_TRACING", "").strip().lower() in FALSE_VALUES:
+        reason = msg("tracing.reason_flag_off")
+    else:
+        reason = None
+
+    if reason:
         os.environ["LANGSMITH_TRACING"] = "false"
-        log(msg("tracing.disabled"))
+        log(msg("tracing.disabled", reason=reason))
         return False
 
     os.environ["LANGSMITH_TRACING"] = "true"

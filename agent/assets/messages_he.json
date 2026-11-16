@@ -13,7 +13,9 @@
   },
   "tracing": {
     "enabled": "[INFO] ניטור LangSmith פעיל (פרויקט: {project})",
-    "disabled": "[INFO] ניטור LangSmith כבוי (לא הוגדר LANGSMITH_API_KEY). הסוכן ממשיך לרוץ כרגיל."
+    "disabled": "[INFO] ניטור LangSmith כבוי ({reason}). הסוכן ממשיך לרוץ כרגיל.",
+    "reason_no_key": "לא הוגדר LANGSMITH_API_KEY",
+    "reason_flag_off": "LANGSMITH_TRACING=false"
   },
   "graph": {
     "out_of_scope": "מצטער, אני יכול לעזור רק בנושאים שקשורים ליצירת לומדות ולמידה. אשמח לעזור אם יש לכם שאלה בתחום הזה."
