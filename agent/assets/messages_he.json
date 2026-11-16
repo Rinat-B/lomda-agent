@@ -1,10 +1,17 @@
 {
   "cli": {
+    "welcome": "שלום! שאלו אותי על בניית לומדות. כדי לצאת כתבו quit.",
     "question_prompt": "שאלה: ",
     "no_question": "לא הוזנה שאלה.",
+    "goodbye": "להתראות!",
     "missing_api_key": "חסר OPENROUTER_API_KEY. העתיקו את .env.example לקובץ .env והגדירו בו את המפתח.",
-    "request_failed": "הבקשה למודל {model} נכשלה: {error}",
-    "request_failed_tip": "טיפ: הגדירו OPENROUTER_MODEL בקובץ .env למודל אחר שמסתיים ב-':free'.",
-    "cost_line": "[COST] מודל={model} | קלט={prompt_tokens} | פלט={completion_tokens} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}"
+    "all_models_failed": "כל המודלים ברשימה נכשלו (שגיאה אחרונה: {error}). נסו שוב בעוד רגע, או ערכו את agent/models.yaml.",
+    "cost_line": "[COST] קריאות={calls} | קלט={prompt_tokens} | פלט={completion_tokens} | סה\"כ={total_tokens} טוקנים | עלות=${cost:.6f}"
+  },
+  "llm": {
+    "switch_model": "[INFO] המודל {model} נכשל ({error}), עוברים ל-{next_model}"
+  },
+  "graph": {
+    "out_of_scope": "מצטער, אני יכול לעזור רק בנושאים שקשורים ליצירת לומדות ולמידה. אשמח לעזור אם יש לכם שאלה בתחום הזה."
   }
 }

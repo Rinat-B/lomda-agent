@@ -1,0 +1,6 @@
+# Free OpenRouter models, in priority order.
+# On a 429 or any other error, the agent falls back to the next model.
+models:
+  - nvidia/nemotron-3-ultra-550b-a55b:free
+  - nvidia/nemotron-3.5-super-vl:free
+  - google/gemma-4-31b-it:free
