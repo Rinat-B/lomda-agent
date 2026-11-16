@@ -171,5 +171,7 @@ def ask(prompt: str, style: str | None = None) -> str:
                 Control.move_to_column(0),
                 Control((ControlType.ERASE_IN_LINE, 2)),
             )
-        show(Text.assemble((prompt.rstrip() + " ", style or ""), answer))
+        # Commands ("/add <path>") are shown left-to-right, like path lines (see say_path).
+        base_dir = "L" if answer.lstrip().startswith("/") else None
+        show(Text.assemble((prompt.rstrip() + " ", style or ""), answer), base_dir=base_dir)
     return answer

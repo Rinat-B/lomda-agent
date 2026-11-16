@@ -30,6 +30,29 @@ def test_hebrew_folder_name_reads_correctly_inside_ltr_path(monkeypatch):
     assert shown == rf"C:\docs\{SHIN_LAMED_WAW_MEM[::-1]}\a.pdf"
 
 
+def _redraw(monkeypatch, typed: str) -> str:
+    """Run ask() on a fake terminal and return the redrawn line (after the control codes)."""
+    monkeypatch.setenv("HEBREW_BIDI", "on")
+    buf = io.StringIO()
+    fake = Console(file=buf, width=120, color_system=None, force_terminal=True, legacy_windows=False)
+    monkeypatch.setattr(fake, "input", lambda *a, **k: typed)
+    monkeypatch.setattr(console_mod, "console", fake)
+    assert console_mod.ask(SHIN_LAMED_WAW_MEM + ": ") == typed
+    return buf.getvalue().rsplit("\x1b[2K", 1)[-1].rstrip()
+
+
+def test_command_input_is_redrawn_left_to_right(monkeypatch):
+    typed = rf"/add C:\Users\{ALEF}\docs\{SHIN_LAMED_WAW_MEM}\a.docx"
+    shown = _redraw(monkeypatch, typed)
+    assert shown.startswith(SHIN_LAMED_WAW_MEM[::-1] + ": /add C:\\Users\\")
+    assert shown.endswith(rf"\docs\{SHIN_LAMED_WAW_MEM[::-1]}\a.docx")
+
+
+def test_hebrew_question_is_still_redrawn_right_to_left(monkeypatch):
+    shown = _redraw(monkeypatch, SHIN_LAMED_WAW_MEM + " abc").strip()
+    assert shown == "abc " + SHIN_LAMED_WAW_MEM[::-1] + " :" + SHIN_LAMED_WAW_MEM[::-1]
+
+
 def test_regular_hebrew_lines_unchanged(monkeypatch):
     """say() still uses the automatic RTL direction for lines with Hebrew."""
     line = SHIN_LAMED_WAW_MEM + " abc"
