@@ -11,6 +11,10 @@
   "llm": {
     "switch_model": "[INFO] המודל {model} נכשל ({error}), עוברים ל-{next_model}"
   },
+  "tracing": {
+    "enabled": "[INFO] ניטור LangSmith פעיל (פרויקט: {project})",
+    "disabled": "[INFO] ניטור LangSmith כבוי (לא הוגדר LANGSMITH_API_KEY). הסוכן ממשיך לרוץ כרגיל."
+  },
   "graph": {
     "out_of_scope": "מצטער, אני יכול לעזור רק בנושאים שקשורים ליצירת לומדות ולמידה. אשמח לעזור אם יש לכם שאלה בתחום הזה."
   }

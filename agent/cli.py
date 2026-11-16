@@ -10,6 +10,7 @@ from agent.console import console, log
 from agent.graph import build_graph
 from agent.llm import AllModelsFailedError, MissingApiKeyError
 from agent.messages import msg
+from agent.tracing import flush_traces, setup_tracing
 
 QUIT_WORDS = {"quit", "exit"}
 
@@ -20,6 +21,7 @@ def main() -> None:
         console.print(f"[red]{escape(msg('cli.missing_api_key'))}[/red]")
         sys.exit(1)
 
+    tracing_enabled = setup_tracing()
     graph = build_graph()
     console.print(escape(msg("cli.welcome")))
 
@@ -55,6 +57,8 @@ def main() -> None:
             )
         )
 
+    if tracing_enabled:
+        flush_traces()
     console.print(escape(msg("cli.goodbye")))
 
 
