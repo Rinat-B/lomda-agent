@@ -109,7 +109,8 @@
     }
   },
   "llm": {
-    "switch_model": "[INFO] המודל {model} נכשל ({error}). עוברים למודל הבא: {next_model}"
+    "switch_model": "[INFO] המודל {model} נכשל ({error}). עוברים למודל הבא: {next_model}",
+    "marked_unavailable": "[INFO] המודל {model} לא זמין ({error}) ויידלג עד סוף השיחה. עוברים למודל הבא: {next_model}"
   },
   "tracing": {
     "enabled": "[INFO] ניטור LangSmith פעיל (פרויקט: {project})",

@@ -25,8 +25,13 @@ SCOPE_CHECK_PROMPT = (
 
 SCOPE_CHECK_WITH_SOURCES = (
     " The user has added source files for a lesson (for example training slides, "
-    "procedures or policies). Any question about the content of such material is IN_SCOPE."
+    "procedures or policies); their names and the excerpt most relevant to the question "
+    "are given with the question. Questions about the content of this source material, "
+    "and requests to build a lesson from it, are IN_SCOPE even if the topic itself "
+    "(for example gifts, driving or safety rules) is not about learning. Topics that are "
+    "related neither to e-learning nor to this material are OUT_OF_SCOPE."
 )
+SCOPE_EXCERPT_CHARS = 600
 
 ANSWER_PROMPT = (
     "You are a helpful assistant for building e-learning lessons and instructional design. "
@@ -82,11 +87,13 @@ def _call(node: str, messages: list, config: RunnableConfig | None) -> LLMResult
 def scope_check(state: AgentState, config: RunnableConfig) -> dict:
     _enter("scope_check")
     index = _index(config)
-    if index is not None and index.retrieve(state["question"], k=1):
-        # The question matches the added source files: in scope, no model call needed.
-        return {"in_scope": True}
-    prompt = SCOPE_CHECK_PROMPT + (SCOPE_CHECK_WITH_SOURCES if index is not None else "")
-    result = _call("scope_check", [SystemMessage(prompt), HumanMessage(state["question"])], config)
+    if index is None:
+        system, user = SCOPE_CHECK_PROMPT, state["question"]
+    else:
+        # Always ask the model; give it the session's files and the closest excerpt as context.
+        system = SCOPE_CHECK_PROMPT + SCOPE_CHECK_WITH_SOURCES
+        user = scope_context(state["question"], index)
+    result = _call("scope_check", [SystemMessage(system), HumanMessage(user)], config)
     # Check OUT_OF_SCOPE first because "IN_SCOPE" is a substring of it.
     # If the reply is unclear, allow the question rather than refuse a valid one.
     in_scope = "OUT_OF_SCOPE" not in result.text.upper()
@@ -94,6 +101,22 @@ def scope_check(state: AgentState, config: RunnableConfig) -> dict:
     if not in_scope:
         update["answer"] = msg("graph.out_of_scope")
     return update
+
+
+def scope_context(question: str, index: ChunkIndex) -> str:
+    """Scope-check input: file names in the session, the most relevant excerpt, the question."""
+    files = list(dict.fromkeys(c["locator"]["file"] for c in index.chunks))
+    hits = index.retrieve(question, k=1)
+    if hits:
+        text = hits[0]["text"][:SCOPE_EXCERPT_CHARS]
+        excerpt = f"({describe_locator(hits[0]['locator'])})\n{text}"
+    else:
+        excerpt = "(none: no excerpt matches the question)"
+    return (
+        f"Source files in this session: {', '.join(files)}\n\n"
+        f"Most relevant excerpt:\n{excerpt}\n\n"
+        f"Question: {question}"
+    )
 
 
 # ---- RAG helpers -----------------------------------------------------------------------

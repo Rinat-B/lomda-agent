@@ -15,11 +15,48 @@ from agent.messages import msg
 
 MODELS_PATH = Path(__file__).parent / "models.yaml"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-REQUEST_TIMEOUT_SECONDS = 90
+REQUEST_TIMEOUT_SECONDS = 30
 # Account-level failures: every model would fail the same way, so do not fall back.
 NO_FALLBACK_STATUS = {401, 402}
+# A model that fails like this is skipped for the rest of the conversation.
+UNAVAILABLE_STATUS = {503}
 
-__all__ = ["LLMResult", "call_llm", "load_models", "AllModelsFailedError", "MissingApiKeyError"]
+# model id -> short reason; reset by /new (reset_unavailable_models) or a restart.
+_unavailable: dict[str, str] = {}
+
+__all__ = [
+    "LLMResult",
+    "call_llm",
+    "load_models",
+    "reset_unavailable_models",
+    "unavailable_models",
+    "AllModelsFailedError",
+    "MissingApiKeyError",
+]
+
+
+def unavailable_models() -> dict[str, str]:
+    return dict(_unavailable)
+
+
+def reset_unavailable_models() -> None:
+    _unavailable.clear()
+
+
+def _is_timeout(e: BaseException) -> bool:
+    import httpx
+    import openai
+
+    chain, seen = [], set()
+    while e is not None and id(e) not in seen:
+        seen.add(id(e))
+        chain.append(e)
+        e = e.__cause__ or e.__context__
+    return any(isinstance(x, (openai.APITimeoutError, httpx.TimeoutException, TimeoutError)) for x in chain)
+
+
+def _marks_unavailable(e: BaseException) -> bool:
+    return status_code(e) in UNAVAILABLE_STATUS or _is_timeout(e)
 
 
 @dataclass
@@ -60,8 +97,12 @@ def _short_error(e: Exception) -> str:
 
 
 def call_llm(messages: list[BaseMessage]) -> LLMResult:
-    """Call the first model that succeeds, in models.yaml order."""
-    models = load_models()
+    """Call the first available model that succeeds, in models.yaml order.
+
+    Models marked unavailable (503 or timeout earlier in the conversation) are skipped.
+    If every model is marked, all of them are tried again rather than failing at once.
+    """
+    models = [m for m in load_models() if m not in _unavailable] or load_models()
     failures: list[tuple[str, BaseException]] = []
     for i, model in enumerate(models):
         try:
@@ -72,10 +113,15 @@ def call_llm(messages: list[BaseMessage]) -> LLMResult:
             if status_code(e) in NO_FALLBACK_STATUS:
                 raise
             failures.append((model, e))
+            marked = _marks_unavailable(e)
+            if marked:
+                _unavailable[model] = _short_error(e)
             next_model = models[i + 1] if i + 1 < len(models) else None
             if next_model:
-                log(msg("llm.switch_model", model=model, error=_short_error(e), next_model=next_model))
+                key = "llm.marked_unavailable" if marked else "llm.switch_model"
+                log(msg(key, model=model, error=_short_error(e), next_model=next_model))
             continue
+        _unavailable.pop(model, None)  # it answered: available again
 
         usage = response.response_metadata.get("token_usage") or {}
         return LLMResult(

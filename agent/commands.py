@@ -274,7 +274,10 @@ class CommandHandler:
         )
 
     def new(self) -> None:
+        from agent.llm import reset_unavailable_models
+
         self.session.reset()
+        reset_unavailable_models()  # a new conversation gives skipped models another chance
         self.out(msg("commands.new.done"), style="green")
 
     # ---- plain messages -------------------------------------------------------------

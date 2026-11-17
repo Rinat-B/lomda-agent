@@ -138,6 +138,56 @@ def test_no_fallback_on_account_errors(monkeypatch, status):
     assert calls == ["a"]
 
 
+def timeout_error() -> openai.APITimeoutError:
+    return openai.APITimeoutError(request=REQUEST)
+
+
+def test_timeout_is_30_seconds():
+    assert llm.REQUEST_TIMEOUT_SECONDS == 30
+
+
+@pytest.mark.parametrize("failure", [api_error(503), timeout_error()], ids=["503", "timeout"])
+def test_unavailable_model_is_skipped_for_the_rest_of_the_conversation(monkeypatch, failure, output):
+    calls = use_models(monkeypatch, {"a": failure, "b": FakeResponse()})
+    assert llm.call_llm([]).model == "b" and calls == ["a", "b"]
+    assert "a" in llm.unavailable_models()
+    assert msg("llm.marked_unavailable", model="a", error=llm._short_error(failure), next_model="b") in output()
+    calls.clear()
+    assert llm.call_llm([]).model == "b"
+    assert calls == ["b"]  # "a" skipped without waiting
+
+
+def test_429_does_not_mark_unavailable(monkeypatch):
+    calls = use_models(monkeypatch, {"a": api_error(429), "b": FakeResponse()})
+    llm.call_llm([])
+    llm.call_llm([])
+    assert calls == ["a", "b", "a", "b"] and llm.unavailable_models() == {}
+
+
+def test_when_all_models_are_unavailable_they_are_tried_again(monkeypatch):
+    calls = use_models(monkeypatch, {"a": api_error(503), "b": api_error(503)})
+    with pytest.raises(AllModelsFailedError):
+        llm.call_llm([])
+    assert set(llm.unavailable_models()) == {"a", "b"}
+    calls.clear()
+    with pytest.raises(AllModelsFailedError):
+        llm.call_llm([])
+    assert calls == ["a", "b"]  # not an instant failure with zero attempts
+
+
+def test_new_conversation_resets_unavailable_models(monkeypatch, session):
+    use_models(monkeypatch, {"a": api_error(503), "b": FakeResponse()})
+    llm.call_llm([])
+    assert llm.unavailable_models()
+    CommandHandler(session).handle("/new")
+    assert llm.unavailable_models() == {}
+
+
+def test_models_yaml_order():
+    llm.load_models.cache_clear()
+    assert llm.load_models()[0] == "nvidia/nemotron-3.5-super-vl:free"
+
+
 def test_missing_key(monkeypatch):
     monkeypatch.setattr(llm, "load_models", lambda: ["a"])
     with pytest.raises(MissingApiKeyError):

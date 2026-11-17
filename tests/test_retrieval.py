@@ -174,14 +174,46 @@ def test_source_labels(locator, key):
     assert nodes.source_label(locator) == msg(f"rag.source.{key}", file=locator["file"], number=number)
 
 
-def test_scope_check_passes_questions_that_match_the_files_without_a_model_call(index, fake_llm):
-    calls = fake_llm("OUT_OF_SCOPE")
-    result = nodes.scope_check({"question": DATA["queries"][1]["query"]}, {"configurable": {"index": index}})
-    assert result == {"in_scope": True} and calls == []
+@pytest.fixture
+def context_aware_model(monkeypatch):
+    """A fake gatekeeper that follows the instructions: IN_SCOPE only when an excerpt matched."""
+    calls = []
+
+    def fake_call_llm(messages):
+        calls.append(messages)
+        no_excerpt = "(none: no excerpt matches the question)" in messages[1].content
+        return make_result(text="OUT_OF_SCOPE" if no_excerpt else "IN_SCOPE")
+
+    monkeypatch.setattr(nodes, "call_llm", fake_call_llm)
+    return calls
 
 
-def test_scope_check_asks_the_model_when_the_question_does_not_match(index, fake_llm):
-    calls = fake_llm("OUT_OF_SCOPE")
+def test_scope_check_always_calls_the_model_with_file_context(index, context_aware_model):
+    question = DATA["queries"][1]["query"]  # the gift question
+    result = nodes.scope_check({"question": question}, {"configurable": {"index": index}})
+    assert result == {"in_scope": True}
+    assert len(context_aware_model) == 1  # never skipped
+    system, user = (m.content for m in context_aware_model[0])
+    assert nodes.SCOPE_CHECK_WITH_SOURCES in system
+    assert "Source files in this session: deck.pptx, ethics.pdf, safety.docx" in user
+    assert "(ethics.pdf, page 2, paragraph 5)" in user  # the gift excerpt
+    assert user.endswith(f"Question: {question}")
+
+
+def test_scope_check_blocks_unrelated_question_even_with_files(index, context_aware_model):
     result = nodes.scope_check({"question": DATA["unrelated_query"]}, {"configurable": {"index": index}})
     assert result["in_scope"] is False and result["answer"] == msg("graph.out_of_scope")
-    assert nodes.SCOPE_CHECK_WITH_SOURCES in calls[0][0].content
+    assert "(none: no excerpt matches the question)" in context_aware_model[0][1].content
+
+
+def test_scope_check_without_files_has_no_file_context(context_aware_model):
+    nodes.scope_check({"question": "q"}, {"configurable": {"index": ChunkIndex()}})
+    system, user = (m.content for m in context_aware_model[0])
+    assert system == nodes.SCOPE_CHECK_PROMPT and user == "q"
+
+
+def test_scope_check_respects_model_refusal_even_when_excerpt_matches(index, fake_llm):
+    """The model decides; a matching excerpt alone no longer forces IN_SCOPE."""
+    fake_llm("OUT_OF_SCOPE")
+    result = nodes.scope_check({"question": DATA["queries"][1]["query"]}, {"configurable": {"index": index}})
+    assert result["in_scope"] is False
