@@ -99,6 +99,10 @@
       "what": "כל המודלים ברשימה עמוסים כרגע (429)",
       "todo": "נסו שוב בעוד דקה, או הוסיפו מודל חינמי נוסף ל-agent/models.yaml"
     },
+    "models_unavailable": {
+      "what": "כל המודלים ברשימה לא זמינים כרגע (עמוסים, לא מגיבים או שלא ענו בזמן)",
+      "todo": "נסו שוב בעוד כמה דקות, או הוסיפו מודל חינמי נוסף ל-agent/models.yaml"
+    },
     "offline": {
       "what": "אין חיבור לאינטרנט, או ש-OpenRouter לא זמין",
       "todo": "בדקו את החיבור לרשת ונסו שוב"
@@ -118,13 +122,37 @@
     "reason_no_key": "לא הוגדר LANGSMITH_API_KEY",
     "reason_flag_off": "LANGSMITH_TRACING=false"
   },
+  "scope": {
+    "need_files": "כדי לבנות לומדה צריך קודם להוסיף קבצי מקור. הוסיפו קובץ עם /add <path> ובקשו שוב."
+  },
+  "topic_map": {
+    "objective_prefix": "הלומד יוכל ל"
+  },
+  "gate": {
+    "answers": {
+      "approve": ["y", "yes", "כן", "ט"],
+      "reject": ["n", "no", "לא", "מ"]
+    },
+    "topics": {
+      "title": "## מפת נושאים ({count} נושאים)",
+      "topic": "### {index}. {name}",
+      "objective": "**מטרה:** {objective}",
+      "sources": "**מקורות:** {sources}",
+      "ask": "לאשר? [Y/N + הערה]: ",
+      "ask_again": "לא הבנתי. כתבו Y לאישור, או N ואחריו מה לשנות.",
+      "ask_feedback": "מה לשנות במפה? ",
+      "revising": "מעדכן את המפה לפי ההערה...",
+      "approved": "מפת הנושאים אושרה. השלב הבא (תכנון מבנה) עוד לא בנוי."
+    }
+  },
   "rag": {
     "not_found": "לא מצאתי תשובה לשאלה הזו בקבצים שנוספו לשיחה. נסו לנסח אחרת, או הוסיפו קובץ שמכיל את המידע.",
     "sources": "**מקורות:** {sources}",
     "source": {
       "slide": "({file}, שקופית {number})",
       "page": "({file}, עמוד {number})",
-      "paragraph": "({file}, פסקה {number})"
+      "paragraph": "({file}, פסקה {number})",
+      "paragraphs": "({file}, פסקאות {start}–{end})"
     }
   },
   "graph": {

@@ -16,6 +16,8 @@ from agent.messages import msg
 MODELS_PATH = Path(__file__).parent / "models.yaml"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 REQUEST_TIMEOUT_SECONDS = 30
+# Long structured generations (a whole topic map) need more time than a short answer.
+LONG_REQUEST_TIMEOUT_SECONDS = 120
 # Account-level failures: every model would fail the same way, so do not fall back.
 NO_FALLBACK_STATUS = {401, 402}
 # A model that fails like this is skipped for the rest of the conversation.
@@ -77,7 +79,7 @@ def load_models() -> list[str]:
     return list(models)
 
 
-def _client(model: str) -> ChatOpenAI:
+def _client(model: str, timeout: float = REQUEST_TIMEOUT_SECONDS) -> ChatOpenAI:
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise MissingApiKeyError("OPENROUTER_API_KEY is not set")
@@ -87,7 +89,7 @@ def _client(model: str) -> ChatOpenAI:
         api_key=api_key,
         base_url=OPENROUTER_BASE_URL,
         max_retries=0,
-        timeout=REQUEST_TIMEOUT_SECONDS,
+        timeout=timeout,
     )
 
 
@@ -96,17 +98,18 @@ def _short_error(e: Exception) -> str:
     return str(code) if code else type(e).__name__
 
 
-def call_llm(messages: list[BaseMessage]) -> LLMResult:
+def call_llm(messages: list[BaseMessage], timeout: float = REQUEST_TIMEOUT_SECONDS) -> LLMResult:
     """Call the first available model that succeeds, in models.yaml order.
 
     Models marked unavailable (503 or timeout earlier in the conversation) are skipped.
     If every model is marked, all of them are tried again rather than failing at once.
+    `timeout` is per model attempt; long generations pass LONG_REQUEST_TIMEOUT_SECONDS.
     """
     models = [m for m in load_models() if m not in _unavailable] or load_models()
     failures: list[tuple[str, BaseException]] = []
     for i, model in enumerate(models):
         try:
-            response = _client(model).invoke(messages)
+            response = _client(model, timeout).invoke(messages)
         except MissingApiKeyError:
             raise
         except Exception as e:

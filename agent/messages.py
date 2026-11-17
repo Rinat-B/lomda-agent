@@ -14,6 +14,18 @@ def _load() -> dict[str, Any]:
         return json.load(f)
 
 
+def msg_list(key: str) -> list[str]:
+    """A list of strings stored under a dotted key."""
+    node: Any = _load()
+    for part in key.split("."):
+        if not isinstance(node, dict) or part not in node:
+            raise KeyError(f"Missing message key: {key}")
+        node = node[part]
+    if not isinstance(node, list) or not all(isinstance(x, str) for x in node):
+        raise KeyError(f"Message key is not a list of strings: {key}")
+    return list(node)
+
+
 def msg_or_none(key: str, **kwargs: Any) -> str | None:
     """Like msg(), but returns None for a missing key."""
     try:

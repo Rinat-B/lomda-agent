@@ -1,5 +1,6 @@
 """Per-conversation state: added source files and model usage."""
 
+import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -56,12 +57,17 @@ class Session:
     sources: dict[Path, SourceDoc] = field(default_factory=dict)
     usage: list[UsageRecord] = field(default_factory=list)
     index: ChunkIndex = field(default_factory=ChunkIndex)
+    # LangGraph checkpointer thread for this conversation; a new one per /new.
+    thread_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+    topic_map: list[dict] | None = None  # the approved topic map, once the gate passes
 
     def reset(self) -> None:
         self.files.clear()
         self.sources.clear()
         self.usage.clear()
         self.index.reset()
+        self.thread_id = uuid.uuid4().hex
+        self.topic_map = None
 
     def all_chunks(self) -> list[dict]:
         return [chunk for source in self.sources.values() for chunk in source.chunks]

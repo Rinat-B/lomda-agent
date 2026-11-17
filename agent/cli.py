@@ -1,8 +1,12 @@
 """Interactive CLI: read a line, run a command or send it through the agent graph."""
 
 import argparse
+from typing import Callable
+
+from langgraph.types import Command
 
 from agent.commands import CommandHandler
+from agent.gates import ask_topics_gate
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, show_markdown
 from agent.errors import report_error, setup_logging
@@ -19,21 +23,43 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def run_question(question: str, session: Session, graph) -> None:
-    """Run one question through the graph; errors are reported and never escape."""
+# Every run starts from a clean state: the checkpointer keeps a thread's previous values.
+FRESH_RUN = {
+    "intent": None,
+    "answer": None,
+    "sources": [],
+    "topic_map": None,
+    "feedback": None,
+    "approved": None,
+}
+
+
+def run_question(question: str, session: Session, graph, ask_fn: Callable[[str], str] = ask) -> None:
+    """Run one question through the graph, answering any human gates on the way.
+    Errors are reported and never escape."""
     start = len(session.usage)
+    config = {
+        "configurable": {
+            "thread_id": session.thread_id,
+            "usage_recorder": session.record_usage,
+            "index": session.index,
+        }
+    }
     try:
-        state = graph.invoke(
-            {"question": question},
-            config={"configurable": {"usage_recorder": session.record_usage, "index": session.index}},
-        )
-    except KeyboardInterrupt:
+        state = graph.invoke({**FRESH_RUN, "question": question}, config=config)
+        while state.get("__interrupt__"):
+            request = state["__interrupt__"][0].value
+            resume = ask_topics_gate(request["topics"], ask_fn, show_markdown, say)
+            state = graph.invoke(Command(resume=resume), config=config)
+    except (KeyboardInterrupt, EOFError):
         say(msg("cli.cancelled"), style="yellow")
         return
     except Exception as e:
         report_error(e)
         return
 
+    if state.get("approved"):
+        session.topic_map = state["topic_map"]
     show_markdown(state["answer"])
     totals = session.totals(session.usage[start:])
     log(

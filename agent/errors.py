@@ -77,15 +77,32 @@ def status_code(exc: BaseException) -> int | None:
     return None
 
 
-def is_connection_error(exc: BaseException) -> bool:
-    """True for network failures (no internet, DNS, refused, timeout)."""
+def is_timeout(exc: BaseException) -> bool:
+    """True when the request timed out (the server is slow, not necessarily unreachable)."""
     import httpx
     import openai
 
+    return any(isinstance(e, (openai.APITimeoutError, httpx.TimeoutException, TimeoutError)) for e in _chain(exc))
+
+
+def is_connection_error(exc: BaseException) -> bool:
+    """True for network failures (no internet, DNS, refused). Timeouts are not counted:
+    in openai a timeout is a subclass of APIConnectionError, but it means "slow"."""
+    import httpx
+    import openai
+
+    if is_timeout(exc):
+        return False
     return any(
         isinstance(e, (openai.APIConnectionError, httpx.TransportError, ConnectionError))
         for e in _chain(exc)
     )
+
+
+def _is_temporary(exc: BaseException) -> bool:
+    """Busy or unavailable model: 429, 5xx, or a timeout."""
+    code = status_code(exc)
+    return is_timeout(exc) or code == 429 or (code is not None and 500 <= code < 600)
 
 
 def classify(exc: BaseException) -> str:
@@ -100,6 +117,8 @@ def classify(exc: BaseException) -> str:
             return "offline"
         if all(status_code(e) == 429 for e in errors):
             return "rate_limited"
+        if all(_is_temporary(e) for e in errors):
+            return "models_unavailable"  # a mix of busy (429), down (5xx) and slow (timeout)
         exc = errors[-1]
     code = status_code(exc)
     if code == 401:

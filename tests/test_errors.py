@@ -40,7 +40,11 @@ def log_to_tmp(tmp_path, monkeypatch):
         (api_error(402), "no_credit"),
         (AllModelsFailedError([("a", api_error(429)), ("b", api_error(429))]), "rate_limited"),
         (AllModelsFailedError([("a", offline_error()), ("b", offline_error())]), "offline"),
-        (AllModelsFailedError([("a", api_error(429)), ("b", api_error(500))]), "unknown"),
+        (AllModelsFailedError([("a", api_error(429)), ("b", api_error(500))]), "models_unavailable"),
+        (AllModelsFailedError([("a", openai.APITimeoutError(request=REQUEST)), ("b", api_error(429))]),
+         "models_unavailable"),
+        (AllModelsFailedError([("a", openai.APITimeoutError(request=REQUEST))]), "models_unavailable"),
+        (AllModelsFailedError([("a", api_error(429)), ("b", api_error(400))]), "unknown"),
         (ValueError("boom"), "unknown"),
     ],
 )
@@ -109,7 +113,7 @@ def use_models(monkeypatch, outcomes: dict):
     monkeypatch.setattr(llm, "load_models", lambda: list(outcomes))
     calls = []
 
-    def client(model):
+    def client(model, timeout=None):
         calls.append(model)
         return FakeClient(outcomes[model])
 

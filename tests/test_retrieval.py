@@ -191,7 +191,7 @@ def context_aware_model(monkeypatch):
 def test_scope_check_always_calls_the_model_with_file_context(index, context_aware_model):
     question = DATA["queries"][1]["query"]  # the gift question
     result = nodes.scope_check({"question": question}, {"configurable": {"index": index}})
-    assert result == {"in_scope": True}
+    assert result == {"intent": nodes.INTENT_QUESTION}
     assert len(context_aware_model) == 1  # never skipped
     system, user = (m.content for m in context_aware_model[0])
     assert nodes.SCOPE_CHECK_WITH_SOURCES in system
@@ -202,7 +202,7 @@ def test_scope_check_always_calls_the_model_with_file_context(index, context_awa
 
 def test_scope_check_blocks_unrelated_question_even_with_files(index, context_aware_model):
     result = nodes.scope_check({"question": DATA["unrelated_query"]}, {"configurable": {"index": index}})
-    assert result["in_scope"] is False and result["answer"] == msg("graph.out_of_scope")
+    assert result["intent"] == nodes.INTENT_OUT and result["answer"] == msg("graph.out_of_scope")
     assert "(none: no excerpt matches the question)" in context_aware_model[0][1].content
 
 
@@ -216,4 +216,4 @@ def test_scope_check_respects_model_refusal_even_when_excerpt_matches(index, fak
     """The model decides; a matching excerpt alone no longer forces IN_SCOPE."""
     fake_llm("OUT_OF_SCOPE")
     result = nodes.scope_check({"question": DATA["queries"][1]["query"]}, {"configurable": {"index": index}})
-    assert result["in_scope"] is False
+    assert result["intent"] == nodes.INTENT_OUT
