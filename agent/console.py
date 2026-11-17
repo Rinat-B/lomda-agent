@@ -69,6 +69,26 @@ def _visual_order(text: str, base_dir: str) -> list[tuple[str, int]]:
     return [(ch["ch"], ch["idx"]) for ch in storage["chars"]]
 
 
+_PATH_PARTS = re.compile(r"[\\/]|[^\\/]+")
+
+
+def _path_visual_order(text: str) -> list[tuple[str, int]]:
+    """Visual order for a forced left-to-right line (paths, commands).
+
+    Each part between path separators is reordered on its own and the separators stay
+    in place. Otherwise a "\\" between two Hebrew folder names joins one right-to-left
+    run, and C:\\A\\B (A, B Hebrew) is displayed as C:\\B\\A.
+    """
+    ordered: list[tuple[str, int]] = []
+    for part in _PATH_PARTS.finditer(text):
+        start, chunk = part.start(), part.group()
+        if _HEBREW.search(chunk):
+            ordered.extend((ch, start + idx) for ch, idx in _visual_order(chunk, "L"))
+        else:
+            ordered.extend((ch, start + i) for i, ch in enumerate(chunk))
+    return ordered
+
+
 def _reorder_line(segments: list[Segment], base_dir: str | None = None) -> Text:
     """Turn one rendered line into a styled Text in visual (display) order.
 
@@ -83,7 +103,9 @@ def _reorder_line(segments: list[Segment], base_dir: str | None = None) -> Text:
         styles.extend([seg.style] * len(seg.text))
     line = "".join(chars)
 
-    if _HEBREW.search(line):
+    if _HEBREW.search(line) and base_dir == "L":
+        ordered = [(ch, styles[idx]) for ch, idx in _path_visual_order(line)]
+    elif _HEBREW.search(line):
         ordered = [(ch, styles[idx]) for ch, idx in _visual_order(line, base_dir or _base_dir(line))]
     else:
         ordered = list(zip(chars, styles))

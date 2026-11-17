@@ -30,6 +30,33 @@ def test_hebrew_folder_name_reads_correctly_inside_ltr_path(monkeypatch):
     assert shown == rf"C:\docs\{SHIN_LAMED_WAW_MEM[::-1]}\a.pdf"
 
 
+def word(*codes: int) -> str:
+    return "".join(map(chr, codes))
+
+
+LO = word(0x05DC, 0x05D0)  # "not"
+KAYAM = word(0x05E7, 0x05D9, 0x05D9, 0x05DD)  # "exists"
+FOLDERS = [word(0x05D0, 0x05D1, 0x05D2), word(0x05D3, 0x05D4, 0x05D5), word(0x05D6, 0x05D7, 0x05D8)]
+
+
+def test_two_hebrew_parts_keep_their_order(monkeypatch):
+    """Reported bug: C:\\LO\\KAYAM.pptx was shown as C:\\KAYAM\\LO.pptx."""
+    shown = render(monkeypatch, console_mod.say_path, rf"C:\{LO}\{KAYAM}.pptx")
+    assert shown == rf"C:\{LO[::-1]}\{KAYAM[::-1]}.pptx"
+
+
+def test_three_hebrew_folders_in_a_row(monkeypatch):
+    path = "C:\\" + "\\".join(FOLDERS) + "\\file.pptx"
+    shown = render(monkeypatch, console_mod.say_path, path)
+    assert shown == "C:\\" + "\\".join(f[::-1] for f in FOLDERS) + "\\file.pptx"
+
+
+def test_forward_slash_paths(monkeypatch):
+    path = "docs/" + "/".join(FOLDERS) + "/a.md"
+    shown = render(monkeypatch, console_mod.say_path, path)
+    assert shown == "docs/" + "/".join(f[::-1] for f in FOLDERS) + "/a.md"
+
+
 def _redraw(monkeypatch, typed: str) -> str:
     """Run ask() on a fake terminal and return the redrawn line (after the control codes)."""
     monkeypatch.setenv("HEBREW_BIDI", "on")
@@ -46,6 +73,13 @@ def test_command_input_is_redrawn_left_to_right(monkeypatch):
     shown = _redraw(monkeypatch, typed)
     assert shown.startswith(SHIN_LAMED_WAW_MEM[::-1] + ": /add C:\\Users\\")
     assert shown.endswith(rf"\docs\{SHIN_LAMED_WAW_MEM[::-1]}\a.docx")
+
+
+def test_command_with_three_hebrew_folders_is_redrawn_in_order(monkeypatch):
+    typed = r"/add C:" + "\\" + "\\".join(FOLDERS) + rf"\{KAYAM}.pptx"
+    shown = _redraw(monkeypatch, typed)
+    expected_path = "C:\\" + "\\".join(f[::-1] for f in FOLDERS) + "\\" + KAYAM[::-1] + ".pptx"
+    assert shown == SHIN_LAMED_WAW_MEM[::-1] + ": /add " + expected_path
 
 
 def test_hebrew_question_is_still_redrawn_right_to_left(monkeypatch):
