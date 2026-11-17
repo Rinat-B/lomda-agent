@@ -25,7 +25,7 @@ def run_question(question: str, session: Session, graph) -> None:
     try:
         state = graph.invoke(
             {"question": question},
-            config={"configurable": {"usage_recorder": session.record_usage}},
+            config={"configurable": {"usage_recorder": session.record_usage, "index": session.index}},
         )
     except KeyboardInterrupt:
         say(msg("cli.cancelled"), style="yellow")

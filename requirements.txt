@@ -12,3 +12,4 @@ langchain-mcp-adapters
 python-pptx
 python-docx
 pypdf
+rank-bm25

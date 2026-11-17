@@ -104,6 +104,39 @@ def test_unsupported_and_directory(tmp_path):
     assert read_source_file(str(tmp_path))["error"] == "not_a_file"
 
 
+def test_pdf_headers_footers_removed_and_cross_page_paragraph_joined():
+    r = read("headers.pdf")
+    all_text = "\n".join(texts(r))
+    assert "Logist Ltd" not in all_text and "Page " not in all_text
+    assert texts(r) == [
+        "1. Gifts",
+        "1.1 Gifts up to 250 NIS are allowed, provided that they are reported to the manager within 7 days.",
+        "1.2 Cash gifts are forbidden.",
+        "2. Reporting",
+        "2.1 Report violations within 48 hours.",
+    ]
+    assert r["chunks"][1]["locator"] == {"file": "headers.pdf", "page": 1, "paragraph": 2}
+
+
+def test_docx_header_footer_and_repeated_body_lines_removed():
+    r = read("headers.docx")
+    assert texts(r) == [
+        "Helmets are required in aisles.",
+        "Forklifts stop at crossings.",
+        "Exits must stay clear.",
+    ]
+
+
+def test_repeated_edges_needs_most_pages():
+    from agent.mcp_servers.source_reader import strip_repeated_edges
+
+    pages = [["Header", "a"], ["Header", "b"], ["c", "d"]]
+    assert strip_repeated_edges(pages) == [["a"], ["b"], ["c", "d"]]  # 2 of 3 pages: removed
+    pages = [["Title", "a"], ["b", "c"], ["d", "e"]]
+    assert strip_repeated_edges(pages) == pages  # only once: kept
+    assert strip_repeated_edges([["Only page", "x"]]) == [["Only page", "x"]]
+
+
 def test_merge_lines_rules():
     lines = ["1. Title", "1.1 first line of", "a wrapped paragraph.", "Next sentence starts here", "and ends."]
     assert _merge_lines(lines) == [

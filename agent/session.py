@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from agent.llm import LLMResult
+from agent.tools import ChunkIndex
 
 SUPPORTED_EXTENSIONS = (".pptx", ".docx", ".pdf", ".txt", ".md")
 
@@ -54,11 +55,16 @@ class Session:
     files: list[Path] = field(default_factory=list)
     sources: dict[Path, SourceDoc] = field(default_factory=dict)
     usage: list[UsageRecord] = field(default_factory=list)
+    index: ChunkIndex = field(default_factory=ChunkIndex)
 
     def reset(self) -> None:
         self.files.clear()
         self.sources.clear()
         self.usage.clear()
+        self.index.reset()
+
+    def all_chunks(self) -> list[dict]:
+        return [chunk for source in self.sources.values() for chunk in source.chunks]
 
     def has_file(self, path: Path) -> bool:
         return path.resolve() in {f.resolve() for f in self.files}
@@ -68,6 +74,7 @@ class Session:
         self.files.append(resolved)
         if source is not None:
             self.sources[resolved] = source
+            self.index.rebuild(self.all_chunks())
 
     def record_usage(self, node: str, result: LLMResult) -> None:
         self.usage.append(

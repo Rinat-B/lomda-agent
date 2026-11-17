@@ -117,6 +117,15 @@
     "reason_no_key": "לא הוגדר LANGSMITH_API_KEY",
     "reason_flag_off": "LANGSMITH_TRACING=false"
   },
+  "rag": {
+    "not_found": "לא מצאתי תשובה לשאלה הזו בקבצים שנוספו לשיחה. נסו לנסח אחרת, או הוסיפו קובץ שמכיל את המידע.",
+    "sources": "**מקורות:** {sources}",
+    "source": {
+      "slide": "({file}, שקופית {number})",
+      "page": "({file}, עמוד {number})",
+      "paragraph": "({file}, פסקה {number})"
+    }
+  },
   "graph": {
     "out_of_scope": "מצטער, אני יכול לעזור רק בנושאים שקשורים ליצירת לומדות ולמידה. אשמח לעזור אם יש לכם שאלה בתחום הזה."
   }

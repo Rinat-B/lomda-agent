@@ -120,6 +120,41 @@ def make_pdf(path: Path) -> None:
     )
 
 
+def make_headers_pdf(path: Path) -> None:
+    """3 pages with a running header and "Page N of 3" footer; one paragraph crosses a page."""
+    header = "Logist Ltd | Code of Ethics | v3.0"
+    path.write_bytes(
+        _pdf(
+            [
+                [header, "1. Gifts", "1.1 Gifts up to 250 NIS are allowed, provided that", "Page 1 of 3"],
+                [header, "they are reported to the manager within 7 days.", "1.2 Cash gifts are forbidden.",
+                 "Page 2 of 3"],
+                [header, "2. Reporting", "2.1 Report violations within 48 hours.", "Page 3 of 3"],
+            ]
+        )
+    )
+
+
+def make_headers_docx(path: Path) -> None:
+    """Real header/footer parts, plus a body line repeated at the top of every page."""
+    import docx
+    from docx.enum.text import WD_BREAK
+
+    d = docx.Document()
+    section = d.sections[0]
+    section.header.paragraphs[0].text = "Logist Ltd | Warehouse Safety"
+    section.footer.paragraphs[0].text = "Internal document"
+    for page, body in enumerate(["Helmets are required in aisles.", "Forklifts stop at crossings.",
+                                 "Exits must stay clear."], 1):
+        p = d.add_paragraph()
+        if page > 1:
+            p.add_run().add_break(WD_BREAK.PAGE)
+        p.add_run("Procedure B-104 (typed into the body)")
+        d.add_paragraph(body)
+    d.add_paragraph("Internal document")  # a copy of the footer text in the body
+    d.save(path)
+
+
 def make_encrypted_pdf(src: Path, path: Path) -> None:
     from pypdf import PdfReader, PdfWriter
 
@@ -136,6 +171,8 @@ def main() -> None:
     make_docx(HERE / "sample.docx")
     make_pdf(HERE / "sample.pdf")
     make_encrypted_pdf(HERE / "sample.pdf", HERE / "encrypted.pdf")
+    make_headers_pdf(HERE / "headers.pdf")
+    make_headers_docx(HERE / "headers.docx")
     # A password-protected Office file is an OLE container, not a zip.
     (HERE / "encrypted.docx").write_bytes(bytes.fromhex("D0CF11E0A1B11AE1") + b"\0" * 504)
     (HERE / "corrupt.pptx").write_bytes(b"this is not a zip file")

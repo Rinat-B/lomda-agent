@@ -1,0 +1,27 @@
+{
+  "tokenize": [
+    {"name": "niqqud removed", "text": "שָׁלוֹם עוֹלָם", "includes": ["שלום", "עולם"], "excludes": ["שָׁלוֹם"]},
+    {"name": "punctuation removed", "text": "שלום, עולם! (בדיקה) - סוף.", "includes": ["שלום", "עולם", "בדיקה", "סוף"], "excludes": [",", "!", "(", "-"]},
+    {"name": "gershayim inside abbreviation", "text": "לוגיסט בע״מ ו-קמ\"ש", "includes": ["בעמ", "קמש"], "excludes": ["בע", "מ"]},
+    {"name": "maqaf splits words", "text": "בית־ספר", "includes": ["בית", "ספר"], "excludes": ["ביתספר"]},
+    {"name": "one prefix", "text": "במלגזה", "includes": ["במלגזה", "מלגזה"]},
+    {"name": "two prefixes", "text": "והמלגזה", "includes": ["והמלגזה", "המלגזה", "מלגזה"]},
+    {"name": "stem kept at three letters", "text": "בית", "exact": ["בית"]},
+    {"name": "stopwords removed", "text": "הכלל של הבטיחות את העובד", "excludes": ["של", "את"]},
+    {"name": "numbers and english", "text": "Forklift עד 2.5 טון ב-WMS", "includes": ["forklift", "2.5", "טון", "wms"]}
+  ],
+  "chunks": [
+    {"text": "מרחק הבלימה במשאית חלוקה בכביש רטוב הוא 55 מטר במהירות 50 קמ״ש.", "kind": "body", "locator": {"file": "deck.pptx", "slide": 4, "paragraph": 2}},
+    {"text": "מותר לקבל מתנה ששוויה אינו עולה על 250 ₪.", "kind": "body", "locator": {"file": "ethics.pdf", "page": 2, "paragraph": 5}},
+    {"text": "מלגזן | נעלי בטיחות, אפוד זוהר, חגורת בטיחות", "kind": "table", "locator": {"file": "safety.docx", "paragraph": 18}},
+    {"text": "יש לבדוק את לחץ האוויר בצמיגים פעם בשבוע.", "kind": "body", "locator": {"file": "deck.pptx", "slide": 6, "paragraph": 2}},
+    {"text": "דיווח על הפרה יימסר לממונה הציות תוך 48 שעות.", "kind": "body", "locator": {"file": "ethics.pdf", "page": 3, "paragraph": 1}}
+  ],
+  "queries": [
+    {"query": "מה מרחק בלימה של משאית?", "expect_file": "deck.pptx", "expect_slide": 4},
+    {"query": "כמה מותר למתנות?", "expect_file": "ethics.pdf", "expect_page": 2},
+    {"query": "איזה ציוד צריך המלגזן?", "expect_file": "safety.docx", "expect_paragraph": 18},
+    {"query": "תוך כמה שעות מדווחים על הפרות?", "expect_file": "ethics.pdf", "expect_page": 3}
+  ],
+  "unrelated_query": "מתכון לעוגת שוקולד"
+}
