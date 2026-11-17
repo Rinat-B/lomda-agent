@@ -26,6 +26,9 @@ try {
         --workpath (Join-Path $root "build") `
         --add-data "$root\agent\models.yaml;agent" `
         --add-data "$root\agent\assets;agent\assets" `
+        --collect-data pptx `
+        --collect-data docx `
+        --hidden-import agent.mcp_servers.source_reader `
         (Join-Path $root "agent\cli.py")
     if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed with exit code $LASTEXITCODE" }
     Write-Host "Built: $(Join-Path $DistPath 'agent.exe')"

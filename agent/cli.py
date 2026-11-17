@@ -6,7 +6,7 @@ from agent.commands import CommandHandler
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, show_markdown
 from agent.errors import report_error, setup_logging
-from agent.graph import build_graph
+from agent.mcp_client import MCPManager, run_server
 from agent.messages import msg
 from agent.session import Session
 from agent.tracing import flush_traces, setup_tracing
@@ -15,6 +15,7 @@ from agent.tracing import flush_traces, setup_tracing
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="agent", description="E-learning lesson agent")
     parser.add_argument("--debug", action="store_true", help="show full tracebacks on screen")
+    parser.add_argument("--mcp", metavar="SERVER", help="run a built-in MCP server over stdio (internal)")
     return parser.parse_args(argv)
 
 
@@ -59,6 +60,13 @@ def run_turn(line: str, handler: CommandHandler, graph) -> bool:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.mcp:
+        # MCP server mode: stdout carries the protocol, so nothing else may run or print.
+        run_server(args.mcp)
+        return
+
+    from agent.graph import build_graph  # heavy import, not needed in MCP server mode
+
     configure_stdio()
     load_env()
     log_file = setup_logging(debug=args.debug)
@@ -70,7 +78,8 @@ def main(argv: list[str] | None = None) -> None:
 
     tracing_enabled = setup_tracing()
     graph = build_graph()
-    handler = CommandHandler(Session())
+    mcp = MCPManager()
+    handler = CommandHandler(Session(), mcp=mcp)
     say(msg("cli.welcome"))
 
     while True:
@@ -87,6 +96,10 @@ def main(argv: list[str] | None = None) -> None:
         except Exception as e:
             report_error(e, node="cli")
 
+    try:
+        mcp.close()
+    except Exception as e:
+        report_error(e, node="mcp")
     if tracing_enabled:
         try:
             flush_traces()

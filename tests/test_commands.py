@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -7,16 +8,24 @@ from agent.messages import msg
 from tests.conftest import make_result
 
 
+FIXTURES = Path(__file__).parent / "fixtures"
+SAMPLE_FOR = {".pptx": "sample.pptx", ".docx": "sample.docx", ".pdf": "sample.pdf", ".txt": "sample.txt", ".md": "sample.md"}
+
+
+def copy_sample(dest: Path) -> Path:
+    """Copy a real sample file of the same type to dest (so /add can read it)."""
+    shutil.copy(FIXTURES / SAMPLE_FOR[dest.suffix.lower()], dest)
+    return dest
+
+
 @pytest.fixture
-def handler(session):
-    return CommandHandler(session)
+def handler(session, fake_mcp):
+    return CommandHandler(session, mcp=fake_mcp)
 
 
 @pytest.fixture
 def lesson(tmp_path) -> Path:
-    p = tmp_path / "lesson.docx"
-    p.write_bytes(b"x" * 2048)
-    return p
+    return copy_sample(tmp_path / "lesson.docx")
 
 
 # ---- help / quit / unknown -------------------------------------------------------------
@@ -53,16 +62,14 @@ def test_add_existing_supported_file(handler, session, lesson, output):
 
 
 def test_add_quoted_path_with_spaces(handler, session, tmp_path):
-    p = tmp_path / "my slides.pptx"
-    p.write_bytes(b"x")
+    p = copy_sample(tmp_path / "my slides.pptx")
     handler.handle(f'/add "{p}"')
     assert session.files == [p.resolve()]
 
 
 @pytest.mark.parametrize("ext", [".pptx", ".docx", ".pdf", ".txt", ".md", ".PDF"])
 def test_add_all_supported_types(handler, session, tmp_path, ext):
-    p = tmp_path / f"f{ext}"
-    p.write_text("x")
+    p = copy_sample(tmp_path / f"f{ext}")
     handler.handle(f"/add {p}")
     assert len(session.files) == 1
 
@@ -119,8 +126,7 @@ def test_message_with_hebrew_prefix_on_path(handler, session, lesson):
 
 
 def test_message_with_quoted_path(handler, session, tmp_path):
-    p = tmp_path / "a b.pdf"
-    p.write_text("x")
+    p = copy_sample(tmp_path / "a b.pdf")
     handler.handle(f'summarize "{p}"')
     assert session.files == [p.resolve()]
 
@@ -156,7 +162,82 @@ def test_files_lists_added(handler, lesson, output):
     handler.handle("/files")
     out = output()
     assert msg("commands.files.header", count=1) in out
-    assert "lesson.docx (DOCX, 2.0 KB)" in out
+    assert f"lesson.docx (DOCX, {format_size(lesson.stat().st_size)})" in out
+    units_label = msg("commands.read.units.paragraph")
+    assert msg("commands.read.summary", units=6, unit_label=units_label, chunks=6) in out
+
+
+# ---- /add reads through the source-reader tool -------------------------------------------
+def test_add_reads_file_and_reports_counts(handler, session, tmp_path, fake_mcp, output):
+    p = copy_sample(tmp_path / "deck.pptx")
+    handler.handle(f"/add {p}")
+    assert fake_mcp.calls == [("source-reader", "read_source", {"path": str(p)})]
+    source = session.sources[p.resolve()]
+    assert (source.unit_type, source.units, len(source.chunks)) == ("slide", 3, 9)
+    label = msg("commands.read.units.slide")
+    assert msg("commands.read.summary", units=3, unit_label=label, chunks=9) in output()
+
+
+@pytest.mark.parametrize(
+    "fixture, code",
+    [("corrupt.pptx", "corrupt"), ("encrypted.pdf", "encrypted"), ("encrypted.docx", "encrypted"),
+     ("empty.txt", "empty")],
+)
+def test_add_unreadable_file_is_not_added_and_session_continues(handler, session, fixture, code, output):
+    result = handler.handle(f"/add {FIXTURES / fixture}")
+    assert session.files == [] and session.sources == {} and not result.quit
+    assert msg(f"commands.read.errors.{code}", name=fixture) in output()
+    assert handler.handle("/files").quit is False
+
+
+def test_add_without_mcp_does_not_add(session, lesson, output):
+    CommandHandler(session).handle(f"/add {lesson}")
+    assert session.files == []
+    assert msg("commands.read.no_mcp") in output()
+
+
+def test_new_clears_read_sources(handler, session, lesson):
+    handler.handle(f"/add {lesson}")
+    assert session.sources
+    handler.handle("/new")
+    assert session.sources == {}
+
+
+# ---- /mcp ------------------------------------------------------------------------------
+def test_mcp_lists_servers_and_tools(handler, output):
+    handler.handle("/mcp")
+    out = output()
+    assert msg("commands.mcp.header", count=1) in out
+    assert "source-reader" in out and msg("commands.mcp.status_connected") in out
+    assert "read_source" in out
+
+
+def test_mcp_auth_saves_secret_for_session_only(session, fake_mcp, output):
+    prompts = []
+    handler = CommandHandler(session, mcp=fake_mcp, ask_secret=lambda p: (prompts.append(p), " s3cret ")[1])
+    handler.handle("/mcp auth source-reader")
+    assert fake_mcp.credentials == {"source-reader": "s3cret"}
+    assert len(prompts) == 1
+    out = output()
+    assert msg("commands.mcp.auth_saved", name="source-reader") in out
+    assert "s3cret" not in out  # never echoed
+
+
+def test_mcp_auth_unknown_server(handler, fake_mcp, output):
+    handler.handle("/mcp auth nope")
+    assert fake_mcp.credentials == {}
+    assert msg("commands.mcp.unknown_server", name="nope", servers="source-reader") in output()
+
+
+def test_mcp_auth_empty_input_saves_nothing(session, fake_mcp, output):
+    CommandHandler(session, mcp=fake_mcp, ask_secret=lambda p: "  ").handle("/mcp auth source-reader")
+    assert fake_mcp.credentials == {}
+    assert msg("commands.mcp.auth_cancelled") in output()
+
+
+def test_mcp_auth_without_name(handler, output):
+    handler.handle("/mcp auth")
+    assert msg("commands.mcp.auth_usage") in output()
 
 
 def test_format_size():

@@ -7,3 +7,8 @@ langsmith
 pyinstaller
 python-bidi>=0.6,<0.7
 pytest
+mcp
+langchain-mcp-adapters
+python-pptx
+python-docx
+pypdf

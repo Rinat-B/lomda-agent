@@ -5,9 +5,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from agent.console import say, say_path, show_markdown
-from agent.messages import msg
-from agent.session import SUPPORTED_EXTENSIONS, Session, UsageTotals
+from agent.console import say, say_path, show_markdown, visual_prompt
+from agent.errors import report_error
+from agent.messages import msg, msg_or_none
+from agent.session import SUPPORTED_EXTENSIONS, Session, SourceDoc, UsageTotals
+
+SOURCE_READER = "source-reader"
+READ_ERROR_CODES = {"not_found", "not_a_file", "unsupported", "encrypted", "corrupt", "empty"}
 
 HELP_WORDS = {"help", "?", "/help"}
 QUIT_WORDS = {"/quit", "quit", "exit", "/exit"}
@@ -60,12 +64,16 @@ class CommandHandler:
         out: Callable[..., None] = say,
         out_markdown: Callable[[str], None] = show_markdown,
         out_path: Callable[[str], None] = say_path,
+        mcp=None,
+        ask_secret: Callable[[str], str] | None = None,
     ):
         self.session = session
         self.out = out
         self.out_markdown = out_markdown
         # File paths are printed on their own left-to-right line, never inside a Hebrew sentence.
         self.out_path = out_path
+        self.mcp = mcp  # agent.mcp_client.MCPManager (or a test double)
+        self.ask_secret = ask_secret
 
     # ---- dispatch -------------------------------------------------------------------
     def handle(self, line: str) -> TurnResult:
@@ -92,6 +100,9 @@ class CommandHandler:
             return TurnResult()
         if command == "/new":
             self.new()
+            return TurnResult()
+        if command == "/mcp":
+            self.mcp_command(arg)
             return TurnResult()
         if text.startswith("/"):
             self.out(msg("commands.unknown", command=command), style="yellow")
@@ -131,9 +142,41 @@ class CommandHandler:
         if self.session.has_file(path):
             self.out(msg("commands.add.duplicate", name=path.name))
             return False
-        self.session.add_file(path)
+        source = self._read_source(path)
+        if source is None:
+            return False
+        self.session.add_file(path, source)
         self.out(msg("commands.add.added", name=path.name, count=len(self.session.files)), style="green")
+        self.out(self._read_summary(source))
         return True
+
+    def _read_source(self, path: Path) -> SourceDoc | None:
+        """Read the file through the source-reader MCP tool. None (with a message) on failure."""
+        if self.mcp is None:
+            self.out(msg("commands.read.no_mcp"), style="yellow")
+            return None
+        self.out(msg("commands.read.reading", name=path.name))
+        try:
+            result = self.mcp.call(SOURCE_READER, "read_source", {"path": str(path)})
+        except Exception as e:
+            report_error(e, node=SOURCE_READER)
+            return None
+        if not isinstance(result, dict) or not result.get("ok"):
+            code = result.get("error", "unknown") if isinstance(result, dict) else "unknown"
+            key = f"commands.read.errors.{code}"
+            self.out(msg(key if code in READ_ERROR_CODES else "commands.read.errors.unknown", name=path.name),
+                     style="yellow")
+            return None
+        return SourceDoc(unit_type=result["unit_type"], units=result["units"], chunks=result["chunks"])
+
+    @staticmethod
+    def _read_summary(source: SourceDoc) -> str:
+        return msg(
+            "commands.read.summary",
+            units=source.units,
+            unit_label=msg(f"commands.read.units.{source.unit_type}"),
+            chunks=len(source.chunks),
+        )
 
     def files(self) -> None:
         if not self.session.files:
@@ -144,7 +187,69 @@ class CommandHandler:
             size = format_size(path.stat().st_size) if path.exists() else msg("commands.files.missing")
             kind = path.suffix.lstrip(".").upper()
             self.out(msg("commands.files.item", index=i, name=path.name, kind=kind, size=size))
+            source = self.session.sources.get(path)
+            if source is not None:
+                self.out("   " + self._read_summary(source))
             self.out_path("   " + str(path))
+
+    # ---- /mcp -----------------------------------------------------------------------
+    def mcp_command(self, arg: str) -> None:
+        if self.mcp is None:
+            self.out(msg("commands.read.no_mcp"), style="yellow")
+            return
+        sub, _, rest = arg.strip().partition(" ")
+        if not sub:
+            self.mcp_list()
+        elif sub.lower() == "auth":
+            self.mcp_auth(rest.strip())
+        else:
+            self.out(msg("commands.mcp.usage"), style="yellow")
+
+    def mcp_list(self) -> None:
+        self.mcp.ensure_all()
+        self.out(msg("commands.mcp.header", count=len(self.mcp.states)))
+        for name, state in self.mcp.states.items():
+            if state.connected:
+                status = msg("commands.mcp.status_connected")
+            else:
+                status = msg("commands.mcp.status_failed")
+            auth = ""
+            if self.mcp.needs_auth(name):
+                auth = msg("commands.mcp.auth_set" if name in self.mcp.credentials else "commands.mcp.auth_missing")
+            self.out(msg("commands.mcp.server", name=name, status=status, auth=auth))
+            for tool in state.tools:
+                description = msg_or_none(f"commands.mcp.tool_descriptions.{tool}") or ""
+                self.out(msg("commands.mcp.tool", tool=tool, description=description))
+            if not state.connected and state.error:
+                self.out(msg("commands.mcp.error_hint"), style="yellow")
+
+    def mcp_auth(self, name: str) -> None:
+        if not name:
+            self.out(msg("commands.mcp.auth_usage"), style="yellow")
+            return
+        if name not in self.mcp.specs:
+            self.out(msg("commands.mcp.unknown_server", name=name, servers=", ".join(self.mcp.specs)), style="yellow")
+            return
+        ask = self.ask_secret
+        if ask is None:
+            from agent.config import read_secret
+
+            ask = read_secret
+        try:
+            secret = ask(visual_prompt(msg("commands.mcp.auth_prompt", name=name))).strip()
+        except (EOFError, KeyboardInterrupt):
+            secret = ""
+        if not secret:
+            self.out(msg("commands.mcp.auth_cancelled"), style="yellow")
+            return
+        try:
+            self.mcp.set_credentials(name, secret)
+        except Exception as e:
+            report_error(e, node=name)
+            return
+        self.out(msg("commands.mcp.auth_saved", name=name), style="green")
+        if not self.mcp.needs_auth(name):
+            self.out(msg("commands.mcp.auth_not_required", name=name))
 
     def cost(self) -> None:
         if not self.session.usage:

@@ -14,6 +14,14 @@ def _load() -> dict[str, Any]:
         return json.load(f)
 
 
+def msg_or_none(key: str, **kwargs: Any) -> str | None:
+    """Like msg(), but returns None for a missing key."""
+    try:
+        return msg(key, **kwargs)
+    except KeyError:
+        return None
+
+
 def msg(key: str, **kwargs: Any) -> str:
     """Return the message for a dotted key (e.g. "cli.no_question"), formatted with kwargs."""
     node: Any = _load()

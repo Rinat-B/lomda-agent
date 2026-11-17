@@ -41,19 +41,33 @@ class UsageTotals:
 
 
 @dataclass
+class SourceDoc:
+    """A source file read by the source-reader MCP server."""
+
+    unit_type: str  # "slide", "page" or "paragraph"
+    units: int
+    chunks: list[dict]  # each: {"text", "kind", "locator": {"file", "slide"/"page", "paragraph"}}
+
+
+@dataclass
 class Session:
     files: list[Path] = field(default_factory=list)
+    sources: dict[Path, SourceDoc] = field(default_factory=dict)
     usage: list[UsageRecord] = field(default_factory=list)
 
     def reset(self) -> None:
         self.files.clear()
+        self.sources.clear()
         self.usage.clear()
 
     def has_file(self, path: Path) -> bool:
         return path.resolve() in {f.resolve() for f in self.files}
 
-    def add_file(self, path: Path) -> None:
-        self.files.append(path.resolve())
+    def add_file(self, path: Path, source: SourceDoc | None = None) -> None:
+        resolved = path.resolve()
+        self.files.append(resolved)
+        if source is not None:
+            self.sources[resolved] = source
 
     def record_usage(self, node: str, result: LLMResult) -> None:
         self.usage.append(
