@@ -460,7 +460,7 @@ lomda-agent/
 - **injection_guard:** רץ בזמן `/add` (לא כצמת בגרף), עם תבניות בקוד ואישור במודל הקטן לחשודים בלבד. כל פרומפט שמכיל מקור עוטף אותו ב-`<source_material>` ומוסיף את ההנחיה `SOURCE_DATA_RULE` (`agent/guards.py`).
 - **סדר הגרף:** `scope_check` ← `classify_type` ← `gate_type` ← `topic_map` ← `gate_topics` ← `plan_structure` ← `gate_structure`. לכל צמת מפיק יש רק קשת לשער שלו. השערים `gate_topics` ו-`gate_structure` חולקים מנגנון (Y/N בלי מודל, טקסט חופשי מסווג, שאלה נענית), עם מילון מונחים לכל שער; בשער המבנה "המחשה" היא שדה המסך ולא המוטיב.
 - **מבנה הלומדה (שלב 2):** `plan_structure` מחזיר JSON שנבדק ב-Pydantic (`agent/structure.py`): לכל מסך מספר, כותרת, נושא ומטרה מהמפה, 2–4 נקודות תוכן עם מאתרים, רעיון לשאלת החלטה, רעיון להמחשה (או אין), ותרשים החלטה כן/לא; ו-2–3 תיאורי מוטיב. כל נושא מקבל מסך; בציות עד 80 מילים בנקודות של מסך. המבנה מוצג כרשימה לפי מסכים, לא כטבלה. קול קריינות ועובדות העשרה עוד לא נכנסו.
-- **ה-exe:** `scripts/build.ps1`; שרת ה-MCP רץ כ-`agent.exe --mcp source-reader`. לפני build סוגרים חלון פתוח של `dist\agent.exe`.
+- **ה-exe:** `scripts/build.ps1`; שרת ה-MCP רץ כ-`agent.exe --mcp source-reader`. אם `dist\agent.exe` נעול (חלון או טרמינל של VS Code עדיין מריצים אותו), הסקריפט בונה ל-`dist-new` ומבקש לסגור את החלון; ה-build הבא שמוצא את הקובץ פנוי בונה שוב ל-`dist` ומוחק את `dist-new` (`dist-new/` ב-`.gitignore`).
 
 ## מקורות
 
