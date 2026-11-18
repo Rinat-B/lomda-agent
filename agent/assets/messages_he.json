@@ -99,6 +99,14 @@
       "what": "כל המודלים ברשימה עמוסים כרגע (429)",
       "todo": "נסו שוב בעוד דקה, או הוסיפו מודל חינמי נוסף ל-agent/models.yaml"
     },
+    "daily_quota": {
+      "what": "נגמרה המכסה היומית של מודלים חינמיים ב-OpenRouter ({limit} בקשות ביום)",
+      "todo": "המכסה מתאפסת {reset}. אפשר גם לטעון 10$ קרדיט ב-openrouter.ai/settings/credits, וזה מעלה את המכסה ל-1000 בקשות ביום גם במודלים החינמיים",
+      "reset_today": "היום ב-{time}",
+      "reset_tomorrow": "מחר ב-{time}",
+      "reset_date": "ב-{date} בשעה {time}",
+      "reset_unknown": "בחצות לפי שעון UTC"
+    },
     "models_unavailable": {
       "what": "כל המודלים ברשימה לא זמינים כרגע (עמוסים, לא מגיבים או שלא ענו בזמן)",
       "todo": "נסו שוב בעוד כמה דקות, או הוסיפו מודל חינמי נוסף ל-agent/models.yaml"

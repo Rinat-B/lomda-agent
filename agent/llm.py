@@ -21,7 +21,7 @@ from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 
 from agent.console import log
-from agent.errors import AllModelsFailedError, MissingApiKeyError, status_code
+from agent.errors import AllModelsFailedError, MissingApiKeyError, daily_quota_info, status_code
 from agent.messages import msg
 
 MODELS_PATH = Path(__file__).parent / "models.yaml"
@@ -216,7 +216,10 @@ def call_llm(messages: list[BaseMessage], timeout: float = REQUEST_TIMEOUT_SECON
     all_models = load_models(role)
     models = [m for m in all_models if m not in _unavailable] or all_models
     failures: list[tuple[str, BaseException]] = []
+    free_quota_hit = False
     for i, model in enumerate(models):
+        if free_quota_hit and model.endswith(":free"):
+            continue  # the daily free quota is per account: every free model would fail
         try:
             response = _client(model, timeout).invoke(messages)
         except MissingApiKeyError:
@@ -229,6 +232,12 @@ def call_llm(messages: list[BaseMessage], timeout: float = REQUEST_TIMEOUT_SECON
                 if _switch_to_free(e):
                     return call_llm(messages, timeout=timeout, role=role)
                 raise
+            if daily_quota_info(e) is not None:
+                free_quota_hit = True
+                if all(m.endswith(":free") for m in models[i + 1:]):
+                    raise  # nothing left that the quota does not block
+                failures.append((model, e))
+                continue
             failures.append((model, e))
             marked = _marks_unavailable(e)
             if marked:

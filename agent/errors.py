@@ -105,12 +105,83 @@ def _is_temporary(exc: BaseException) -> bool:
     return is_timeout(exc) or code == 429 or (code is not None and 500 <= code < 600)
 
 
+# OpenRouter's daily cap on free-model requests (per account, resets at 00:00 UTC).
+_DAILY_QUOTA_MARKS = ("free-models-per-day", "openrouter_free_tier_daily")
+
+
+def _find_key(obj, key: str):
+    """Case-insensitive search for a key in nested dicts/lists."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if isinstance(k, str) and k.lower() == key.lower():
+                return v
+            found = _find_key(v, key)
+            if found is not None:
+                return found
+    elif isinstance(obj, list):
+        for v in obj:
+            found = _find_key(v, key)
+            if found is not None:
+                return found
+    return None
+
+
+def _as_int(value) -> int | None:
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def daily_quota_info(exc: BaseException) -> dict | None:
+    """If the error is OpenRouter's free-models-per-day limit: {"limit", "reset_ms"} (either
+    may be None). Looks through causes, NodeError and AllModelsFailedError failures."""
+    candidates = [exc]
+    if isinstance(exc, NodeError):
+        candidates.append(exc.cause)
+    for c in list(candidates):
+        if isinstance(c, AllModelsFailedError):
+            candidates += [e for _, e in c.failures]
+    found = False
+    for candidate in candidates:
+        for e in _chain(candidate):
+            body = getattr(e, "body", None)
+            text = f"{e} {body!r}"
+            if not any(mark in text for mark in _DAILY_QUOTA_MARKS):
+                continue
+            found = True  # wrappers (NodeError) repeat the message but carry no data: keep looking
+            headers = getattr(getattr(e, "response", None), "headers", None) or {}
+            limit = _as_int(headers.get("x-ratelimit-limit")) or _as_int(_find_key(body, "X-RateLimit-Limit"))
+            reset = _as_int(headers.get("x-ratelimit-reset")) or _as_int(_find_key(body, "X-RateLimit-Reset"))
+            if limit or reset:
+                return {"limit": limit, "reset_ms": reset}
+    return {"limit": None, "reset_ms": None} if found else None
+
+
+def quota_reset_text(reset_ms: int | None, now=None) -> str:
+    """When the daily quota resets, in local time: today / tomorrow / a date."""
+    from datetime import datetime, timedelta, timezone
+
+    if not reset_ms:
+        return msg("errors.daily_quota.reset_unknown")
+    when = datetime.fromtimestamp(reset_ms / 1000, tz=timezone.utc).astimezone()
+    today = (now or datetime.now().astimezone()).date()
+    time_text = when.strftime("%H:%M")
+    if when.date() == today:
+        return msg("errors.daily_quota.reset_today", time=time_text)
+    if when.date() == today + timedelta(days=1):
+        return msg("errors.daily_quota.reset_tomorrow", time=time_text)
+    return msg("errors.daily_quota.reset_date", date=when.strftime("%d.%m.%Y"), time=time_text)
+
+
 def classify(exc: BaseException) -> str:
     """Map an exception to a message kind in messages_he.json under "errors"."""
     if isinstance(exc, NodeError):
         exc = exc.cause
     if any(isinstance(e, MissingApiKeyError) for e in _chain(exc)):
         return "missing_key"
+    if daily_quota_info(exc) is not None:
+        return "daily_quota"  # before rate_limited: a 429 that will not clear in a minute
     if isinstance(exc, AllModelsFailedError) and exc.failures:
         errors = [e for _, e in exc.failures]
         if all(is_connection_error(e) for e in errors):
@@ -132,13 +203,21 @@ def classify(exc: BaseException) -> str:
     return "unknown"
 
 
+DEFAULT_FREE_DAILY_LIMIT = 50
+
+
 def format_error(node: str, exc: BaseException) -> str:
     kind = classify(exc)
+    details = {"detail": _short(exc), "log_file": str(log_dir() / LOG_FILE_NAME)}
+    if kind == "daily_quota":
+        info = daily_quota_info(exc) or {}
+        details["limit"] = info.get("limit") or DEFAULT_FREE_DAILY_LIMIT
+        details["reset"] = quota_reset_text(info.get("reset_ms"))
     return msg(
         "errors.format",
         node=node,
-        what=msg(f"errors.{kind}.what", detail=_short(exc)),
-        todo=msg(f"errors.{kind}.todo", log_file=str(log_dir() / LOG_FILE_NAME)),
+        what=msg(f"errors.{kind}.what", **details),
+        todo=msg(f"errors.{kind}.todo", **details),
     )
 
 

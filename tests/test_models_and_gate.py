@@ -276,3 +276,86 @@ def test_unusable_classifier_reply_is_retried_then_treated_as_change(gate_model,
     topic_prompts = [u for k, _, u in gate_model.calls if k == "topic_map"]
     assert "apply this feedback: something unclear" in topic_prompts[1]
     assert session.topic_map is not None
+
+
+# ---- OpenRouter's daily free-model quota ---------------------------------------------------------
+RESET_MS = 1795046400000  # 19.11.2026 00:00 UTC, as OpenRouter returned it
+
+
+def quota_error(with_headers: bool = True) -> openai.RateLimitError:
+    """The 429 OpenRouter returns when the free-models-per-day quota is used up."""
+    body = {
+        "message": "Rate limit exceeded: free-models-per-day. Add 10 credits to unlock 1000 free model requests per day",
+        "code": 429,
+        "metadata": {"headers": {"X-RateLimit-Limit": "50", "X-RateLimit-Remaining": "0",
+                                 "X-RateLimit-Reset": str(RESET_MS)},
+                     "limit_source": "openrouter_free_tier_daily"},
+    }
+    headers = {"x-ratelimit-limit": "50", "x-ratelimit-reset": str(RESET_MS)} if with_headers else {}
+    response = httpx.Response(429, headers=headers, request=REQUEST)
+    return openai.RateLimitError(message=body["message"], response=response, body=body)
+
+
+@pytest.mark.parametrize("with_headers", [True, False], ids=["headers", "body only"])
+def test_daily_quota_is_recognised_with_limit_and_reset(with_headers):
+    from agent.errors import AllModelsFailedError, NodeError, classify, daily_quota_info
+
+    err = quota_error(with_headers)
+    assert daily_quota_info(err) == {"limit": 50, "reset_ms": RESET_MS}
+    assert classify(err) == "daily_quota"
+    assert classify(NodeError("topic_map", err)) == "daily_quota"
+    assert classify(AllModelsFailedError([("a:free", err)])) == "daily_quota"
+
+
+def test_an_ordinary_429_is_still_rate_limited():
+    from agent.errors import classify, daily_quota_info
+
+    busy = openai.RateLimitError(message="Provider returned error",
+                                 response=httpx.Response(429, request=REQUEST), body={"message": "busy"})
+    assert daily_quota_info(busy) is None and classify(busy) == "rate_limited"
+
+
+def test_daily_quota_message_has_limit_reset_and_the_credit_option(monkeypatch):
+    import agent.errors as errors
+    from agent.errors import NodeError, format_error
+
+    monkeypatch.setattr(errors, "quota_reset_text", lambda ms: f"RESET<{ms}>")
+    line = format_error("scope_check", NodeError("scope_check", quota_error()))
+    assert line == msg(
+        "errors.format",
+        node="scope_check",
+        what=msg("errors.daily_quota.what", limit=50),
+        todo=msg("errors.daily_quota.todo", reset=f"RESET<{RESET_MS}>"),
+    )
+    assert "10$" in line and "1000" in line and "openrouter.ai/settings/credits" in line
+
+
+def test_quota_reset_text_today_tomorrow_date_unknown():
+    from datetime import datetime, timedelta, timezone
+
+    from agent.errors import quota_reset_text
+
+    reset = datetime.fromtimestamp(RESET_MS / 1000, tz=timezone.utc).astimezone()
+    time_text = reset.strftime("%H:%M")
+    assert quota_reset_text(RESET_MS, now=reset) == msg("errors.daily_quota.reset_today", time=time_text)
+    assert quota_reset_text(RESET_MS, now=reset - timedelta(days=1)) == msg(
+        "errors.daily_quota.reset_tomorrow", time=time_text)
+    assert quota_reset_text(RESET_MS, now=reset - timedelta(days=5)) == msg(
+        "errors.daily_quota.reset_date", date=reset.strftime("%d.%m.%Y"), time=time_text)
+    assert quota_reset_text(None) == msg("errors.daily_quota.reset_unknown")
+
+
+def test_quota_stops_at_the_first_free_model(monkeypatch, output):
+    monkeypatch.setattr(llm, "load_models", lambda role="writer": ["a:free", "b:free", "c:free"])
+    calls = fake_clients(monkeypatch, lambda m: quota_error())
+    with pytest.raises(openai.RateLimitError):
+        llm.call_llm([], role="small")
+    assert calls == ["a:free"]  # no pointless attempts on the other free models
+    assert "b:free" not in output()  # no "switching to the next model" lines
+
+
+def test_quota_skips_free_models_but_still_tries_a_paid_one(monkeypatch):
+    monkeypatch.setattr(llm, "load_models", lambda role="writer": ["a:free", "b:free", "paid/model"])
+    calls = fake_clients(monkeypatch, lambda m: quota_error() if m.endswith(":free") else OkResponse())
+    assert llm.call_llm([], role="small").model == "paid/model"
+    assert calls == ["a:free", "paid/model"]
