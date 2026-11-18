@@ -199,20 +199,40 @@ def test_missing_key(monkeypatch):
 
 
 # ---- the CLI keeps running after errors ---------------------------------------------------
+class _Snapshot:
+    def __init__(self, values):
+        self.values, self.interrupts, self.next = values, (), ()
+
+
 class FailingGraph:
+    """Stands in for the compiled graph: its run raises."""
+
     def __init__(self, exc):
         self.exc = exc
 
-    def invoke(self, state, config=None):
+    def stream(self, payload, config=None, stream_mode=None):
         raise self.exc
+
+    def get_state(self, config):
+        return _Snapshot({})
 
 
 class AnsweringGraph:
-    def invoke(self, state, config=None):
+    """Stands in for the compiled graph: records usage and answers, no gates."""
+
+    def __init__(self):
+        self.values = {}
+
+    def stream(self, payload, config=None, stream_mode=None):
         record = config["configurable"]["usage_recorder"]
+        for node in ("scope_check", "answer"):
+            yield {"id": node, "name": node, "input": {}, "triggers": []}
         record("scope_check", make_result("a/free", 10, 1))
         record("answer", make_result("a/free", 20, 30))
-        return {"question": state["question"], "in_scope": True, "answer": "**answer**"}
+        self.values = {"question": payload["question"], "intent": "question", "answer": "**answer**"}
+
+    def get_state(self, config):
+        return _Snapshot(self.values)
 
 
 def test_error_does_not_stop_the_loop(session, output):
@@ -226,5 +246,6 @@ def test_error_does_not_stop_the_loop(session, output):
 def test_successful_question_records_cost(session, output):
     run_question("q", session, AnsweringGraph())
     assert len(session.usage) == 2
+    assert "[INFO] Entering Node: scope_check" in output() and "[INFO] Entering Node: answer" in output()
     expected = msg("cli.cost_line", calls=2, prompt_tokens=30, completion_tokens=31, total_tokens=61, cost=0.0)
     assert expected in output()

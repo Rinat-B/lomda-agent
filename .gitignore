@@ -8,3 +8,4 @@ build/
 *.spec
 logs/
 .pytest_cache/
+data/

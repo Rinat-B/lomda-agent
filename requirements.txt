@@ -13,3 +13,4 @@ python-pptx
 python-docx
 pypdf
 rank-bm25
+langgraph-checkpoint-sqlite

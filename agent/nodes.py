@@ -93,10 +93,6 @@ class AgentState(TypedDict, total=False):
     approved: bool | None
 
 
-def _enter(name: str) -> None:
-    log(f"[INFO] Entering Node: {name}")
-
-
 def _configurable(config: RunnableConfig | None) -> dict:
     return (config or {}).get("configurable") or {}
 
@@ -119,7 +115,6 @@ def _call(node: str, messages: list, config: RunnableConfig | None, timeout: flo
 
 
 def scope_check(state: AgentState, config: RunnableConfig) -> dict:
-    _enter("scope_check")
     index = _index(config)
     if index is None:
         system, user = SCOPE_CHECK_PROMPT, state["question"]
@@ -215,7 +210,6 @@ def sources_line(hits: list[dict]) -> str:
 
 
 def answer(state: AgentState, config: RunnableConfig) -> dict:
-    _enter("answer")
     index = _index(config)
     if index is None:
         result = _call("answer", [SystemMessage(ANSWER_PROMPT), HumanMessage(state["question"])], config)
@@ -242,7 +236,6 @@ def answer(state: AgentState, config: RunnableConfig) -> dict:
 # ---- lesson building: topic map + approval gate ----------------------------------------
 def topic_map(state: AgentState, config: RunnableConfig) -> dict:
     """Build (or revise, after gate feedback) a 4-8 topic map from ALL source chunks."""
-    _enter("topic_map")
     index = _index(config)
     if index is None:  # routing only gets here with files; keep a clear error just in case
         raise NodeError("topic_map", ValueError("no source files in the session"))
@@ -277,8 +270,8 @@ def topic_map(state: AgentState, config: RunnableConfig) -> dict:
 def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
     """Human approval of the topic map. Pauses the graph with interrupt(); the CLI shows the
     map and resumes with {"approved": bool, "feedback": str}.
-    Note: on resume LangGraph re-runs this node from the top, so its [INFO] line prints again."""
-    _enter("gate_topics")
+    On resume LangGraph re-runs this node from the top, so it must not print anything:
+    the CLI prints "[INFO] Entering Node" lines from the stream and skips the re-entry."""
     reply = interrupt({"gate": "topics", "topics": state["topic_map"]})
     if not isinstance(reply, dict):
         reply = {"approved": False, "feedback": str(reply)}

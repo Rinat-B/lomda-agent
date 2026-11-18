@@ -6,10 +6,10 @@ from typing import Callable
 from langgraph.types import Command
 
 from agent.commands import CommandHandler
-from agent.gates import ask_topics_gate
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, show_markdown
 from agent.errors import report_error, setup_logging
+from agent.gates import GateExit, ask_topics_gate
 from agent.mcp_client import MCPManager, run_server
 from agent.messages import msg
 from agent.session import Session
@@ -34,33 +34,68 @@ FRESH_RUN = {
 }
 
 
-def run_question(question: str, session: Session, graph, ask_fn: Callable[[str], str] = ask) -> None:
-    """Run one question through the graph, answering any human gates on the way.
-    Errors are reported and never escape."""
-    start = len(session.usage)
-    config = {
+def graph_config(session: Session) -> dict:
+    return {
         "configurable": {
             "thread_id": session.thread_id,
             "usage_recorder": session.record_usage,
             "index": session.index,
         }
     }
+
+
+def stream_until_pause(graph, payload, config: dict, resumed_node: str | None = None) -> None:
+    """Run the graph and print "[INFO] Entering Node: <name>" when each node starts.
+
+    On resume, LangGraph runs the paused node again from the top; that re-entry is the
+    first node to start, and it is not printed a second time.
+    """
+    skip = resumed_node
+    for task in graph.stream(payload, config, stream_mode="tasks"):
+        if "input" not in task:  # a task result, not a task start
+            continue
+        if skip is not None and task["name"] == skip:
+            skip = None
+            continue
+        skip = None
+        log(f"[INFO] Entering Node: {task['name']}")
+
+
+def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = ask, store=None) -> bool:
+    """Run (payload) or continue (payload=None) the session's conversation, answering gates
+    on the way. Errors are reported and never escape. Returns False if the user asked to quit."""
+    start = len(session.usage)
+    config = graph_config(session)
+    keep_running = True
     try:
-        state = graph.invoke({**FRESH_RUN, "question": question}, config=config)
-        while state.get("__interrupt__"):
-            request = state["__interrupt__"][0].value
-            resume = ask_topics_gate(request["topics"], ask_fn, show_markdown, say)
-            state = graph.invoke(Command(resume=resume), config=config)
-    except (KeyboardInterrupt, EOFError):
-        say(msg("cli.cancelled"), style="yellow")
-        return
+        if payload is not None:
+            stream_until_pause(graph, payload, config)
+        while True:
+            snapshot = graph.get_state(config)
+            if not snapshot.interrupts:
+                break
+            paused_node = snapshot.next[0] if snapshot.next else None
+            resume = ask_topics_gate(snapshot.interrupts[0].value["topics"], ask_fn, show_markdown, say)
+            stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
+    except (GateExit, EOFError):
+        say(msg("gate.paused"), style="yellow")
+        return False
+    except KeyboardInterrupt:
+        paused = bool(graph.get_state(config).interrupts)
+        say(msg("gate.paused" if paused else "cli.cancelled"), style="yellow")
+        return True
     except Exception as e:
         report_error(e)
-        return
+        return True
+    finally:
+        if store is not None:
+            store.save(session)
 
-    if state.get("approved"):
-        session.topic_map = state["topic_map"]
-    show_markdown(state["answer"])
+    values = graph.get_state(config).values
+    if values.get("approved"):
+        session.topic_map = values["topic_map"]
+    if values.get("answer"):
+        show_markdown(values["answer"])
     totals = session.totals(session.usage[start:])
     log(
         msg(
@@ -72,6 +107,12 @@ def run_question(question: str, session: Session, graph, ask_fn: Callable[[str],
             cost=totals.cost,
         )
     )
+    return keep_running
+
+
+def run_question(question: str, session: Session, graph, ask_fn: Callable[[str], str] = ask, store=None) -> bool:
+    """Run one question through the graph from a fresh state."""
+    return run_graph(session, graph, {**FRESH_RUN, "question": question}, ask_fn, store)
 
 
 def run_turn(line: str, handler: CommandHandler, graph) -> bool:
@@ -79,8 +120,10 @@ def run_turn(line: str, handler: CommandHandler, graph) -> bool:
     result = handler.handle(line)
     if result.quit:
         return False
+    if result.resume:
+        return run_graph(handler.session, graph, None, store=handler.store)
     if result.question:
-        run_question(result.question, handler.session, graph)
+        return run_question(result.question, handler.session, graph, store=handler.store)
     return True
 
 
@@ -91,7 +134,8 @@ def main(argv: list[str] | None = None) -> None:
         run_server(args.mcp)
         return
 
-    from agent.graph import build_graph  # heavy import, not needed in MCP server mode
+    from agent.graph import build_graph  # heavy imports, not needed in MCP server mode
+    from agent.persistence import ConversationStore, open_checkpointer
 
     configure_stdio()
     load_env()
@@ -103,9 +147,9 @@ def main(argv: list[str] | None = None) -> None:
         say(msg("cli.no_key_warning"), style="yellow")
 
     tracing_enabled = setup_tracing()
-    graph = build_graph()
+    graph = build_graph(open_checkpointer())
     mcp = MCPManager()
-    handler = CommandHandler(Session(), mcp=mcp)
+    handler = CommandHandler(Session(), mcp=mcp, store=ConversationStore(), graph=graph)
     say(msg("cli.welcome"))
 
     while True:

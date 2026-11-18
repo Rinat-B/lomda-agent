@@ -11,6 +11,11 @@ from typing import Callable
 from agent.messages import msg, msg_list
 
 _FIRST_WORD = re.compile(r"^\s*([^\s,:;.\-]+)[\s,:;.\-]*(.*)$", re.DOTALL)
+EXIT_WORDS = {"/quit", "quit", "exit", "/exit"}
+
+
+class GateExit(Exception):
+    """The user asked to quit while a gate was waiting. The conversation stays paused."""
 
 
 @dataclass(frozen=True)
@@ -61,7 +66,10 @@ def ask_topics_gate(topics: list[dict], ask: Callable[[str], str], show: Callabl
     """Show the map and read the reviewer's decision. Returns the interrupt resume value."""
     show(format_topic_map(topics))
     while True:
-        decision = parse_decision(ask(msg("gate.topics.ask")))
+        text = ask(msg("gate.topics.ask"))
+        if text.strip().lower() in EXIT_WORDS:
+            raise GateExit
+        decision = parse_decision(text)
         if decision is None:
             say(msg("gate.topics.ask_again"), style="yellow")
             continue

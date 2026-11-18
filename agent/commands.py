@@ -30,6 +30,7 @@ _HEBREW_PREFIX = re.compile(f"^[{chr(0x05D0)}-{chr(0x05EA)}]{{1,3}}-")
 class TurnResult:
     quit: bool = False
     question: str | None = None
+    resume: bool = False  # continue the (just restored) paused conversation
 
 
 def format_size(num_bytes: int) -> str:
@@ -66,6 +67,9 @@ class CommandHandler:
         out_path: Callable[[str], None] = say_path,
         mcp=None,
         ask_secret: Callable[[str], str] | None = None,
+        store=None,
+        graph=None,
+        ask_line: Callable[[str], str] | None = None,
     ):
         self.session = session
         self.out = out
@@ -74,6 +78,9 @@ class CommandHandler:
         self.out_path = out_path
         self.mcp = mcp  # agent.mcp_client.MCPManager (or a test double)
         self.ask_secret = ask_secret
+        self.store = store  # agent.persistence.ConversationStore: files/chunks per conversation
+        self.graph = graph  # compiled graph with a persistent checkpointer (for /resume)
+        self.ask_line = ask_line
 
     # ---- dispatch -------------------------------------------------------------------
     def handle(self, line: str) -> TurnResult:
@@ -101,6 +108,8 @@ class CommandHandler:
         if command == "/new":
             self.new()
             return TurnResult()
+        if command == "/resume":
+            return self.resume(arg)
         if command == "/mcp":
             self.mcp_command(arg)
             return TurnResult()
@@ -146,6 +155,8 @@ class CommandHandler:
         if source is None:
             return False
         self.session.add_file(path, source)
+        if self.store is not None:
+            self.store.save(self.session)  # so /resume works after a restart without /add
         self.out(msg("commands.add.added", name=path.name, count=len(self.session.files)), style="green")
         self.out(self._read_summary(source))
         return True
@@ -272,6 +283,62 @@ class CommandHandler:
             cost=t.cost,
             **extra,
         )
+
+    # ---- /resume ----------------------------------------------------------------------
+    def resume(self, arg: str) -> TurnResult:
+        """List conversations paused at a gate; restore the chosen one (files, chunks,
+        usage, thread) so the CLI can continue it."""
+        if self.store is None or self.graph is None:
+            self.out(msg("resume.unavailable"), style="yellow")
+            return TurnResult()
+        from agent.persistence import paused_conversations
+
+        paused = paused_conversations(self.graph, self.store)
+        if not paused:
+            self.out(msg("resume.none"))
+            return TurnResult()
+        self.out(msg("resume.header", count=len(paused)))
+        for i, p in enumerate(paused, 1):
+            self.out(
+                msg(
+                    "resume.item",
+                    index=i,
+                    date=p.paused_at.strftime("%d.%m.%Y %H:%M"),
+                    files=", ".join(p.files) if p.files else msg("resume.no_files"),
+                    gate=msg_or_none(f"gate.names.{p.gate}") or p.gate,
+                )
+            )
+        choice = arg.strip()
+        if not choice:
+            ask = self.ask_line
+            if ask is None:
+                from agent.console import ask as console_ask
+
+                ask = console_ask
+            try:
+                choice = ask(msg("resume.ask")).strip()
+            except (EOFError, KeyboardInterrupt):
+                choice = ""
+        if not choice:
+            self.out(msg("resume.cancelled"))
+            return TurnResult()
+        if not choice.isdigit() or not 1 <= int(choice) <= len(paused):
+            self.out(msg("resume.invalid", choice=choice), style="yellow")
+            return TurnResult()
+        selected = paused[int(choice) - 1]
+        if self.store is not None and self.session.files:
+            self.store.save(self.session)  # keep the current conversation before switching
+        self.store.restore(selected.thread_id, self.session)
+        self.out(
+            msg(
+                "resume.loaded",
+                date=selected.paused_at.strftime("%d.%m.%Y %H:%M"),
+                files=len(self.session.files),
+                chunks=len(self.session.index),
+            ),
+            style="green",
+        )
+        return TurnResult(resume=True)
 
     def new(self) -> None:
         from agent.llm import reset_unavailable_models
