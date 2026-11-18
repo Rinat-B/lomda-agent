@@ -436,7 +436,7 @@ lomda-agent/
 | 2 | 17.11 | MCP source-reader (pptx, docx, pdf, txt, md), /mcp, RAG עם BM25 ומקורות | הושלם |
 | 3 | 17–18.11 | topic_map ושער 1 עם interrupt; SqliteSaver ו-/resume; `[INFO]` חד-פעמי לשער; סיווג טקסט חופשי בשער; models.yaml לפי תפקיד ופרופיל, 402 ← free | הושלם |
 | 4 | 19.11 | injection_guard, classify_type (הכשרה/ציות), plan_structure ושער 2 | הושלם |
-| 5 | 20.11 | lesson.schema.json, נגן HTML, צומת הכותב | |
+| 5 | 20.11 | lesson.schema.json, נגן HTML, צומת הכותב | חלק א׳ הושלם (סכמה, נגן, מייצא, לומדת דוגמה); צומת הכותב בעבודה |
 | 6 | 22.11 | בודקים ו-evaluator, שער 3, write_files עם `[Y/N]`, פרסום, report.md: לומדה מקצה לקצה | |
 | 7 | 23.11 | שלושת ה-evals, rubric.md, מצב `--auto`, CSV | |
 | 8 | 24.11 | README, manifest.json, Release ראשון: גרסה שאפשר להגיש | |
@@ -460,6 +460,7 @@ lomda-agent/
 - **injection_guard:** רץ בזמן `/add` (לא כצמת בגרף), עם תבניות בקוד ואישור במודל הקטן לחשודים בלבד. כל פרומפט שמכיל מקור עוטף אותו ב-`<source_material>` ומוסיף את ההנחיה `SOURCE_DATA_RULE` (`agent/guards.py`).
 - **סדר הגרף:** `scope_check` ← `classify_type` ← `gate_type` ← `topic_map` ← `gate_topics` ← `plan_structure` ← `gate_structure`. לכל צמת מפיק יש רק קשת לשער שלו. השערים `gate_topics` ו-`gate_structure` חולקים מנגנון (Y/N בלי מודל, טקסט חופשי מסווג, שאלה נענית), עם מילון מונחים לכל שער; בשער המבנה "המחשה" היא שדה המסך ולא המוטיב.
 - **מבנה הלומדה (שלב 2):** `plan_structure` מחזיר JSON שנבדק ב-Pydantic (`agent/structure.py`): לכל מסך מספר, כותרת, נושא ומטרה מהמפה, 2–4 נקודות תוכן עם מאתרים, רעיון לשאלת החלטה, רעיון להמחשה (או אין), ותרשים החלטה כן/לא; ו-2–3 תיאורי מוטיב. כל נושא מקבל מסך; בציות עד 80 מילים בנקודות של מסך. המבנה מוצג כרשימה לפי מסכים, לא כטבלה. קול קריינות ועובדות העשרה עוד לא נכנסו.
+- **סכמה ונגן (יום 5, חלק א׳):** `agent/assets/lesson.schema.json` עם מודלי Pydantic תואמים ב-`agent/lesson_schema.py`. הסכמה בודקת מבנה; Pydantic בודק כללים חוצי-שדות: אינדקס התשובה בטווח, משוב לטעות שלא חושף את התשובה, קשתות התרשים, צמת התחלה, נתיב המחשה בתוך `assets/illustrations/`, בציות בלי "הידעת?" ועד 80 מילים למסך, וניגודיות AA לכל זוג צבעים בפלטה. הנגן ב-`agent/assets/player/` (HTML, CSS, JS בלי ספריות ובלי רשת); הנתונים נטענים מ-`lesson.js` (`window.LESSON`) ולא ב-fetch, כי הלומדה נפתחת מ-file://. `agent/lesson_export.py` מייצא תיקייה: `index.html`, `lesson.js`, `assets/`. מחרוזות הנגן בעברית ב-`assets/player/strings.he.js`. לומדת דוגמה: `examples/sample_lesson/`.
 - **ה-exe:** `scripts/build.ps1`; שרת ה-MCP רץ כ-`agent.exe --mcp source-reader`. אם `dist\agent.exe` נעול (חלון או טרמינל של VS Code עדיין מריצים אותו), הסקריפט בונה ל-`dist-new` ומבקש לסגור את החלון; ה-build הבא שמוצא את הקובץ פנוי בונה שוב ל-`dist` ומוחק את `dist-new` (`dist-new/` ב-`.gitignore`).
 
 ## מקורות

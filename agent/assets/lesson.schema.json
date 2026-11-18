@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lomda-agent.local/lesson.schema.json",
+  "title": "Lesson",
+  "description": "A Hebrew e-learning lesson rendered by the fixed player in agent/assets/player. Structural rules live here; cross-field rules (answer index in range, diagram edges, contrast, compliance limits) are checked by agent/lesson_schema.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "title", "lesson_type", "palette", "motif", "screens", "summary", "certificate"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "title": {"type": "string", "minLength": 2, "maxLength": 120},
+    "lesson_type": {"enum": ["training", "compliance"]},
+    "palette": {"$ref": "#/$defs/palette"},
+    "motif": {
+      "description": "Visual motif of the lesson. Empty until the motif stage exists.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "svg"],
+      "properties": {
+        "description": {"type": "string"},
+        "svg": {"type": "string"}
+      }
+    },
+    "passing_score": {
+      "description": "Share of questions to answer correctly to pass (default 0.8).",
+      "type": "number", "minimum": 0, "maximum": 1
+    },
+    "screens": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/screen"}},
+    "summary": {
+      "description": "The closing 'what we learned' screen.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points"],
+      "properties": {
+        "points": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}}
+      }
+    },
+    "certificate": {"description": "Offer a certificate after passing.", "type": "boolean"}
+  },
+  "$defs": {
+    "text": {"type": "string", "minLength": 2},
+    "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["background", "surface", "text", "muted", "primary", "primary_text", "accent", "highlight", "success", "error", "border"],
+      "properties": {
+        "background": {"$ref": "#/$defs/color"},
+        "surface": {"$ref": "#/$defs/color"},
+        "text": {"$ref": "#/$defs/color"},
+        "muted": {"$ref": "#/$defs/color"},
+        "primary": {"$ref": "#/$defs/color"},
+        "primary_text": {"$ref": "#/$defs/color"},
+        "accent": {"$ref": "#/$defs/color"},
+        "highlight": {"$ref": "#/$defs/color"},
+        "success": {"$ref": "#/$defs/color"},
+        "error": {"$ref": "#/$defs/color"},
+        "border": {"$ref": "#/$defs/color"}
+      }
+    },
+    "locator": {
+      "description": "Where a statement comes from in the owner's source files.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file"],
+      "properties": {
+        "file": {"type": "string", "minLength": 1},
+        "slide": {"type": "integer", "minimum": 1},
+        "page": {"type": "integer", "minimum": 1},
+        "paragraph": {"type": "integer", "minimum": 1},
+        "paragraph_end": {"type": "integer", "minimum": 1}
+      }
+    },
+    "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/locator"}},
+    "screen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "blocks"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_-]+$"},
+        "title": {"$ref": "#/$defs/text"},
+        "topic": {"type": "string"},
+        "blocks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/block"}}
+      }
+    },
+    "block": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {"enum": ["paragraph", "list", "did_you_know", "stop_and_think", "multiple_choice", "illustration", "decision_diagram"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "paragraph"}}}, "then": {"$ref": "#/$defs/paragraph"}},
+        {"if": {"properties": {"type": {"const": "list"}}}, "then": {"$ref": "#/$defs/list"}},
+        {"if": {"properties": {"type": {"const": "did_you_know"}}}, "then": {"$ref": "#/$defs/did_you_know"}},
+        {"if": {"properties": {"type": {"const": "stop_and_think"}}}, "then": {"$ref": "#/$defs/stop_and_think"}},
+        {"if": {"properties": {"type": {"const": "multiple_choice"}}}, "then": {"$ref": "#/$defs/multiple_choice"}},
+        {"if": {"properties": {"type": {"const": "illustration"}}}, "then": {"$ref": "#/$defs/illustration"}},
+        {"if": {"properties": {"type": {"const": "decision_diagram"}}}, "then": {"$ref": "#/$defs/decision_diagram"}}
+      ]
+    },
+    "paragraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text", "sources"],
+      "properties": {
+        "type": {"const": "paragraph"},
+        "text": {"$ref": "#/$defs/text"},
+        "sources": {"$ref": "#/$defs/sources"}
+      }
+    },
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "items", "sources"],
+      "properties": {
+        "type": {"const": "list"},
+        "ordered": {"type": "boolean"},
+        "items": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/text"}},
+        "sources": {"$ref": "#/$defs/sources"}
+      }
+    },
+    "did_you_know": {
+      "description": "Enrichment fact with a visible source line (training lessons only).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "text", "source_line", "sources"],
+      "properties": {
+        "type": {"const": "did_you_know"},
+        "text": {"$ref": "#/$defs/text"},
+        "source_line": {"$ref": "#/$defs/text"},
+        "sources": {"$ref": "#/$defs/sources"}
+      }
+    },
+    "stop_and_think": {
+      "description": "A prediction question before the explanation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "prediction_question", "explanation", "sources"],
+      "properties": {
+        "type": {"const": "stop_and_think"},
+        "prediction_question": {"$ref": "#/$defs/text"},
+        "explanation": {"$ref": "#/$defs/text"},
+        "sources": {"$ref": "#/$defs/sources"}
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "options", "correct_index", "feedback_correct", "feedback_incorrect"],
+      "properties": {
+        "question": {"$ref": "#/$defs/text"},
+        "options": {"type": "array", "minItems": 3, "maxItems": 4, "items": {"$ref": "#/$defs/text"}},
+        "correct_index": {"type": "integer", "minimum": 0, "maximum": 3},
+        "feedback_correct": {"$ref": "#/$defs/text"},
+        "feedback_incorrect": {
+          "description": "General feedback for any wrong answer; must not reveal the correct answer.",
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "multiple_choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "question", "options", "correct_index", "feedback_correct", "feedback_incorrect", "alternate", "sources"],
+      "properties": {
+        "type": {"const": "multiple_choice"},
+        "id": {"type": "string", "pattern": "^[a-z0-9_-]+$"},
+        "question": {"$ref": "#/$defs/text"},
+        "options": {"type": "array", "minItems": 3, "maxItems": 4, "items": {"$ref": "#/$defs/text"}},
+        "correct_index": {"type": "integer", "minimum": 0, "maximum": 3},
+        "feedback_correct": {"$ref": "#/$defs/text"},
+        "feedback_incorrect": {"$ref": "#/$defs/text"},
+        "alternate": {
+          "description": "A complete alternate question, shown on a retry.",
+          "$ref": "#/$defs/question"
+        },
+        "sources": {"$ref": "#/$defs/sources"}
+      }
+    },
+    "illustration": {
+      "description": "A slot for an interactive HTML illustration shipped in assets/illustrations/.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "file", "title", "description"],
+      "properties": {
+        "type": {"const": "illustration"},
+        "file": {"type": "string", "pattern": "^assets/illustrations/[A-Za-z0-9_-]+\\.html$"},
+        "title": {"$ref": "#/$defs/text"},
+        "description": {"description": "Text alternative for the illustration.", "$ref": "#/$defs/text"},
+        "height": {"type": "integer", "minimum": 120, "maximum": 900}
+      }
+    },
+    "decision_diagram": {
+      "description": "An if/then decision process; the player draws it as SVG.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "title", "nodes", "edges", "sources"],
+      "properties": {
+        "type": {"const": "decision_diagram"},
+        "title": {"$ref": "#/$defs/text"},
+        "nodes": {
+          "type": "array", "minItems": 3, "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label", "kind"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^[a-z0-9_-]+$"},
+              "label": {"$ref": "#/$defs/text"},
+              "kind": {"enum": ["question", "action"]}
+            }
+          }
+        },
+        "edges": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "to"],
+            "properties": {
+              "from": {"type": "string"},
+              "to": {"type": "string"},
+              "label": {"type": "string"}
+            }
+          }
+        },
+        "sources": {"$ref": "#/$defs/sources"}
+      }
+    }
+  }
+}

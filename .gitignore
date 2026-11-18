@@ -10,3 +10,4 @@ logs/
 .pytest_cache/
 data/
 dist-new/
+examples/*/build/

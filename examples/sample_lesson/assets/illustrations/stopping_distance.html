@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>מרחק עצירה ב-50 קמ״ש</title>
+<style>
+  :root { --text: #1F2933; --muted: #4B5866; --bar: #1D63A0; --track: #E3E9EF; --focus: #1D63A0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; font-family: "Segoe UI", Arial, sans-serif; color: var(--text); background: #FFFFFF; }
+  fieldset { border: 0; padding: 0; margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+  legend { font-weight: 600; margin-bottom: 8px; }
+  label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px;
+          border: 1px solid #C5CED8; border-radius: 8px; cursor: pointer; }
+  input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .road { position: relative; height: 56px; background: var(--track); border-radius: 8px; overflow: hidden; }
+  .bar { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--bar);
+         transition: width .4s ease; }
+  .result { margin-top: 10px; font-size: 1.05rem; }
+  .scale { display: flex; justify-content: space-between; color: var(--muted); font-size: .85rem; margin-top: 4px; }
+  @media (prefers-reduced-motion: reduce) { .bar { transition: none; } }
+</style>
+</head>
+<body>
+  <fieldset>
+    <legend>בחרו מצב (מהירות 50 קמ״ש)</legend>
+    <label><input type="radio" name="case" value="28" checked><span>רכב קל, כביש יבש</span></label>
+    <label><input type="radio" name="case" value="40"><span>רכב קל, כביש רטוב</span></label>
+    <label><input type="radio" name="case" value="55"><span>משאית עמוסה, כביש רטוב</span></label>
+  </fieldset>
+  <div class="road" aria-hidden="true"><div class="bar" id="bar"></div></div>
+  <div class="scale" aria-hidden="true"><span>0 מ׳</span><span>60 מ׳</span></div>
+  <p class="result" id="result" aria-live="polite"></p>
+<script>
+  (function () {
+    var MAX = 60;
+    var bar = document.getElementById("bar");
+    var result = document.getElementById("result");
+    function update() {
+      var checked = document.querySelector('input[name="case"]:checked');
+      var meters = Number(checked.value);
+      bar.style.width = (meters / MAX * 100) + "%";
+      result.textContent = "מרחק העצירה: " + meters + " מטר (כולל שנייה אחת של זמן תגובה).";
+    }
+    document.querySelectorAll('input[name="case"]').forEach(function (input) {
+      input.addEventListener("change", update);
+    });
+    update();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson</title>
+<link rel="stylesheet" href="assets/player.css">
+</head>
+<body>
+  <a class="skip-link" id="skip-link" href="#main"></a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="motif" id="motif" aria-hidden="true"></div>
+      <h1 id="lesson-title"></h1>
+      <div class="progress" id="progress">
+        <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+        <p class="progress-text" id="progress-text"></p>
+      </div>
+    </div>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <!-- Data comes from lesson.js (window.LESSON), not fetch(): the lesson opens from file://. -->
+  <script src="assets/strings.he.js"></script>
+  <script src="lesson.js"></script>
+  <script src="assets/player.js"></script>
+</body>
+</html>
