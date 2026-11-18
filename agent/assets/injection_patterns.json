@@ -1,0 +1,26 @@
+{
+  "_comment": "Cheap first pass of injection_guard: case-insensitive regexes. A match only makes a chunk a suspect; the small model confirms. Keep patterns specific to instructions aimed at an AI model.",
+  "patterns": [
+    "ignore\\s+(all\\s+|any\\s+)?(of\\s+)?(the\\s+|your\\s+)?(previous|prior|above|earlier|preceding)\\s+(instructions|prompts|messages|rules)",
+    "disregard\\s+(all\\s+|any\\s+)?(the\\s+|your\\s+)?(previous|prior|above|earlier)\\b",
+    "forget\\s+(all\\s+|everything\\s+)?(your|the|previous)\\s+(instructions|rules|prompt)",
+    "\\byou\\s+are\\s+now\\b",
+    "\\bfrom\\s+now\\s+on,?\\s+you\\b",
+    "\\bnew\\s+instructions\\b",
+    "\\b(system|developer)\\s+(prompt|message|instructions)\\b",
+    "\\b(reveal|print|show|send|leak|expose|output|repeat)\\b.{0,40}\\b(api[\\s_-]?keys?|passwords?|secrets?|tokens?|credentials|system\\s+prompt|instructions)\\b",
+    "\\b(openrouter|openai|anthropic|langsmith)[\\s_-]?api[\\s_-]?key\\b",
+    "\\bdo\\s+not\\s+(tell|inform|warn)\\s+the\\s+user\\b",
+    "<\\s*/?\\s*(system|assistant|instructions?|prompt)\\s*>",
+    "\\bjailbreak\\b",
+    "\\bas\\s+an\\s+ai\\s+(language\\s+)?model\\b",
+    "התעלמ\\S*\\s+(מ)?(כל\\s+)?(ה)?הוראות",
+    "אל\\s+תתייחס\\S*\\s+(ל)?(כל\\s+)?(ה)?הוראות",
+    "(אתה|את)\\s+(עכשיו|כעת|מעכשיו)\\s+",
+    "הוראות\\s+חדשות\\s+(ל|עבור\\s+)?(ה)?(מודל|בינה|סוכן)",
+    "(חשו?ף|תחשוף|הצג|תציג|שלח|תשלח|הדפס|תדפיס|גלה|תגלה)\\S*\\s+.{0,40}(מפתח|סיסמ|טוקן|api|פרומפט)",
+    "(פרומפט|הנחיות|הוראות)\\s+(ה)?מערכת",
+    "(בתור|כ)מודל\\s+שפה",
+    "אל\\s+תספר\\S*\\s+(ל)?משתמש"
+  ]
+}

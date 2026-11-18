@@ -9,7 +9,7 @@ from agent.commands import CommandHandler
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, show_markdown
 from agent.errors import report_error, setup_logging
-from agent.gates import GateExit, ask_topics_gate
+from agent.gates import GateExit, ask_gate
 from agent.mcp_client import MCPManager, run_server
 from agent.messages import msg
 from agent.session import Session
@@ -28,7 +28,9 @@ FRESH_RUN = {
     "intent": None,
     "answer": None,
     "sources": [],
+    "lesson_type": None,
     "topic_map": None,
+    "structure": None,
     "feedback": None,
     "approved": None,
     "gate_answer": None,
@@ -76,7 +78,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             if not snapshot.interrupts:
                 break
             paused_node = snapshot.next[0] if snapshot.next else None
-            resume = ask_topics_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say)
+            resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say)
             stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
     except (GateExit, EOFError):
         say(msg("gate.paused"), style="yellow")
@@ -93,8 +95,10 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             store.save(session)
 
     values = graph.get_state(config).values
-    if values.get("approved"):
-        session.topic_map = values["topic_map"]
+    if values.get("approved"):  # the last gate of the stage (the structure) was approved
+        session.lesson_type = values.get("lesson_type")
+        session.topic_map = values.get("topic_map")
+        session.structure = values.get("structure")
     if values.get("answer"):
         show_markdown(values["answer"])
     totals = session.totals(session.usage[start:])

@@ -8,10 +8,21 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import interrupt
 
-from agent.console import log
+from agent.console import log, say
 from agent.errors import NodeError
+from agent.guards import SOURCE_DATA_RULE, chunk_text_for_prompt, wrap_sources
 from agent.llm import LONG_REQUEST_TIMEOUT_SECONDS, LLMResult, call_llm
 from agent.messages import msg
+from agent.structure import (
+    COMPLIANCE,
+    COMPLIANCE_MAX_WORDS,
+    LESSON_TYPES,
+    MAX_SCREENS,
+    TRAINING,
+    other_type,
+    parse_structure,
+    structure_json,
+)
 from agent.tools import ChunkIndex, make_retrieve_tool
 from agent.topics import (
     Unit,
@@ -47,6 +58,7 @@ SCOPE_CHECK_WITH_SOURCES = (
     "and requests to build a lesson from it are BUILD_LESSON, even if the topic itself "
     "(for example gifts, driving or safety rules) is not about learning. Topics that are "
     "related neither to e-learning nor to this material are OUT_OF_SCOPE."
+    + SOURCE_DATA_RULE
 )
 SCOPE_EXCERPT_CHARS = 600
 
@@ -57,15 +69,69 @@ INTENT_NEEDS_FILES = "needs_files"  # build_lesson with no files in the session
 
 TOPIC_MAP_ATTEMPTS = 3
 TOPIC_MAP_PROMPT = (
-    "You are an instructional designer planning an e-learning lesson from the user's source "
-    "material. Group the material into {min_topics}-{max_topics} topics that together cover "
-    "ALL the source files. Write each topic name in Hebrew (2-6 words). Write exactly one "
-    "learning objective per topic, in Hebrew, as one sentence that starts with \"{prefix}\" "
-    "followed by a measurable verb. For each topic list the ids of the source units it is "
-    "based on (for example \"U3\"); use only the given ids and give every topic at least one. "
+    "You are an instructional designer planning a {type_name} e-learning lesson from the "
+    "user's source material. {type_rules} Group the material into {min_topics}-{max_topics} "
+    "topics that together cover ALL the source files. Write each topic name in Hebrew (2-6 "
+    "words). Write exactly one learning objective per topic, in Hebrew, as one sentence that "
+    "starts with \"{prefix}\" followed by a measurable verb. For each topic list the ids of "
+    "the source units it is based on (for example \"U3\"); use only the given ids and give "
+    "every topic at least one. "
     "Reply with only a JSON object and no other text, in exactly this shape: "
     '{{"topics": [{{"name": "...", "objective": "...", "sources": ["U1", "U2"]}}]}}'
 )
+
+# How the lesson type shapes the lesson (docs/SPEC.md, "two lesson types").
+TYPE_NAMES = {TRAINING: "training", COMPLIANCE: "compliance"}
+TOPIC_RULES = {
+    TRAINING: "Training lesson: practical know-how; topics may follow tasks, risks and decisions.",
+    COMPLIANCE: (
+        "Compliance lesson: the owner's material is the only source of truth; topics follow "
+        "the document's obligations and rules; never add information that is not in the material."
+    ),
+}
+STRUCTURE_RULES = {
+    TRAINING: (
+        "Training lesson: warm, friendly tone; screens may be rich and long; propose interactive "
+        "illustrations wherever they teach something a sentence cannot; sharp decision questions."
+    ),
+    COMPLIANCE: (
+        "Compliance lesson: formal tone; use only the owner's material, never outside facts; keep "
+        f"screens short: the content points of one screen together must not exceed "
+        f"{COMPLIANCE_MAX_WORDS} words; illustrations only when essential (null on most screens)."
+    ),
+}
+
+CLASSIFY_TYPE_ATTEMPTS = 2
+CLASSIFY_TYPE_SAMPLE_CHARS = 5_000
+CLASSIFY_TYPE_PROMPT = (
+    "Decide which kind of e-learning lesson the user's source material calls for.\n"
+    "TRAINING - teaches skills and know-how (for example safe winter driving, operating "
+    "equipment, customer service).\n"
+    "COMPLIANCE - teaches rules the organisation requires people to follow (for example a "
+    "code of ethics, a policy, legal or regulatory obligations).\n"
+    'Reply with only a JSON object: {"type": "training" or "compliance", "reason": "<short '
+    'English reason>"}' + SOURCE_DATA_RULE
+)
+
+PLAN_ATTEMPTS = 3
+PLAN_STRUCTURE_PROMPT = (
+    "You are an instructional designer. Plan the screens of a {type_name} e-learning lesson "
+    "from the approved topic map and the source units. {type_rules}\n"
+    "Rules: every topic of the map gets at least one screen (one to three screens per topic, "
+    "at most {max_screens} screens in total), in a logical order. For each screen give: "
+    "number; title (Hebrew); topic (the exact topic name from the map); 2-4 content points "
+    "(short Hebrew sentences, each with the ids of the source units it comes from, for "
+    "example \"U3\"; use only the given ids); question_idea (Hebrew: a question that requires "
+    "a decision or applying the knowledge in a realistic situation, not finding a sentence on "
+    "a previous screen); illustration (Hebrew: an idea for an interactive illustration of "
+    "this screen, or null for none); decision_diagram (true only if the screen teaches an "
+    "if/then decision process that appears in the source). Also give 2-3 descriptions in "
+    "Hebrew, in words, of a visual motif for the whole lesson.\n"
+    "Reply with only a JSON object and no other text, in exactly this shape: "
+    '{{"screens": [{{"number": 1, "title": "...", "topic": "...", "points": [{{"text": "...", '
+    '"sources": ["U1"]}}], "question_idea": "...", "illustration": "..." or null, '
+    '"decision_diagram": false}}], "motifs": ["...", "..."]}}'
+) + SOURCE_DATA_RULE.replace("{", "{{").replace("}", "}}")
 
 ANSWER_PROMPT = (
     "You are a helpful assistant for building e-learning lessons and instructional design. "
@@ -78,6 +144,7 @@ RAG_PROMPT = (
     "cite its excerpt number in square brackets, for example [2]. Do not use outside "
     "knowledge and do not guess. If the excerpts do not contain the answer, reply with "
     f"exactly {NOT_FOUND} and nothing else."
+    + SOURCE_DATA_RULE
 )
 
 # Called as recorder(node_name, result) after every successful model call.
@@ -91,9 +158,12 @@ class AgentState(TypedDict, total=False):
     intent: str  # question | build_lesson | out_of_scope | needs_files
     answer: str
     sources: list[dict]  # locators of the chunks the answer is based on
+    lesson_type: str | None  # training | compliance (proposed by classify_type, confirmed at gate_type)
     topic_map: list[dict] | None  # [{"name", "objective", "sources": [locator, ...]}]
-    feedback: str | None  # reviewer's change request from the topics gate
-    gate_answer: str | None  # answer to a reviewer's question at the gate (map unchanged)
+    structure: dict | None  # {"lesson_type", "screens": [...], "motifs": [...]}
+    # Shared by the review gates (only one is open at a time); reset by each producing node.
+    feedback: str | None  # reviewer's change request
+    gate_answer: str | None  # answer to a reviewer's question (the reviewed item is unchanged)
     approved: bool | None
 
 
@@ -161,8 +231,8 @@ def scope_context(question: str, index: ChunkIndex) -> str:
     files = list(dict.fromkeys(c["locator"]["file"] for c in index.chunks))
     hits = index.retrieve(question, k=1)
     if hits:
-        text = hits[0]["text"][:SCOPE_EXCERPT_CHARS]
-        excerpt = f"({describe_locator(hits[0]['locator'])})\n{text}"
+        text = chunk_text_for_prompt(hits[0])[:SCOPE_EXCERPT_CHARS]
+        excerpt = wrap_sources(f"({describe_locator(hits[0]['locator'])})\n{text}")
     else:
         excerpt = "(none: no excerpt matches the question)"
     return (
@@ -184,9 +254,11 @@ def describe_locator(locator: dict) -> str:
 
 
 def format_excerpts(hits: list[dict]) -> str:
-    return "\n\n".join(
-        f"[{i}] ({describe_locator(h['locator'])}, {h['kind']})\n{h['text']}" for i, h in enumerate(hits, 1)
-    )
+    """Numbered excerpts for a prompt, wrapped as source data (see guards.SOURCE_DATA_RULE)."""
+    return wrap_sources("\n\n".join(
+        f"[{i}] ({describe_locator(h['locator'])}, {h['kind']})\n{chunk_text_for_prompt(h)}"
+        for i, h in enumerate(hits, 1)
+    ))
 
 
 def source_label(locator: dict) -> str:
@@ -247,15 +319,83 @@ def answer(state: AgentState, config: RunnableConfig) -> dict:
     }
 
 
-# ---- lesson building: topic map + approval gate ----------------------------------------
-def topic_map(state: AgentState, config: RunnableConfig) -> dict:
-    """Build (or revise, after gate feedback) a 4-8 topic map from ALL source chunks."""
+# ---- lesson building: type, topic map, structure, and their gates ------------------------
+def _units(config: RunnableConfig | None, node: str) -> list[Unit]:
     index = _index(config)
     if index is None:  # routing only gets here with files; keep a clear error just in case
-        raise NodeError("topic_map", ValueError("no source files in the session"))
-    units = fit_to_budget(build_units(index.chunks))
+        raise NodeError(node, ValueError("no source files in the session"))
+    return fit_to_budget(build_units(index.chunks))
+
+
+def _lesson_type(state: AgentState) -> str:
+    return state.get("lesson_type") if state.get("lesson_type") in LESSON_TYPES else TRAINING
+
+
+def _structured_call(node: str, messages: list, config, parse, attempts: int):
+    """Call the writer until parse(reply) succeeds; each failure is sent back as feedback."""
+    error = ""
+    for _ in range(attempts):
+        result = _call(node, messages, config, timeout=LONG_REQUEST_TIMEOUT_SECONDS)
+        try:
+            return parse(result.text)
+        except ValueError as e:
+            error = str(e)
+            messages += [
+                AIMessage(result.text),
+                HumanMessage(f"That reply was invalid: {error}. Reply again with only the corrected JSON object."),
+            ]
+    raise NodeError(node, ValueError(f"no valid reply after {attempts} attempts: {error}"))
+
+
+def classify_type(state: AgentState, config: RunnableConfig) -> dict:
+    """Small model proposes training or compliance from a sample of the material."""
+    units = _units(config, "classify_type")
+    files = list(dict.fromkeys(u.locator["file"] for u in units))
+    sample, size = [], 0
+    for u in units:  # a slice of every file, so no file is left out
+        if size > CLASSIFY_TYPE_SAMPLE_CHARS:
+            break
+        text = u.text[: max(200, CLASSIFY_TYPE_SAMPLE_CHARS // max(1, len(units)))]
+        sample.append(f"({describe_unit(u)})\n{text}")
+        size += len(text)
+    user = (
+        f"Files: {', '.join(files)}\n\nSample of the material:\n{wrap_sources(chr(10).join(sample))}\n\n"
+        f"User request: {state['question']}"
+    )
+    messages: list = [SystemMessage(CLASSIFY_TYPE_PROMPT), HumanMessage(user)]
+    for _ in range(CLASSIFY_TYPE_ATTEMPTS):
+        result = _call("classify_type", messages, config, role="small")
+        match = re.search(r"\{.*\}", result.text, re.DOTALL)
+        try:
+            data = json.loads(match.group(0)) if match else {}
+        except json.JSONDecodeError:
+            data = {}
+        proposed = str(data.get("type", "")).strip().lower()
+        if proposed in LESSON_TYPES:
+            return {"lesson_type": proposed}
+        messages += [AIMessage(result.text), HumanMessage('Reply with only {"type": "training" or "compliance", "reason": "..."}.')]
+    return {"lesson_type": TRAINING}  # unclear: propose training; the user confirms or switches
+
+
+def gate_type(state: AgentState, config: RunnableConfig) -> dict:
+    """Short [Y/N] gate: confirm the proposed type, or switch to the other one."""
+    proposed = _lesson_type(state)
+    reply = interrupt({"gate": "type", "lesson_type": proposed})
+    confirmed = reply.get("confirm", True) if isinstance(reply, dict) else bool(reply)
+    lesson_type = proposed if confirmed else other_type(proposed)
+    say(msg("gate.type.chosen", type=msg(f"lesson_types.{lesson_type}")))  # after interrupt: printed once
+    return {"lesson_type": lesson_type}
+
+
+def topic_map(state: AgentState, config: RunnableConfig) -> dict:
+    """Build (or revise, after gate feedback) a 4-8 topic map from ALL source chunks."""
+    units = _units(config, "topic_map")
+    lesson_type = _lesson_type(state)
     prefix = msg("topic_map.objective_prefix")
-    system = TOPIC_MAP_PROMPT.format(min_topics=MIN_TOPICS, max_topics=MAX_TOPICS, prefix=prefix)
+    system = TOPIC_MAP_PROMPT.format(
+        type_name=TYPE_NAMES[lesson_type], type_rules=TOPIC_RULES[lesson_type],
+        min_topics=MIN_TOPICS, max_topics=MAX_TOPICS, prefix=prefix,
+    ) + SOURCE_DATA_RULE
     user = f"Source units:\n\n{format_units(units)}\n\nUser request: {state['question']}"
     if state.get("topic_map") and state.get("feedback") is not None:
         feedback = state["feedback"] or "(no comment: propose a different, improved map)"
@@ -263,45 +403,88 @@ def topic_map(state: AgentState, config: RunnableConfig) -> dict:
             f"\n\nYour previous topic map:\n{topic_map_json(state['topic_map'], units)}\n\n"
             f"The reviewer asked for changes. Revise the map and apply this feedback: {feedback}"
         )
-
-    messages: list = [SystemMessage(system), HumanMessage(user)]
-    error = ""
-    for _ in range(TOPIC_MAP_ATTEMPTS):
-        result = _call("topic_map", messages, config, timeout=LONG_REQUEST_TIMEOUT_SECONDS)
-        try:
-            topics = parse_topic_map(result.text, units, prefix)
-        except ValueError as e:
-            error = str(e)
-            messages += [
-                AIMessage(result.text),
-                HumanMessage(f"That reply was invalid: {error}. Reply again with only the corrected JSON object."),
-            ]
-            continue
-        return {"topic_map": topics, "feedback": None, "approved": None, "gate_answer": None}
-    raise NodeError("topic_map", ValueError(f"no valid topic map after {TOPIC_MAP_ATTEMPTS} attempts: {error}"))
+    topics = _structured_call(
+        "topic_map", [SystemMessage(system), HumanMessage(user)], config,
+        lambda text: parse_topic_map(text, units, prefix), TOPIC_MAP_ATTEMPTS,
+    )
+    return {"topic_map": topics, "feedback": None, "approved": None, "gate_answer": None}
 
 
+def plan_structure(state: AgentState, config: RunnableConfig) -> dict:
+    """Stage 2: screens (topic, objective, points with sources, question and illustration
+    ideas, decision diagram) and 2-3 motif descriptions, shaped by the lesson type."""
+    units = _units(config, "plan_structure")
+    lesson_type = _lesson_type(state)
+    topics = state["topic_map"]
+    system = PLAN_STRUCTURE_PROMPT.format(
+        type_name=TYPE_NAMES[lesson_type], type_rules=STRUCTURE_RULES[lesson_type], max_screens=MAX_SCREENS,
+    )
+    map_json = json.dumps(
+        {"topics": [{"name": t["name"], "objective": t["objective"]} for t in topics]}, ensure_ascii=False
+    )
+    user = f"Approved topic map (JSON):\n{map_json}\n\nSource units:\n\n{format_units(units)}"
+    if state.get("structure") and state.get("feedback") is not None:
+        feedback = state["feedback"] or "(no comment: propose a different, improved structure)"
+        user += (
+            f"\n\nYour previous structure:\n{structure_json(state['structure'], units)}\n\n"
+            f"The reviewer asked for changes. Revise the structure and apply this feedback: {feedback}"
+        )
+    structure = _structured_call(
+        "plan_structure", [SystemMessage(system), HumanMessage(user)], config,
+        lambda text: parse_structure(text, units, topics, lesson_type), PLAN_ATTEMPTS,
+    )
+    return {"structure": structure, "feedback": None, "approved": None, "gate_answer": None}
+
+
+# ---- review gates (topic map, structure) ------------------------------------------------
 GATE_CLASSIFY_ATTEMPTS = 2  # one retry for the structured reply
 GATE_CLASSIFY_PROMPT = (
-    "You interpret a reviewer's reply at the topic-map approval gate of an e-learning lesson "
-    "builder. Glossary for this gate: 'map' = the whole topic map; 'topic' = one row of the "
-    "map; 'objective' = the single learning objective of a topic; 'sources' = the slides, "
-    "pages or paragraphs a topic is based on.\n"
+    "You interpret a reviewer's reply at the {subject} approval gate of an e-learning lesson "
+    "builder. Glossary for this gate: {glossary}\n"
     "Classify the reply as exactly one of:\n"
-    "APPROVE - accepts the map as it is.\n"
+    "APPROVE - accepts the {subject} as it is.\n"
     "CHANGE - asks to add, remove, merge, split, rename, reorder or reword something.\n"
-    "QUESTION - asks something about the map or the material without requesting a change.\n"
+    "QUESTION - asks something about the {subject} or the material without requesting a change.\n"
     "Reply with only a JSON object: "
-    '{"decision": "APPROVE" | "CHANGE" | "QUESTION", "change": "<for CHANGE: what to change, '
-    'in the reviewer\'s own language; otherwise empty>"}'
+    '{{"decision": "APPROVE" | "CHANGE" | "QUESTION", "change": "<for CHANGE: what to change, '
+    'in the reviewer\'s own language; otherwise empty>"}}'
 )
 GATE_QUESTION_PROMPT = (
-    "You help a reviewer who is approving the topic map of an e-learning lesson. Answer the "
-    "question briefly (one to three sentences) in Hebrew, using only the topic map and the "
-    "source excerpts provided. Do not change the map and do not propose a new one. If the "
-    "answer is not there, say so briefly."
-)
+    "You help a reviewer who is approving the {subject} of an e-learning lesson. Answer the "
+    "question briefly (one to three sentences) in Hebrew, using only the {subject} and the "
+    "source excerpts provided. Do not change the {subject} and do not propose a new one. If "
+    "the answer is not there, say so briefly."
+) + SOURCE_DATA_RULE.replace("{", "{{").replace("}", "}}")
 GATE_EXCERPTS_K = 4
+
+# Glossary terms per gate: English meaning, with the Hebrew word the reviewer may use
+# (loaded from messages_he.json at runtime: gate.glossary.<gate>.<term>).
+GLOSSARY = {
+    "topics": {
+        "map": "the whole topic map",
+        "topic": "one row of the map",
+        "objective": "the single learning objective of a topic",
+        "sources": "the slides, pages or paragraphs a topic is based on",
+    },
+    "structure": {
+        "structure": "the whole list of screens and the motifs",
+        "screen": "one screen of the lesson (number, title, topic, points, question, illustration, diagram)",
+        "points": "the content points of a screen",
+        "question": "the question idea of a screen",
+        "illustration": "the illustration field of ONE screen; it is NOT the motif",
+        "diagram": "the decision-diagram flag of a screen",
+        "motif": "the visual motif descriptions for the whole lesson (not a screen's illustration)",
+    },
+}
+SUBJECTS = {"topics": "topic map", "structure": "lesson structure"}
+
+
+def glossary_text(gate: str) -> str:
+    parts = []
+    for term, meaning in GLOSSARY[gate].items():
+        hebrew = msg(f"gate.glossary.{gate}.{term}")
+        parts.append(f"'{term}' (Hebrew: '{hebrew}') = {meaning}")
+    return "; ".join(parts) + "."
 
 
 def _topics_for_prompt(topics: list[dict]) -> str:
@@ -312,15 +495,33 @@ def _topics_for_prompt(topics: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def classify_gate_reply(text: str, topics: list[dict], config: RunnableConfig | None) -> tuple[str, str]:
-    """Free text at the gate -> ("approve" | "change" | "question", change text).
+def _structure_for_prompt(structure: dict) -> str:
+    lines = [f"Lesson type: {structure['lesson_type']}"]
+    for s in structure["screens"]:
+        points = " / ".join(p["text"] for p in s["points"])
+        lines.append(
+            f"Screen {s['number']}: {s['title']} | topic: {s['topic']} | points: {points} | "
+            f"question: {s['question_idea']} | illustration: {s['illustration'] or 'none'} | "
+            f"decision diagram: {'yes' if s['decision_diagram'] else 'no'}"
+        )
+    lines.append("Motifs: " + " / ".join(structure["motifs"]))
+    return "\n".join(lines)
+
+
+def _gate_item_text(gate: str, state: AgentState) -> str:
+    return _topics_for_prompt(state["topic_map"]) if gate == "topics" else _structure_for_prompt(state["structure"])
+
+
+def classify_gate_reply(text: str, gate: str, item_text: str, config: RunnableConfig | None) -> tuple[str, str]:
+    """Free text at a gate -> ("approve" | "change" | "question", change text).
     Falls back to a change request with the whole text if the model's reply is unusable."""
+    subject = SUBJECTS[gate]
     messages: list = [
-        SystemMessage(GATE_CLASSIFY_PROMPT),
-        HumanMessage(f"Current map:\n{_topics_for_prompt(topics)}\n\nReviewer reply: {text}"),
+        SystemMessage(GATE_CLASSIFY_PROMPT.format(subject=subject, glossary=glossary_text(gate))),
+        HumanMessage(f"Current {subject}:\n{item_text}\n\nReviewer reply: {text}"),
     ]
     for _ in range(GATE_CLASSIFY_ATTEMPTS):
-        result = _call("gate_topics", messages, config, role="small")
+        result = _call(f"gate_{gate}", messages, config, role="small")
         match = re.search(r"\{.*\}", result.text, re.DOTALL)
         try:
             data = json.loads(match.group(0)) if match else {}
@@ -337,25 +538,27 @@ def classify_gate_reply(text: str, topics: list[dict], config: RunnableConfig | 
     return "change", text
 
 
-def answer_gate_question(question: str, topics: list[dict], config: RunnableConfig | None) -> str:
-    """A short answer from the map and the closest source excerpts; the map stays as is."""
+def answer_gate_question(question: str, gate: str, item_text: str, config: RunnableConfig | None) -> str:
+    """A short answer from the reviewed item and the closest excerpts; nothing is changed."""
     index = _index(config)
     hits = index.retrieve(question, k=GATE_EXCERPTS_K) if index is not None else []
     excerpts = format_excerpts(hits) if hits else "(no matching excerpts)"
-    user = f"Topic map:\n{_topics_for_prompt(topics)}\n\nSource excerpts:\n{excerpts}\n\nQuestion: {question}"
-    return _call("gate_topics", [SystemMessage(GATE_QUESTION_PROMPT), HumanMessage(user)], config).text
+    subject = SUBJECTS[gate]
+    user = f"{subject.capitalize()}:\n{item_text}\n\nSource excerpts:\n{excerpts}\n\nQuestion: {question}"
+    system = GATE_QUESTION_PROMPT.format(subject=subject)
+    return _call(f"gate_{gate}", [SystemMessage(system), HumanMessage(user)], config).text
 
 
-def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
-    """Human approval of the topic map. Pauses the graph with interrupt(); the CLI shows the
-    map (or the answer to the reviewer's last question) and resumes with either
+def _review_gate(gate: str, state: AgentState, config: RunnableConfig) -> dict:
+    """Shared logic of the review gates. Pauses with interrupt(); the CLI shows the item (or
+    the answer to the reviewer's last question) and resumes with either
     {"approved": bool, "feedback": str} for Y/N answers (no model call), or
-    {"text": str} for free text, which a small model classifies here as
-    approve / change (and what) / question. A question is answered from the map and the
-    excerpts, and the gate asks again with the map unchanged.
-    On resume LangGraph re-runs this node from the top, so it must not print anything:
-    the CLI prints "[INFO] Entering Node" lines from the stream and skips the re-entry."""
-    request: dict = {"gate": "topics", "topics": state["topic_map"]}
+    {"text": str} for free text, which a small model classifies as approve / change / question.
+    A question is answered and the gate asks again with the item unchanged.
+    On resume LangGraph re-runs the node from the top: nothing may be printed before
+    interrupt(); the CLI prints the "[INFO] Entering Node" lines."""
+    item_key = "topic_map" if gate == "topics" else "structure"
+    request: dict = {"gate": gate, item_key: state[item_key]}
     if state.get("gate_answer"):
         request["answer"] = state["gate_answer"]
     reply = interrupt(request)
@@ -363,15 +566,32 @@ def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
         reply = {"text": str(reply)}
 
     if "text" in reply:
-        decision, change = classify_gate_reply(reply["text"], state["topic_map"], config)
+        item_text = _gate_item_text(gate, state)
+        decision, change = classify_gate_reply(reply["text"], gate, item_text, config)
         if decision == "question":
-            answer = answer_gate_question(reply["text"], state["topic_map"], config)
-            return {"approved": None, "gate_answer": answer}
+            return {"approved": None, "gate_answer": answer_gate_question(reply["text"], gate, item_text, config)}
         reply = {"approved": decision == "approve", "feedback": change}
 
     if reply.get("approved"):
-        return {"approved": True, "answer": msg("gate.topics.approved"), "gate_answer": None}
+        return {"approved": True, "feedback": None, "gate_answer": None}
     return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None}
+
+
+def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
+    """Gate 1: approve the topic map (change -> topic_map, approve -> plan_structure)."""
+    update = _review_gate("topics", state, config)
+    if update.get("approved"):
+        say(msg("gate.topics.approved"))  # after interrupt: printed once
+        update["approved"] = None  # the structure gate decides the end of this stage
+    return update
+
+
+def gate_structure(state: AgentState, config: RunnableConfig) -> dict:
+    """Gate 2: approve the lesson structure (change -> plan_structure, approve -> end)."""
+    update = _review_gate("structure", state, config)
+    if update.get("approved"):
+        update["answer"] = msg("gate.structure.approved")
+    return update
 
 
 def route_after_scope_check(state: AgentState) -> str:
@@ -379,15 +599,23 @@ def route_after_scope_check(state: AgentState) -> str:
     if intent == INTENT_QUESTION:
         return "answer"
     if intent == INTENT_BUILD:
-        return "topic_map"
+        return "classify_type"
     return "end"  # out_of_scope, or build_lesson without files (message already set)
 
 
-def route_after_gate(state: AgentState) -> str:
-    """Approved ends this stage; a question returns to the same gate (map unchanged);
-    a change request goes back to topic_map. Nothing skips the gate."""
-    if state.get("approved"):
-        return "end"
+def _route_after_review(state: AgentState, gate_node: str, redo_node: str, next_node: str) -> str:
+    """A question returns to the same gate (item unchanged); a change request goes back to
+    the node that produced the item; approval moves on. Nothing skips a gate."""
     if state.get("gate_answer"):
-        return "gate_topics"
-    return "topic_map"
+        return gate_node
+    if state.get("feedback") is not None:
+        return redo_node
+    return next_node
+
+
+def route_after_gate_topics(state: AgentState) -> str:
+    return _route_after_review(state, "gate_topics", "topic_map", "plan_structure")
+
+
+def route_after_gate_structure(state: AgentState) -> str:
+    return _route_after_review(state, "gate_structure", "plan_structure", "end")

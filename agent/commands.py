@@ -11,6 +11,7 @@ from agent.messages import msg, msg_or_none
 from agent.session import SUPPORTED_EXTENSIONS, Session, SourceDoc, UsageTotals
 
 SOURCE_READER = "source-reader"
+GUARD_PREVIEW_CHARS = 70
 READ_ERROR_CODES = {"not_found", "not_a_file", "unsupported", "encrypted", "corrupt", "empty"}
 
 HELP_WORDS = {"help", "?", "/help"}
@@ -154,6 +155,7 @@ class CommandHandler:
         source = self._read_source(path)
         if source is None:
             return False
+        self._guard_source(path, source)
         self.session.add_file(path, source)
         if self.store is not None:
             self.store.save(self.session)  # so /resume works after a restart without /add
@@ -179,6 +181,31 @@ class CommandHandler:
                      style="yellow")
             return None
         return SourceDoc(unit_type=result["unit_type"], units=result["units"], chunks=result["chunks"])
+
+    def _guard_source(self, path: Path, source: SourceDoc) -> None:
+        """injection_guard: flag chunks that try to instruct the model, and tell the user.
+        Flagged chunks stay in the session as information (marked in every prompt)."""
+        from agent.console import log
+        from agent.guards import scan_chunks
+        from agent.llm import call_llm
+        from agent.nodes import source_label
+
+        log("[INFO] Entering Node: injection_guard")
+
+        def small_model(messages):
+            result = call_llm(messages, role="small")
+            self.session.record_usage("injection_guard", result)
+            return result
+
+        flagged = scan_chunks(source.chunks, small_model)
+        if not flagged:
+            return
+        self.out(msg("guard.flagged", count=len(flagged), name=path.name), style="yellow")
+        for chunk in flagged:
+            preview = " ".join(chunk["text"].split())
+            if len(preview) > GUARD_PREVIEW_CHARS:
+                preview = preview[: GUARD_PREVIEW_CHARS - 3] + "..."
+            self.out(msg("guard.item", source=source_label(chunk["locator"]), preview=preview), style="yellow")
 
     @staticmethod
     def _read_summary(source: SourceDoc) -> str:

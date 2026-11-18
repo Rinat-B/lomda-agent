@@ -145,12 +145,69 @@
       "ask_again": "לא הבנתי. כתבו Y לאישור, או N ואחריו מה לשנות.",
       "ask_feedback": "מה לשנות במפה? ",
       "revising": "מעדכן את המפה לפי ההערה...",
-      "approved": "מפת הנושאים אושרה. השלב הבא (תכנון מבנה) עוד לא בנוי."
+      "approved": "מפת הנושאים אושרה. ממשיכים לתכנון מבנה הלומדה."
+    },
+    "type": {
+      "ask": "זו נראית לומדת {type}. נכון? [Y/N]: ",
+      "ask_again": "כתבו Y אם זה נכון, או N כדי להחליף לסוג השני.",
+      "chosen": "סוג הלומדה: {type}."
+    },
+    "structure": {
+      "title": "## מבנה הלומדה ({type}, {count} מסכים)",
+      "word_limit": "בלומדת ציות כל מסך מוגבל ל-{max_words} מילים.",
+      "screen": "### מסך {number}: {title}",
+      "topic": "**נושא:** {topic}",
+      "objective": "**מטרה:** {objective}",
+      "points": "**נקודות תוכן:**",
+      "point": "- {text} {sources}",
+      "question": "**רעיון לשאלה:** {question}",
+      "illustration": "**המחשה:** {illustration}",
+      "none": "אין",
+      "diagram": "**תרשים החלטה:** {value}",
+      "yes": "כן",
+      "no": "לא",
+      "motifs_title": "## מוטיבים מוצעים",
+      "motif": "{index}. {text}",
+      "ask": "לאשר את המבנה? [Y/N + הערה]: ",
+      "ask_again": "לא הבנתי. כתבו Y לאישור, או N ואחריו מה לשנות.",
+      "ask_feedback": "מה לשנות במבנה? ",
+      "revising": "מעדכן את המבנה לפי ההערה...",
+      "approved": "מבנה הלומדה אושר. השלב הבא (כתיבה) עוד לא בנוי."
     },
     "names": {
-      "topics": "אישור מפת נושאים"
+      "type": "אישור סוג הלומדה",
+      "topics": "אישור מפת נושאים",
+      "structure": "אישור מבנה הלומדה"
+    },
+    "glossary": {
+      "topics": {
+        "map": "מפה",
+        "topic": "נושא",
+        "objective": "מטרה",
+        "sources": "מקורות"
+      },
+      "structure": {
+        "structure": "מבנה",
+        "screen": "מסך",
+        "points": "נקודות",
+        "question": "שאלה",
+        "illustration": "המחשה",
+        "diagram": "תרשים",
+        "motif": "מוטיב"
+      }
     },
     "paused": "השיחה נשמרה בשער. כדי להמשיך אחר כך כתבו /resume."
+  },
+  "lesson_types": {
+    "training": "הכשרה",
+    "compliance": "ציות"
+  },
+  "structure": {
+    "none_words": ["אין", "ללא"]
+  },
+  "guard": {
+    "flagged": "נמצאו {count} קטעים ב-{name} שנראים כמו הוראות למודל. הם סומנו, ויטופלו כמידע בלבד ולא כהוראות:",
+    "item": "  {source}: \"{preview}\""
   },
   "resume": {
     "unavailable": "המשך שיחות לא זמין כרגע (אין מאגר שמירה).",

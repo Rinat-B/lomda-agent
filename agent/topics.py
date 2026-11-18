@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from agent.guards import chunk_text_for_prompt, wrap_sources
+
 MIN_TOPICS = 4
 MAX_TOPICS = 8
 # Rough character budget for the source text sent to the model (about 8k tokens).
@@ -33,9 +35,9 @@ def build_units(chunks: list[dict]) -> list[Unit]:
             key = "slide" if "slide" in loc else "page"
             unit_loc = {"file": loc["file"], key: loc[key]}
             if groups and groups[-1][0] == unit_loc:
-                groups[-1][1].append(chunk["text"])
+                groups[-1][1].append(chunk_text_for_prompt(chunk))
             else:
-                groups.append((unit_loc, [chunk["text"]]))
+                groups.append((unit_loc, [chunk_text_for_prompt(chunk)]))
             continue
         # Paragraph-based (docx/txt/md): start a new unit at a heading, a new file,
         # or when the current block is full.
@@ -47,10 +49,10 @@ def build_units(chunks: list[dict]) -> list[Unit]:
             or len(last[1]) >= PARAGRAPHS_PER_UNIT
         ):
             groups.append(({"file": loc["file"], "paragraph": loc["paragraph"],
-                            "paragraph_end": loc["paragraph"]}, [chunk["text"]]))
+                            "paragraph_end": loc["paragraph"]}, [chunk_text_for_prompt(chunk)]))
         else:
             last[0]["paragraph_end"] = loc["paragraph"]
-            last[1].append(chunk["text"])
+            last[1].append(chunk_text_for_prompt(chunk))
     units = []
     for i, (loc, texts) in enumerate(groups, 1):
         if loc.get("paragraph_end") == loc.get("paragraph"):
@@ -92,7 +94,8 @@ def describe_unit(unit: Unit) -> str:
 
 
 def format_units(units: list[Unit]) -> str:
-    return "\n\n".join(f"[{u.id}] ({describe_unit(u)})\n{u.text}" for u in units)
+    """Units for a prompt, wrapped as source data (see guards.SOURCE_DATA_RULE)."""
+    return wrap_sources("\n\n".join(f"[{u.id}] ({describe_unit(u)})\n{u.text}" for u in units))
 
 
 # ---- structured output ------------------------------------------------------------------

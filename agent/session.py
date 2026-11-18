@@ -59,7 +59,9 @@ class Session:
     index: ChunkIndex = field(default_factory=ChunkIndex)
     # LangGraph checkpointer thread for this conversation; a new one per /new.
     thread_id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    topic_map: list[dict] | None = None  # the approved topic map, once the gate passes
+    topic_map: list[dict] | None = None  # the approved topic map
+    lesson_type: str | None = None  # training | compliance, once confirmed
+    structure: dict | None = None  # the approved lesson structure
 
     def reset(self) -> None:
         self.files.clear()
@@ -68,6 +70,8 @@ class Session:
         self.index.reset()
         self.thread_id = uuid.uuid4().hex
         self.topic_map = None
+        self.lesson_type = None
+        self.structure = None
 
     def all_chunks(self) -> list[dict]:
         return [chunk for source in self.sources.values() for chunk in source.chunks]

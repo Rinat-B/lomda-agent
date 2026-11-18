@@ -15,7 +15,7 @@ from agent.cli import run_question
 from agent.graph import build_graph
 from agent.messages import msg
 from agent.session import Session, SourceDoc
-from tests.test_lesson_flow import PREFIX, deck_chunks, rendered, topics_json
+from tests.test_lesson_flow import PREFIX, deck_chunks, rendered, structure_json_reply, topics_json
 
 REQUEST = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
 
@@ -181,6 +181,12 @@ class GateModel:
         if system.startswith("You are a gatekeeper"):
             self.calls.append(("scope", role, user))
             return _result("BUILD_LESSON")
+        if system.startswith("Decide which kind"):
+            self.calls.append(("classify_type", role, user))
+            return _result('{"type": "training", "reason": "fake"}')
+        if system.startswith("You are an instructional designer. Plan the screens"):
+            self.calls.append(("plan_structure", role, messages[1].content))
+            return _result(structure_json_reply(messages[1].content))
         if system.startswith("You are an instructional designer"):
             self.calls.append(("topic_map", role, messages[1].content))
             extra = "TIRES" if "reviewer asked" in messages[1].content.lower() else None
@@ -226,18 +232,19 @@ def run_with(answers: list[str]) -> Session:
 
 @pytest.mark.parametrize("answer", ["Y", "N add tires"])
 def test_y_and_n_need_no_model_call(gate_model, output, answer):
-    run_with([answer] + (["Y"] if answer.startswith("N") else []))
+    # type gate, topics gate (+ approval after a change), structure gate
+    run_with(["Y", answer] + (["Y"] if answer.startswith("N") else []) + ["Y"])
     assert "classify" not in gate_model.kinds() and "answer" not in gate_model.kinds()
 
 
 def test_free_text_approval(gate_model, output):
-    session = run_with(["looks great APPROVE_ME"])
-    assert gate_model.kinds() == ["scope", "topic_map", "classify"]
+    session = run_with(["Y", "looks great APPROVE_ME", "Y"])
+    assert gate_model.kinds() == ["scope", "classify_type", "topic_map", "classify", "plan_structure"]
     assert msg("gate.topics.approved") in output() and session.topic_map is not None
 
 
 def test_free_text_change_uses_the_extracted_change(gate_model, output):
-    session = run_with(["CHANGE_ME please", "Y"])
+    session = run_with(["Y", "CHANGE_ME please", "Y", "Y"])
     topic_prompts = [u for k, _, u in gate_model.calls if k == "topic_map"]
     assert len(topic_prompts) == 2
     assert "apply this feedback: add a topic on tires" in topic_prompts[1]
@@ -245,8 +252,10 @@ def test_free_text_change_uses_the_extracted_change(gate_model, output):
 
 
 def test_question_is_answered_and_the_gate_asks_again(gate_model, output):
-    session = run_with(["QUESTION_ME why is slide 2 here?", "Y"])
-    assert gate_model.kinds() == ["scope", "topic_map", "classify", "answer"]  # no new map
+    session = run_with(["Y", "QUESTION_ME why is slide 2 here?", "Y", "Y"])
+    kinds = gate_model.kinds()
+    assert kinds[:5] == ["scope", "classify_type", "topic_map", "classify", "answer"]  # no new map
+    assert kinds.count("topic_map") == 1
     out = output()
     assert "ANSWER-FROM-MAP" in out
     assert out.count(rendered("gate.topics.title", count=4)) == 1  # the map is not reprinted
@@ -256,13 +265,13 @@ def test_question_is_answered_and_the_gate_asks_again(gate_model, output):
 
 
 def test_classifier_uses_the_small_role(gate_model, output):
-    run_with(["APPROVE_ME"])
+    run_with(["Y", "APPROVE_ME", "Y"])
     roles = {k: r for k, r, _ in gate_model.calls}
     assert roles["classify"] == "small" and roles["scope"] == "small" and roles["topic_map"] == "writer"
 
 
 def test_unusable_classifier_reply_is_retried_then_treated_as_change(gate_model, output):
-    session = run_with(["something unclear", "Y"])
+    session = run_with(["Y", "something unclear", "Y", "Y"])
     assert gate_model.kinds().count("classify") == 2  # one retry
     topic_prompts = [u for k, _, u in gate_model.calls if k == "topic_map"]
     assert "apply this feedback: something unclear" in topic_prompts[1]

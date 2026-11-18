@@ -47,13 +47,13 @@ def open_program(db: Path):
 
 # ---- [INFO] for the gate is printed once per visit ------------------------------------------
 def test_gate_info_line_printed_once_on_approve(model, output):
-    run_question(QUESTION, new_session_with_deck(), build_graph(), ask_fn=answers("Y"))
+    run_question(QUESTION, new_session_with_deck(), build_graph(), ask_fn=answers("Y", "Y", "Y"))
     assert output().count("[INFO] Entering Node: gate_topics") == 1
     assert output().count("[INFO] Entering Node: topic_map") == 1
 
 
 def test_gate_info_line_once_per_visit_after_a_change(model, output):
-    run_question(QUESTION, new_session_with_deck(), build_graph(), ask_fn=answers("N add tires", "Y"))
+    run_question(QUESTION, new_session_with_deck(), build_graph(), ask_fn=answers("Y", "N add tires", "Y", "Y"))
     out = output()
     assert out.count("[INFO] Entering Node: topic_map") == 2
     assert out.count("[INFO] Entering Node: gate_topics") == 2  # two visits, no re-entry lines
@@ -65,7 +65,7 @@ def test_pause_close_resume_approve(model, db, output):
     graph, store = open_program(db)
     session = new_session_with_deck()
     store.save(session)
-    keep_running = run_question(QUESTION, session, graph, ask_fn=answers("exit"), store=store)
+    keep_running = run_question(QUESTION, session, graph, ask_fn=answers("Y", "exit"), store=store)
     assert keep_running is False
     assert msg("gate.paused") in output()
     thread = session.thread_id
@@ -86,7 +86,7 @@ def test_pause_close_resume_approve(model, db, output):
     assert msg("gate.names.topics") in out and "deck.pptx" in out
 
     prompts_before = len(model.topic_map_prompts())
-    assert run_graph(session2, graph2, None, ask_fn=answers("Y"), store=store2) is True
+    assert run_graph(session2, graph2, None, ask_fn=answers("Y", "Y"), store=store2) is True
     assert len(model.topic_map_prompts()) == prompts_before  # the saved map is shown, not rebuilt
     assert rendered("gate.topics.title", count=4) in output()
     assert msg("gate.topics.approved") in output()
@@ -98,12 +98,12 @@ def test_resume_can_request_changes_after_restart(model, db, output):
     graph, store = open_program(db)
     session = new_session_with_deck()
     store.save(session)
-    run_question(QUESTION, session, graph, ask_fn=answers("exit"), store=store)
+    run_question(QUESTION, session, graph, ask_fn=answers("Y", "exit"), store=store)
 
     graph2, store2 = open_program(db)
     session2 = Session()
     CommandHandler(session2, store=store2, graph=graph2).handle("/resume 1")
-    run_graph(session2, graph2, None, ask_fn=answers("N add tires", "Y"), store=store2)
+    run_graph(session2, graph2, None, ask_fn=answers("N add tires", "Y", "Y"), store=store2)
     assert "apply this feedback: add tires" in model.topic_map_prompts()[-1]
     assert [t["name"] for t in session2.topic_map][-1] == "TIRES"
     assert output().count("[INFO] Entering Node: gate_topics") == 2  # first run + the revised map
@@ -165,3 +165,43 @@ def test_store_round_trips_usage(db):
 
 def test_data_dir_is_next_to_the_project_when_not_frozen():
     assert data_dir() == Path(__file__).resolve().parent.parent / "data"
+
+
+# ---- resume from the type gate and from the structure gate ------------------------------
+def pause_then_reopen(model, db, before_exit: list[str]):
+    """Run until `exit` (after the given answers), then reopen and /resume the conversation."""
+    graph, store = open_program(db)
+    session = new_session_with_deck()
+    store.save(session)
+    run_question(QUESTION, session, graph, ask_fn=answers(*before_exit, "exit"), store=store)
+    graph2, store2 = open_program(db)
+    session2 = Session()
+    assert CommandHandler(session2, store=store2, graph=graph2).handle("/resume 1").resume is True
+    return graph2, store2, session2
+
+
+def test_resume_from_the_type_gate(model, db, output):
+    graph, store = open_program(db)
+    session = new_session_with_deck()
+    run_question(QUESTION, session, graph, ask_fn=answers("exit"), store=store)
+    [paused] = paused_conversations(graph, store)
+    assert paused.gate == "type"
+
+    graph2, store2, session2 = pause_then_reopen(model, db, [])
+    # N at the type gate switches the proposed training type to compliance.
+    run_graph(session2, graph2, None, ask_fn=answers("N", "Y", "Y"), store=store2)
+    assert session2.lesson_type == "compliance"
+    assert session2.structure["lesson_type"] == "compliance"
+    assert msg("gate.type.chosen", type=msg("lesson_types.compliance")) in output()
+
+
+def test_resume_from_the_structure_gate(model, db, output):
+    graph2, store2, session2 = pause_then_reopen(model, db, ["Y", "Y"])  # type, topics
+    out = output()
+    assert msg("gate.names.structure") in out
+    plans_before = len(model.prompts_of("plan_structure"))
+    run_graph(session2, graph2, None, ask_fn=answers("Y"), store=store2)
+    assert len(model.prompts_of("plan_structure")) == plans_before  # the saved structure is shown
+    assert msg("gate.structure.approved") in output()
+    assert session2.structure is not None and len(session2.structure["screens"]) == 4
+    assert paused_conversations(graph2, store2) == []

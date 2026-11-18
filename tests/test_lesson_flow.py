@@ -144,31 +144,80 @@ def test_previous_map_round_trips_to_unit_ids():
 
 
 # ---- the whole flow -------------------------------------------------------------------------
-class FakeModel:
-    """Gatekeeper says BUILD_LESSON; the topic mapper answers 4 topics, then 5 after feedback.
-    Optionally the first topic-map reply is invalid, to exercise the retry."""
+def structure_json_reply(user: str, extra: bool = False, ids=("U1",)) -> str:
+    """A valid plan_structure reply: one screen per topic of the approved map in the prompt."""
+    start = user.index("Approved topic map (JSON):\n") + len("Approved topic map (JSON):\n")
+    topics = json.loads(user[start:user.index("\n", start)])["topics"]
+    screens = [
+        {"number": i, "title": f"Screen {i}", "topic": t["name"],
+         "points": [{"text": f"point {i}a", "sources": list(ids)}, {"text": f"point {i}b", "sources": list(ids)}],
+         "question_idea": f"decide something {i}", "illustration": None if i % 2 else f"illustration {i}",
+         "decision_diagram": i == 1}
+        for i, t in enumerate(topics, 1)
+    ]
+    if extra:
+        screens.append({**screens[0], "number": len(screens) + 1, "title": "EXTRA"})
+    return json.dumps({"screens": screens, "motifs": ["motif one", "motif two"]}, ensure_ascii=False)
 
-    def __init__(self, invalid_first: bool = False):
+
+def prompt_kind(system: str) -> str:
+    if system.startswith("You are a gatekeeper"):
+        return "scope"
+    if system.startswith("Decide which kind"):
+        return "classify_type"
+    if system.startswith("You are an instructional designer. Plan the screens"):
+        return "plan_structure"
+    if system.startswith("You are an instructional designer planning"):
+        return "topic_map"
+    if system.startswith("You interpret"):
+        return "classify"
+    if system.startswith("You help a reviewer"):
+        return "answer"
+    return "other"
+
+
+class FakeModel:
+    """Fake models for the whole lesson flow:
+    gatekeeper -> BUILD_LESSON; classify_type -> `lesson_type`; topic map -> 4 topics (5 after
+    feedback); structure -> one screen per topic (one more after feedback); gate classifier ->
+    CHANGE with the reviewer's text. Optionally the first topic-map reply is invalid."""
+
+    def __init__(self, invalid_first: bool = False, lesson_type: str = "training"):
         self.prompts: list[tuple[str, str]] = []
+        self.kinds: list[str] = []
         self.timeouts: list = []
         self.invalid_first = invalid_first
+        self.lesson_type = lesson_type
 
     def __call__(self, messages, **kwargs):
         self.timeouts.append(kwargs.get("timeout"))
         system, user = messages[0].content, messages[-1].content
+        kind = prompt_kind(system)
         self.prompts.append((system, user))
-        if system.startswith("You are a gatekeeper"):
+        self.kinds.append(kind)
+        first_user = messages[1].content
+        revising = "reviewer asked" in first_user.lower()
+        if kind == "scope":
             return make_result(text="BUILD_LESSON")
-        if self.invalid_first:
-            self.invalid_first = False
-            return make_result(text="not json")
-        full_user = messages[1].content
-        if "Reviewer asked" in full_user or "reviewer asked" in full_user:
-            return make_result(text=topics_json(4, extra_name="TIRES"))
-        return make_result(text=topics_json(4))
+        if kind == "classify_type":
+            return make_result(text=json.dumps({"type": self.lesson_type, "reason": "fake"}))
+        if kind == "plan_structure":
+            return make_result(text=structure_json_reply(first_user, extra=revising))
+        if kind == "classify":
+            reply = user.split("Reviewer reply: ", 1)[-1]
+            return make_result(text=json.dumps({"decision": "CHANGE", "change": reply}))
+        if kind == "topic_map":
+            if self.invalid_first:
+                self.invalid_first = False
+                return make_result(text="not json")
+            return make_result(text=topics_json(4, extra_name="TIRES" if revising else None))
+        raise AssertionError(f"unexpected prompt: {system[:70]}")
+
+    def prompts_of(self, kind: str) -> list[str]:
+        return [u for (s, u), k in zip(self.prompts, self.kinds) if k == kind]
 
     def topic_map_prompts(self):
-        return [u for s, u in self.prompts if s.startswith("You are an instructional designer")]
+        return self.prompts_of("topic_map")
 
 
 @pytest.fixture
@@ -179,6 +228,7 @@ def session_with_deck():
 
 
 def run_flow(monkeypatch, session, answers: list[str], model: FakeModel):
+    """Answers in order: the type gate, the topics gate, then the structure gate."""
     monkeypatch.setattr(nodes, "call_llm", model)
     asked = iter(answers)
     run_question("build me a lesson from the deck", session, build_graph(), ask_fn=lambda prompt: next(asked))
@@ -186,17 +236,19 @@ def run_flow(monkeypatch, session, answers: list[str], model: FakeModel):
 
 def test_approve_right_away(monkeypatch, session_with_deck, output):
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["Y"], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
     out = output()
-    assert msg("gate.topics.approved") in out
+    assert msg("gate.topics.approved") in out and msg("gate.structure.approved") in out
     assert len(session_with_deck.topic_map) == 4
-    assert "[INFO] Entering Node: topic_map" in out and "[INFO] Entering Node: gate_topics" in out
+    assert len(session_with_deck.structure["screens"]) == 4
+    for node in ("classify_type", "gate_type", "topic_map", "gate_topics", "plan_structure", "gate_structure"):
+        assert f"[INFO] Entering Node: {node}" in out
     assert rendered("gate.topics.title", count=4) in out
 
 
 def test_change_request_goes_back_to_topic_map_then_approve(monkeypatch, session_with_deck, output):
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["N add a topic on tires", "Y"], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "N add a topic on tires", "Y", "Y"], model)
     prompts = model.topic_map_prompts()
     assert len(prompts) == 2
     assert "apply this feedback: add a topic on tires" in prompts[1]
@@ -208,53 +260,59 @@ def test_change_request_goes_back_to_topic_map_then_approve(monkeypatch, session
 
 def test_hebrew_keyboard_letters(monkeypatch, session_with_deck, output):
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, [f"{MEM} add a topic on tires", TET], model)
+    run_flow(monkeypatch, session_with_deck, [TET, f"{MEM} add a topic on tires", TET, TET], model)
     assert len(model.topic_map_prompts()) == 2
     assert session_with_deck.topic_map is not None and len(session_with_deck.topic_map) == 5
 
 
 def test_n_without_comment_asks_what_to_change(monkeypatch, session_with_deck, output):
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["N", "add tires", "y"], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "N", "add tires", "y", "Y"], model)
     assert "apply this feedback: add tires" in model.topic_map_prompts()[1]
 
 
 def test_free_text_and_empty_answers(monkeypatch, session_with_deck, output):
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["", "please add tires", KEN], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "", "please add tires", KEN, "Y"], model)
     assert msg("gate.topics.ask_again") in output()
     assert "apply this feedback: please add tires" in model.topic_map_prompts()[1]
 
 
 def test_invalid_model_json_is_retried(monkeypatch, session_with_deck, output):
     model = FakeModel(invalid_first=True)
-    run_flow(monkeypatch, session_with_deck, ["Y"], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
     assert len(model.topic_map_prompts()) == 2  # retry inside topic_map
     assert len(session_with_deck.topic_map) == 4
 
 
 def test_a_new_question_after_the_gate_starts_fresh(monkeypatch, session_with_deck, output):
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["N add tires", "Y"], model)
-    run_flow(monkeypatch, session_with_deck, ["Y"], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "N add tires", "Y", "Y"], model)
+    run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
     # The second run starts from a fresh state: no leftover feedback or previous map.
     assert "Your previous topic map" not in model.topic_map_prompts()[-1]
 
 
-def test_topic_map_uses_the_long_timeout(monkeypatch, session_with_deck, output):
+def test_long_generations_use_the_long_timeout(monkeypatch, session_with_deck, output):
     from agent.llm import LONG_REQUEST_TIMEOUT_SECONDS
 
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["Y"], model)
-    assert model.timeouts == [None, LONG_REQUEST_TIMEOUT_SECONDS]  # scope_check default, topic_map long
+    run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
+    timeouts = dict(zip(model.kinds, model.timeouts))
+    assert timeouts["scope"] is None and timeouts["classify_type"] is None  # short calls: default
+    assert timeouts["topic_map"] == LONG_REQUEST_TIMEOUT_SECONDS
+    assert timeouts["plan_structure"] == LONG_REQUEST_TIMEOUT_SECONDS
 
 
-def test_no_edge_bypasses_the_gate():
+def test_no_edge_bypasses_a_gate():
     edges = {(e.source, e.target) for e in build_graph().get_graph().edges}
-    assert {t for s, t in edges if s == "topic_map"} == {"gate_topics"}
-    # Back to topic_map (change), to itself (question answered), or on (approved).
-    assert {t for s, t in edges if s == "gate_topics"} == {"topic_map", "gate_topics", "__end__"}
-    assert not any(t == "__end__" and s == "topic_map" for s, t in edges)
+    successors = lambda node: {t for s, t in edges if s == node}  # noqa: E731
+    assert successors("classify_type") == {"gate_type"}
+    assert successors("topic_map") == {"gate_topics"}
+    assert successors("plan_structure") == {"gate_structure"}
+    # A gate goes back (change), to itself (question answered), or on (approved).
+    assert successors("gate_topics") == {"topic_map", "gate_topics", "plan_structure"}
+    assert successors("gate_structure") == {"plan_structure", "gate_structure", "__end__"}
 
 
 def test_format_topic_map_shows_topic_objective_sources():
