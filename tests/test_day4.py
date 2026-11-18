@@ -300,3 +300,75 @@ def test_structure_is_shown_as_a_list_per_screen_not_a_table(units, topics):
 def test_training_structure_has_no_word_limit_line(units, topics):
     s = parse_structure(json.dumps(plan_reply(topics)), units, topics, TRAINING)
     assert msg("gate.structure.word_limit", max_words=COMPLIANCE_MAX_WORDS) not in format_structure(s)
+
+
+# ---- internal unit ids never reach the user ----------------------------------------------------
+SLIDE = "".join(map(chr, [0x05E9, 0x05E7, 0x05D5, 0x05E4, 0x05D9, 0x05EA]))  # Hebrew "slide"
+
+
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        (f"Brake early (U1, {SLIDE} 1) (deck.pptx)", "Brake early"),  # the reported case
+        ("Brake early (U1, slide 1).", "Brake early."),
+        ("Brake early [U3] and steer", "Brake early and steer"),
+        ("Brake early, see U2, U3.", "Brake early, see."),
+        ("Use ABS (anti-lock braking) when braking", "Use ABS (anti-lock braking) when braking"),  # kept
+        ("Check (deck.pptx) daily", "Check daily"),
+        ("U-turn rules and MU2 codes stay", "U-turn rules and MU2 codes stay"),  # not unit ids
+    ],
+)
+def test_strip_internal_refs(raw, expected):
+    from agent.topics import strip_internal_refs
+
+    assert strip_internal_refs(raw, ("deck.pptx",)) == expected
+
+
+def test_unit_ids_are_removed_from_the_structure_and_sources_shown_uniformly(units, topics):
+    data = plan_reply(topics)
+    data["screens"][0]["points"][0]["text"] = f"Brake early (U1, {SLIDE} 1) (deck.pptx)"
+    data["screens"][0]["title"] = "Braking [U1]"
+    data["screens"][0]["question_idea"] = "You see ice on the road (U2). Do you slow down?"
+    data["screens"][0]["illustration"] = "A slider (U1)"
+    data["motifs"] = ["Winter blue (U1)", "Road lines"]
+    s = parse_structure(json.dumps(data), units, topics, TRAINING)
+    screen = s["screens"][0]
+    assert screen["points"][0]["text"] == "Brake early"
+    assert screen["title"] == "Braking"
+    assert screen["question_idea"] == "You see ice on the road. Do you slow down?"
+    assert screen["illustration"] == "A slider" and s["motifs"][0] == "Winter blue"
+    shown = format_structure(s)
+    import re
+
+    assert not re.search(r"(?<![A-Za-z0-9])U\d+(?![A-Za-z0-9])", shown)  # no internal id anywhere
+    label = msg("rag.source.slide", file="deck.pptx", number=1)
+    assert msg("gate.structure.point", text="Brake early", sources=label) in shown
+
+
+def test_a_point_made_only_of_references_is_rejected(units, topics):
+    data = plan_reply(topics)
+    data["screens"][0]["points"][0]["text"] = "(U1, slide 1)"
+    with pytest.raises(ValueError, match="no text besides source references"):
+        parse_structure(json.dumps(data), units, topics, TRAINING)
+
+
+def test_unit_ids_are_removed_from_the_topic_map(units):
+    from agent.topics import parse_topic_map
+
+    reply = json.loads(topics_json(4))
+    reply["topics"][0]["name"] = "Braking (U1)"
+    reply["topics"][0]["objective"] = f"{PREFIX}brake early (U1, deck.pptx)"
+    topics = parse_topic_map(json.dumps(reply), units, PREFIX)
+    assert topics[0]["name"] == "Braking"
+    assert topics[0]["objective"] == f"{PREFIX}brake early"
+
+
+# ---- the decision-question principle ----------------------------------------------------------
+def test_plan_prompt_states_the_question_principle_with_its_reason():
+    prompt = nodes.PLAN_STRUCTURE_PROMPT
+    assert "act correctly at work" in prompt  # why
+    assert "not whether they" in prompt and "remember it" in prompt
+    assert "Describe a concrete situation" in prompt and "decide or do" in prompt  # what
+    assert "number, date, name or a value read from a table" in prompt  # what not, and why
+    assert "2.5 mm of tread" in prompt  # one worked example, not a list of cases
+    assert "never write them" in prompt  # ids stay out of text fields

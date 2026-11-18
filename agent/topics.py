@@ -119,6 +119,34 @@ class TopicMapOut(BaseModel):
 
 _JSON_BLOCK = re.compile(r"\{.*\}", re.DOTALL)
 
+# Internal unit ids ("U3") are for the model only and must never reach the user.
+_UNIT_ID = re.compile(r"(?<![A-Za-z0-9])U\d+(?![A-Za-z0-9])")
+_GROUP = re.compile(r"[(\[][^()\[\]]*[)\]]")
+
+
+def strip_internal_refs(text: str, file_names: tuple[str, ...] = ()) -> str:
+    """Remove source references the model wrote into display text: any bracketed group that
+    mentions a unit id or a source file, then any bare unit id. Sources are shown from the
+    structured `sources` field instead, in one uniform format."""
+
+    def drop(match: re.Match) -> str:
+        group = match.group(0)
+        if _UNIT_ID.search(group) or any(name in group for name in file_names):
+            return " "
+        return group
+
+    text = _GROUP.sub(drop, text)
+    text = _UNIT_ID.sub(" ", text)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)  # no space before punctuation
+    text = re.sub(r"([,;:])(\s*[,;:])+", r"\1", text)  # collapse leftover separators
+    text = re.sub(r"[,;:]+(?=[.!?])", "", text)  # no separator right before a sentence end
+    return text.strip().strip(",;:-").strip()
+
+
+def unit_file_names(units: list[Unit]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(u.locator["file"] for u in units))
+
 
 def parse_topic_map(text: str, units: list[Unit], objective_prefix: str) -> list[dict]:
     """Validate the model's JSON and map unit ids to locators. Raises ValueError if invalid."""
@@ -131,17 +159,18 @@ def parse_topic_map(text: str, units: list[Unit], objective_prefix: str) -> list
         raise ValueError(f"JSON does not match the schema: {e.errors(include_url=False)}") from e
 
     by_id = {u.id: u for u in units}
+    files = unit_file_names(units)
     topics = []
     for t in parsed.topics:
         ids = list(dict.fromkeys(s.strip() for s in t.sources))
         unknown = [s for s in ids if s not in by_id]
         if unknown:
             raise ValueError(f"topic {t.name!r} cites unknown source ids {unknown}; use only the given ids")
-        objective = t.objective.strip()
+        objective = strip_internal_refs(t.objective, files)
         if not objective.startswith(objective_prefix):
             raise ValueError(f"objective of topic {t.name!r} must start with {objective_prefix!r}")
         topics.append({
-            "name": t.name.strip(),
+            "name": strip_internal_refs(t.name, files),
             "objective": objective,
             "sources": [dict(by_id[s].locator) for s in ids],
         })

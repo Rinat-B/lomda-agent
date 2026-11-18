@@ -15,7 +15,7 @@ import re
 from pydantic import BaseModel, Field, ValidationError
 
 from agent.messages import msg_list
-from agent.topics import Unit
+from agent.topics import Unit, strip_internal_refs, unit_file_names
 
 TRAINING = "training"
 COMPLIANCE = "compliance"
@@ -72,11 +72,17 @@ def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_typ
         raise ValueError(f"JSON does not match the schema: {e.errors(include_url=False)}") from e
 
     by_id = {u.id: u for u in units}
+    files = unit_file_names(units)
+
+    def clean(text: str) -> str:
+        """Display text without unit ids or file references (sources are shown separately)."""
+        return strip_internal_refs(text, files)
+
     objective_of = {t["name"].strip(): t["objective"] for t in topics}
     covered: set[str] = set()
     screens = []
     for number, s in enumerate(parsed.screens, 1):
-        topic = s.topic.strip()
+        topic = clean(s.topic)
         if topic not in objective_of:
             raise ValueError(
                 f"screen {number} names topic {topic!r}, which is not in the map; "
@@ -89,7 +95,10 @@ def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_typ
             unknown = [x for x in ids if x not in by_id]
             if unknown:
                 raise ValueError(f"screen {number} cites unknown source ids {unknown}; use only the given ids")
-            points.append({"text": p.text.strip(), "sources": [dict(by_id[x].locator) for x in ids]})
+            text = clean(p.text)
+            if len(text) < 2:
+                raise ValueError(f"screen {number} has a content point with no text besides source references")
+            points.append({"text": text, "sources": [dict(by_id[x].locator) for x in ids]})
         if lesson_type == COMPLIANCE:
             words = sum(word_count(p["text"]) for p in points)
             if words > COMPLIANCE_MAX_WORDS:
@@ -99,18 +108,18 @@ def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_typ
                 )
         screens.append({
             "number": number,  # renumbered in order
-            "title": s.title.strip(),
+            "title": clean(s.title),
             "topic": topic,
             "objective": objective_of[topic],  # always the approved map's wording
             "points": points,
-            "question_idea": s.question_idea.strip(),
-            "illustration": None if _no_illustration(s.illustration) else s.illustration.strip(),
+            "question_idea": clean(s.question_idea),
+            "illustration": None if _no_illustration(s.illustration) else clean(s.illustration) or None,
             "decision_diagram": bool(s.decision_diagram),
         })
     missing = [name for name in objective_of if name not in covered]
     if missing:
         raise ValueError(f"these topics have no screen: {missing}; every objective needs at least one screen")
-    motifs = [m.strip() for m in parsed.motifs if m.strip()]
+    motifs = [clean(m) for m in parsed.motifs if clean(m)]
     if len(motifs) < 2:
         raise ValueError("give 2-3 non-empty motif descriptions")
     return {"lesson_type": lesson_type, "screens": screens, "motifs": motifs}
