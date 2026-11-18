@@ -97,7 +97,7 @@ def fake_llm(monkeypatch):
     calls = []
 
     def install(reply: str):
-        def fake_call_llm(messages):
+        def fake_call_llm(messages, **kwargs):
             calls.append(messages)
             return make_result(text=reply)
 
@@ -179,7 +179,7 @@ def context_aware_model(monkeypatch):
     """A fake gatekeeper that follows the instructions: IN_SCOPE only when an excerpt matched."""
     calls = []
 
-    def fake_call_llm(messages):
+    def fake_call_llm(messages, **kwargs):
         calls.append(messages)
         no_excerpt = "(none: no excerpt matches the question)" in messages[1].content
         return make_result(text="OUT_OF_SCOPE" if no_excerpt else "IN_SCOPE")

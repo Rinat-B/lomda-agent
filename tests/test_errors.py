@@ -110,7 +110,7 @@ class FakeResponse:
 
 def use_models(monkeypatch, outcomes: dict):
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
-    monkeypatch.setattr(llm, "load_models", lambda: list(outcomes))
+    monkeypatch.setattr(llm, "load_models", lambda role="writer": list(outcomes))
     calls = []
 
     def client(model, timeout=None):
@@ -187,13 +187,13 @@ def test_new_conversation_resets_unavailable_models(monkeypatch, session):
     assert llm.unavailable_models() == {}
 
 
-def test_models_yaml_order():
-    llm.load_models.cache_clear()
-    assert llm.load_models()[0] == "nvidia/nemotron-3.5-super-vl:free"
+def test_models_yaml_order(monkeypatch):
+    monkeypatch.delenv("PROFILE", raising=False)
+    assert llm.load_models("writer")[0] == "nvidia/nemotron-3.5-super-vl:free"
 
 
 def test_missing_key(monkeypatch):
-    monkeypatch.setattr(llm, "load_models", lambda: ["a"])
+    monkeypatch.setattr(llm, "load_models", lambda role="writer": ["a"])
     with pytest.raises(MissingApiKeyError):
         llm.call_llm([])
 

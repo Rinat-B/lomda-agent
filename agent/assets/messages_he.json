@@ -114,6 +114,9 @@
   },
   "llm": {
     "switch_model": "[INFO] המודל {model} נכשל ({error}). עוברים למודל הבא: {next_model}",
+    "switched_to_free": "[INFO] אין מספיק קרדיט בחשבון OpenRouter (402). עוברים מהפרופיל {profile} לפרופיל החינמי (free) עד סוף ההפעלה. התשובות עשויות להיות פחות מדויקות.",
+    "not_listed": "[INFO] מודלים מ-models.yaml שלא מופיעים כרגע ב-OpenRouter ולא ייבחרו: {models}",
+    "profile": "[INFO] פרופיל מודלים: {profile}",
     "marked_unavailable": "[INFO] המודל {model} לא זמין ({error}) ויידלג עד סוף השיחה. עוברים למודל הבא: {next_model}"
   },
   "tracing": {

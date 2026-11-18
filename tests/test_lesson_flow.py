@@ -71,7 +71,7 @@ def test_classify_intent(reply, intent):
 
 
 def test_build_lesson_without_files_asks_for_add(monkeypatch):
-    monkeypatch.setattr(nodes, "call_llm", lambda m: make_result(text="BUILD_LESSON"))
+    monkeypatch.setattr(nodes, "call_llm", lambda m, **kw: make_result(text="BUILD_LESSON"))
     result = nodes.scope_check({"question": "build"}, {"configurable": {"index": ChunkIndex()}})
     assert result == {"intent": nodes.INTENT_NEEDS_FILES, "answer": msg("scope.need_files")}
     assert nodes.route_after_scope_check(result) == "end"
@@ -252,7 +252,8 @@ def test_topic_map_uses_the_long_timeout(monkeypatch, session_with_deck, output)
 def test_no_edge_bypasses_the_gate():
     edges = {(e.source, e.target) for e in build_graph().get_graph().edges}
     assert {t for s, t in edges if s == "topic_map"} == {"gate_topics"}
-    assert {t for s, t in edges if s == "gate_topics"} == {"topic_map", "__end__"}
+    # Back to topic_map (change), to itself (question answered), or on (approved).
+    assert {t for s, t in edges if s == "gate_topics"} == {"topic_map", "gate_topics", "__end__"}
     assert not any(t == "__end__" and s == "topic_map" for s, t in edges)
 
 

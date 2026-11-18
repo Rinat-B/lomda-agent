@@ -23,11 +23,11 @@ def plain_console(monkeypatch):
 @pytest.fixture(autouse=True)
 def fresh_model_availability():
     """Models marked unavailable in one test must not leak into the next."""
-    from agent.llm import reset_unavailable_models
+    from agent.llm import reset_model_state
 
-    reset_unavailable_models()
+    reset_model_state()
     yield
-    reset_unavailable_models()
+    reset_model_state()
 
 
 @pytest.fixture

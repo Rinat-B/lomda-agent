@@ -2,7 +2,8 @@
 
     START -> scope_check -+-> answer ----------------------------> END   (question)
                           +-> topic_map -> gate_topics -+-> END          (approved)
-                          |       ^                     |
+                          |       ^          ^          |
+                          |       |          +- question+   (answered; map unchanged)
                           |       +---- change request -+
                           +-> END                         (out of scope / no files)
 
@@ -38,5 +39,9 @@ def build_graph(checkpointer=None):
     )
     graph.add_edge("answer", END)
     graph.add_edge("topic_map", "gate_topics")
-    graph.add_conditional_edges("gate_topics", route_after_gate, {"topic_map": "topic_map", "end": END})
+    graph.add_conditional_edges(
+        "gate_topics",
+        route_after_gate,
+        {"topic_map": "topic_map", "gate_topics": "gate_topics", "end": END},
+    )
     return graph.compile(checkpointer=checkpointer if checkpointer is not None else InMemorySaver())

@@ -22,11 +22,15 @@ class GateExit(Exception):
 class GateDecision:
     approved: bool
     feedback: str = ""
+    # True when the reply started with an approve/reject word (Y, N, ...): decided without
+    # a model. False for free text, which the gate node classifies with a small model.
+    explicit: bool = True
 
 
 def parse_decision(text: str) -> GateDecision | None:
     """Approve: Y/y/yes and their Hebrew equivalents. Change: N/n/no (+ comment).
-    Any other non-empty text is a change request with that text as the comment.
+    Any other non-empty text is returned as free text (explicit=False) for the model to
+    classify; until then it counts as a change request with the whole text as comment.
     Returns None for empty input (ask again)."""
     text = (text or "").strip()
     if not text:
@@ -39,7 +43,7 @@ def parse_decision(text: str) -> GateDecision | None:
         return GateDecision(approved=True, feedback=rest)
     if first.lower() in reject:
         return GateDecision(approved=False, feedback=rest)
-    return GateDecision(approved=False, feedback=text)
+    return GateDecision(approved=False, feedback=text, explicit=False)
 
 
 # ---- topics gate (CLI side) -------------------------------------------------------------
@@ -61,10 +65,17 @@ def format_topic_map(topics: list[dict]) -> str:
     return "\n".join(lines).rstrip()
 
 
-def ask_topics_gate(topics: list[dict], ask: Callable[[str], str], show: Callable[[str], None],
+def ask_topics_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
                     say: Callable[..., None]) -> dict:
-    """Show the map and read the reviewer's decision. Returns the interrupt resume value."""
-    show(format_topic_map(topics))
+    """Show the map (or the answer to the last question) and read the reviewer's reply.
+
+    Returns the interrupt resume value: {"approved", "feedback"} for Y/N answers (decided
+    here, no model), or {"text"} for free text (classified by the gate node).
+    """
+    if request.get("answer"):
+        show(request["answer"])  # the map is unchanged; it is already on screen
+    else:
+        show(format_topic_map(request["topics"]))
     while True:
         text = ask(msg("gate.topics.ask"))
         if text.strip().lower() in EXIT_WORDS:
@@ -73,6 +84,8 @@ def ask_topics_gate(topics: list[dict], ask: Callable[[str], str], show: Callabl
         if decision is None:
             say(msg("gate.topics.ask_again"), style="yellow")
             continue
+        if not decision.explicit:
+            return {"text": text.strip()}
         if decision.approved:
             return {"approved": True, "feedback": decision.feedback}
         feedback = decision.feedback

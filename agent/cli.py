@@ -31,6 +31,7 @@ FRESH_RUN = {
     "topic_map": None,
     "feedback": None,
     "approved": None,
+    "gate_answer": None,
 }
 
 
@@ -75,7 +76,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             if not snapshot.interrupts:
                 break
             paused_node = snapshot.next[0] if snapshot.next else None
-            resume = ask_topics_gate(snapshot.interrupts[0].value["topics"], ask_fn, show_markdown, say)
+            resume = ask_topics_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say)
             stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
     except (GateExit, EOFError):
         say(msg("gate.paused"), style="yellow")
@@ -127,6 +128,18 @@ def run_turn(line: str, handler: CommandHandler, graph) -> bool:
     return True
 
 
+def check_models() -> None:
+    """Say which model profile is active, and skip configured models OpenRouter does not
+    list (checked at most once a day; if the check fails, carry on without it)."""
+    from agent.llm import active_profile, check_available_models
+    from agent.persistence import data_dir
+
+    log(msg("llm.profile", profile=active_profile()))
+    missing = check_available_models(data_dir() / "models_cache.json")
+    if missing:
+        log(msg("llm.not_listed", models=", ".join(missing)))
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     if args.mcp:
@@ -147,6 +160,7 @@ def main(argv: list[str] | None = None) -> None:
         say(msg("cli.no_key_warning"), style="yellow")
 
     tracing_enabled = setup_tracing()
+    check_models()
     graph = build_graph(open_checkpointer())
     mcp = MCPManager()
     handler = CommandHandler(Session(), mcp=mcp, store=ConversationStore(), graph=graph)

@@ -1,5 +1,6 @@
 """Graph state and node logic."""
 
+import json
 import re
 from typing import Callable, TypedDict
 
@@ -13,6 +14,8 @@ from agent.llm import LONG_REQUEST_TIMEOUT_SECONDS, LLMResult, call_llm
 from agent.messages import msg
 from agent.tools import ChunkIndex, make_retrieve_tool
 from agent.topics import (
+    Unit,
+    describe_unit,
     MAX_TOPICS,
     MIN_TOPICS,
     build_units,
@@ -90,6 +93,7 @@ class AgentState(TypedDict, total=False):
     sources: list[dict]  # locators of the chunks the answer is based on
     topic_map: list[dict] | None  # [{"name", "objective", "sources": [locator, ...]}]
     feedback: str | None  # reviewer's change request from the topics gate
+    gate_answer: str | None  # answer to a reviewer's question at the gate (map unchanged)
     approved: bool | None
 
 
@@ -102,10 +106,20 @@ def _index(config: RunnableConfig | None) -> ChunkIndex | None:
     return index if index is not None and len(index) else None
 
 
-def _call(node: str, messages: list, config: RunnableConfig | None, timeout: float | None = None) -> LLMResult:
-    """Call the model for a node: tag errors with the node name and record usage."""
+def _call(
+    node: str,
+    messages: list,
+    config: RunnableConfig | None,
+    timeout: float | None = None,
+    role: str = "writer",
+) -> LLMResult:
+    """Call the model for a node: tag errors with the node name and record usage.
+    `role` picks the model list in models.yaml (writer / checker / small)."""
+    kwargs: dict = {"role": role}
+    if timeout:
+        kwargs["timeout"] = timeout
     try:
-        result = call_llm(messages, timeout=timeout) if timeout else call_llm(messages)
+        result = call_llm(messages, **kwargs)
     except Exception as e:
         raise NodeError(node, e) from e
     recorder: UsageRecorder | None = _configurable(config).get("usage_recorder")
@@ -122,7 +136,7 @@ def scope_check(state: AgentState, config: RunnableConfig) -> dict:
         # Always ask the model; give it the session's files and the closest excerpt as context.
         system = SCOPE_CHECK_PROMPT + SCOPE_CHECK_WITH_SOURCES
         user = scope_context(state["question"], index)
-    result = _call("scope_check", [SystemMessage(system), HumanMessage(user)], config)
+    result = _call("scope_check", [SystemMessage(system), HumanMessage(user)], config, role="small")
     intent = classify_intent(result.text)
     if intent == INTENT_OUT:
         return {"intent": intent, "answer": msg("graph.out_of_scope")}
@@ -263,21 +277,101 @@ def topic_map(state: AgentState, config: RunnableConfig) -> dict:
                 HumanMessage(f"That reply was invalid: {error}. Reply again with only the corrected JSON object."),
             ]
             continue
-        return {"topic_map": topics, "feedback": None, "approved": None}
+        return {"topic_map": topics, "feedback": None, "approved": None, "gate_answer": None}
     raise NodeError("topic_map", ValueError(f"no valid topic map after {TOPIC_MAP_ATTEMPTS} attempts: {error}"))
+
+
+GATE_CLASSIFY_ATTEMPTS = 2  # one retry for the structured reply
+GATE_CLASSIFY_PROMPT = (
+    "You interpret a reviewer's reply at the topic-map approval gate of an e-learning lesson "
+    "builder. Glossary for this gate: 'map' = the whole topic map; 'topic' = one row of the "
+    "map; 'objective' = the single learning objective of a topic; 'sources' = the slides, "
+    "pages or paragraphs a topic is based on.\n"
+    "Classify the reply as exactly one of:\n"
+    "APPROVE - accepts the map as it is.\n"
+    "CHANGE - asks to add, remove, merge, split, rename, reorder or reword something.\n"
+    "QUESTION - asks something about the map or the material without requesting a change.\n"
+    "Reply with only a JSON object: "
+    '{"decision": "APPROVE" | "CHANGE" | "QUESTION", "change": "<for CHANGE: what to change, '
+    'in the reviewer\'s own language; otherwise empty>"}'
+)
+GATE_QUESTION_PROMPT = (
+    "You help a reviewer who is approving the topic map of an e-learning lesson. Answer the "
+    "question briefly (one to three sentences) in Hebrew, using only the topic map and the "
+    "source excerpts provided. Do not change the map and do not propose a new one. If the "
+    "answer is not there, say so briefly."
+)
+GATE_EXCERPTS_K = 4
+
+
+def _topics_for_prompt(topics: list[dict]) -> str:
+    lines = []
+    for i, t in enumerate(topics, 1):
+        sources = "; ".join(describe_unit(Unit("", loc, "")) for loc in t["sources"])
+        lines.append(f"{i}. {t['name']} | objective: {t['objective']} | sources: {sources}")
+    return "\n".join(lines)
+
+
+def classify_gate_reply(text: str, topics: list[dict], config: RunnableConfig | None) -> tuple[str, str]:
+    """Free text at the gate -> ("approve" | "change" | "question", change text).
+    Falls back to a change request with the whole text if the model's reply is unusable."""
+    messages: list = [
+        SystemMessage(GATE_CLASSIFY_PROMPT),
+        HumanMessage(f"Current map:\n{_topics_for_prompt(topics)}\n\nReviewer reply: {text}"),
+    ]
+    for _ in range(GATE_CLASSIFY_ATTEMPTS):
+        result = _call("gate_topics", messages, config, role="small")
+        match = re.search(r"\{.*\}", result.text, re.DOTALL)
+        try:
+            data = json.loads(match.group(0)) if match else {}
+        except json.JSONDecodeError:
+            data = {}
+        decision = str(data.get("decision", "")).strip().upper()
+        if decision in ("APPROVE", "CHANGE", "QUESTION"):
+            change = str(data.get("change") or "").strip() or text
+            return decision.lower(), change if decision == "CHANGE" else ""
+        messages += [
+            AIMessage(result.text),
+            HumanMessage('Invalid reply. Answer with only the JSON object {"decision": ..., "change": ...}.'),
+        ]
+    return "change", text
+
+
+def answer_gate_question(question: str, topics: list[dict], config: RunnableConfig | None) -> str:
+    """A short answer from the map and the closest source excerpts; the map stays as is."""
+    index = _index(config)
+    hits = index.retrieve(question, k=GATE_EXCERPTS_K) if index is not None else []
+    excerpts = format_excerpts(hits) if hits else "(no matching excerpts)"
+    user = f"Topic map:\n{_topics_for_prompt(topics)}\n\nSource excerpts:\n{excerpts}\n\nQuestion: {question}"
+    return _call("gate_topics", [SystemMessage(GATE_QUESTION_PROMPT), HumanMessage(user)], config).text
 
 
 def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
     """Human approval of the topic map. Pauses the graph with interrupt(); the CLI shows the
-    map and resumes with {"approved": bool, "feedback": str}.
+    map (or the answer to the reviewer's last question) and resumes with either
+    {"approved": bool, "feedback": str} for Y/N answers (no model call), or
+    {"text": str} for free text, which a small model classifies here as
+    approve / change (and what) / question. A question is answered from the map and the
+    excerpts, and the gate asks again with the map unchanged.
     On resume LangGraph re-runs this node from the top, so it must not print anything:
     the CLI prints "[INFO] Entering Node" lines from the stream and skips the re-entry."""
-    reply = interrupt({"gate": "topics", "topics": state["topic_map"]})
+    request: dict = {"gate": "topics", "topics": state["topic_map"]}
+    if state.get("gate_answer"):
+        request["answer"] = state["gate_answer"]
+    reply = interrupt(request)
     if not isinstance(reply, dict):
-        reply = {"approved": False, "feedback": str(reply)}
+        reply = {"text": str(reply)}
+
+    if "text" in reply:
+        decision, change = classify_gate_reply(reply["text"], state["topic_map"], config)
+        if decision == "question":
+            answer = answer_gate_question(reply["text"], state["topic_map"], config)
+            return {"approved": None, "gate_answer": answer}
+        reply = {"approved": decision == "approve", "feedback": change}
+
     if reply.get("approved"):
-        return {"approved": True, "answer": msg("gate.topics.approved")}
-    return {"approved": False, "feedback": reply.get("feedback") or ""}
+        return {"approved": True, "answer": msg("gate.topics.approved"), "gate_answer": None}
+    return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None}
 
 
 def route_after_scope_check(state: AgentState) -> str:
@@ -290,5 +384,10 @@ def route_after_scope_check(state: AgentState) -> str:
 
 
 def route_after_gate(state: AgentState) -> str:
-    """Approved ends this stage; anything else goes back to topic_map. Never skips the gate."""
-    return "end" if state.get("approved") else "topic_map"
+    """Approved ends this stage; a question returns to the same gate (map unchanged);
+    a change request goes back to topic_map. Nothing skips the gate."""
+    if state.get("approved"):
+        return "end"
+    if state.get("gate_answer"):
+        return "gate_topics"
+    return "topic_map"
