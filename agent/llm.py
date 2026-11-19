@@ -42,6 +42,8 @@ _unavailable: dict[str, str] = {}
 _profile_override: str | None = None
 # Model ids OpenRouter currently lists; None = not checked (no filtering).
 _listed: set[str] | None = None
+# Role -> models set from outside (evals choose the writer, checker or judge); wins over the profile.
+_role_overrides: dict[str, list[str]] = {}
 
 __all__ = [
     "LLMResult",
@@ -86,6 +88,8 @@ def load_models(role: str = "writer") -> list[str]:
     """The role's models in the active profile, without ids OpenRouter does not list."""
     if role not in ROLES:
         raise ValueError(f"unknown model role: {role}")
+    if _role_overrides.get(role):
+        return list(_role_overrides[role])
     models = list(load_config()["profiles"][active_profile()][role])
     if _listed is not None:
         listed = [m for m in models if m in _listed]
@@ -102,10 +106,21 @@ def reset_unavailable_models() -> None:
     _unavailable.clear()
 
 
+def set_role_models(role: str, models: list[str] | None) -> None:
+    """Use exactly these models for a role (None or [] = back to the profile's list)."""
+    if role not in ROLES:
+        raise ValueError(f"unknown model role: {role}")
+    if models:
+        _role_overrides[role] = list(models)
+    else:
+        _role_overrides.pop(role, None)
+
+
 def reset_model_state() -> None:
-    """Forget unavailable models, the profile switch, and the listing check (tests)."""
+    """Forget unavailable models, the profile switch, the listing check and role overrides (tests)."""
     global _profile_override, _listed
     _unavailable.clear()
+    _role_overrides.clear()
     _profile_override = None
     _listed = None
 
