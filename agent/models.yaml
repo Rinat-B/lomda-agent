@@ -13,10 +13,13 @@ default_profile: free
 
 profiles:
   free:
+    # Order from evals/bench_writer.py (one group of 4 screens, 2 runs each, 19.11.2026):
+    # ernie 2/2 valid, ~77 s; super-vl 2/2 valid, ~141 s; ultra 0/2 on the first try (only
+    # a too-big decision diagram, fixable on the retry), ~95-140 s.
     writer:
+      - baidu/ernie-5.5-flash-preview:free
       - nvidia/nemotron-3.5-super-vl:free
       - nvidia/nemotron-3-ultra-550b-a55b:free
-      - google/gemma-4-31b-it:free
     checker:
       - google/gemma-4-31b-it:free
       - google/gemma-4-26b-a4b-it:free

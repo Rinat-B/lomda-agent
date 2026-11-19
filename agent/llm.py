@@ -206,14 +206,20 @@ def _switch_to_free(error: BaseException) -> bool:
     return True
 
 
-def call_llm(messages: list[BaseMessage], timeout: float = REQUEST_TIMEOUT_SECONDS, role: str = "writer") -> LLMResult:
+def call_llm(
+    messages: list[BaseMessage],
+    timeout: float = REQUEST_TIMEOUT_SECONDS,
+    role: str = "writer",
+    models: list[str] | None = None,
+) -> LLMResult:
     """Call the role's first available model that succeeds, in models.yaml order.
 
     Models marked unavailable (503 or timeout earlier in the conversation) are skipped.
     If every model is marked, all of them are tried again rather than failing at once.
     `timeout` is per model attempt; long generations pass LONG_REQUEST_TIMEOUT_SECONDS.
+    `models` overrides the role's list (e.g. one specific model, to retry it).
     """
-    all_models = load_models(role)
+    all_models = list(models) if models else load_models(role)
     models = [m for m in all_models if m not in _unavailable] or all_models
     failures: list[tuple[str, BaseException]] = []
     free_quota_hit = False
@@ -230,7 +236,7 @@ def call_llm(messages: list[BaseMessage], timeout: float = REQUEST_TIMEOUT_SECON
                 raise
             if code == 402:
                 if _switch_to_free(e):
-                    return call_llm(messages, timeout=timeout, role=role)
+                    return call_llm(messages, timeout=timeout, role=role)  # the free list, not `models`
                 raise
             if daily_quota_info(e) is not None:
                 free_quota_hit = True

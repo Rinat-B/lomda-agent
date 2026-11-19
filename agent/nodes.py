@@ -24,6 +24,7 @@ from agent.structure import (
     structure_json,
 )
 from agent.tools import ChunkIndex, make_retrieve_tool
+from agent.writer import assemble_lesson, build_messages, group_excerpts, parse_group, screen_groups
 from agent.topics import (
     Unit,
     describe_unit,
@@ -175,6 +176,14 @@ class AgentState(TypedDict, total=False):
     feedback: str | None  # reviewer's change request
     gate_answer: str | None  # answer to a reviewer's question (the reviewed item is unchanged)
     approved: bool | None
+    # Stage 3: writing, assembly, saving.
+    written_screens: list[dict] | None  # schema screens written so far
+    written_groups: int | None  # how many screen groups are written
+    lesson_title: str | None
+    lesson_summary: list[str] | None
+    lesson: dict | None  # the assembled, validated lesson.json
+    output_folder: str | None
+    saved_path: str | None  # index.html of the exported lesson
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -192,12 +201,16 @@ def _call(
     config: RunnableConfig | None,
     timeout: float | None = None,
     role: str = "writer",
+    models: list[str] | None = None,
 ) -> LLMResult:
     """Call the model for a node: tag errors with the node name and record usage.
-    `role` picks the model list in models.yaml (writer / checker / small)."""
+    `role` picks the model list in models.yaml (writer / checker / small); `models`
+    overrides it with specific models."""
     kwargs: dict = {"role": role}
     if timeout:
         kwargs["timeout"] = timeout
+    if models:
+        kwargs["models"] = models
     try:
         result = call_llm(messages, **kwargs)
     except Exception as e:
@@ -597,11 +610,134 @@ def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
 
 
 def gate_structure(state: AgentState, config: RunnableConfig) -> dict:
-    """Gate 2: approve the lesson structure (change -> plan_structure, approve -> end)."""
+    """Gate 2: approve the lesson structure (change -> plan_structure, approve -> write_lesson)."""
     update = _review_gate("structure", state, config)
     if update.get("approved"):
-        update["answer"] = msg("gate.structure.approved")
+        say(msg("gate.structure.approved"))  # after interrupt: printed once
+        update["approved"] = None  # the save gate decides the end of this stage
     return update
+
+
+# ---- stage 3: writing ---------------------------------------------------------------------------
+WRITE_ATTEMPTS_PER_MODEL = 2  # the first try plus one retry with the validation error
+# Writing 3-4 screens is the longest generation: free models took 60-160 s in
+# evals/bench_writer.py, so the writer gets more than LONG_REQUEST_TIMEOUT_SECONDS.
+WRITE_TIMEOUT_SECONDS = 240
+
+
+def _groups(state: AgentState) -> list[tuple[int, int]]:
+    return screen_groups(len(state["structure"]["screens"]))
+
+
+def node_detail(node: str, state: dict) -> str | None:
+    """Extra text for the "[INFO] Entering Node" line, e.g. write_lesson (screens 1-4)."""
+    if node == "write_lesson" and state.get("structure"):
+        groups = _groups(state)
+        done = state.get("written_groups") or 0
+        if done < len(groups):
+            first, last = groups[done]
+            return f"screens {first}-{last}" if first != last else f"screen {first}"
+    return None
+
+
+def _write_group(messages: list, config: RunnableConfig, parse) -> dict:
+    """Ask the writer models in order. A model gets its validation error back once; if the
+    reply is still invalid (or the model fails), the next writer model is tried."""
+    from agent.errors import AllModelsFailedError
+    from agent.llm import load_models, unavailable_models
+
+    skipped = unavailable_models()
+    candidates = [m for m in load_models("writer") if m not in skipped] or load_models("writer")
+    problems: list[str] = []
+    for i, model in enumerate(candidates):
+        attempt_messages = list(messages)
+        for _ in range(WRITE_ATTEMPTS_PER_MODEL):
+            try:
+                result = _call("write_lesson", attempt_messages, config,
+                               timeout=WRITE_TIMEOUT_SECONDS, models=[model])
+            except NodeError as e:
+                if isinstance(e.cause, AllModelsFailedError):
+                    problems.append(f"{model}: {e.cause}")
+                    break  # this model is down or slow: try the next one
+                raise  # missing key, 401, daily quota...: no point trying other models
+            try:
+                return parse(result.text)
+            except ValueError as err:
+                problems.append(f"{model}: {err}")
+                attempt_messages = attempt_messages + [
+                    AIMessage(result.text),
+                    HumanMessage(f"That reply was invalid: {err}. Reply again with only the corrected JSON object."),
+                ]
+        else:
+            if i + 1 < len(candidates):
+                log(msg("llm.invalid_output", model=model, next_model=candidates[i + 1]))
+    raise NodeError("write_lesson", ValueError("no writer model produced valid screens: " + " | ".join(problems)))
+
+
+def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
+    """Write the next group of 3-4 screens (one model call when the reply is valid)."""
+    index = _index(config)
+    if index is None:
+        raise NodeError("write_lesson", ValueError("no source files in the session"))
+    structure = state["structure"]
+    groups = _groups(state)
+    done = state.get("written_groups") or 0
+    first, last = groups[done]
+    plan = structure["screens"][first - 1:last]
+    excerpts = group_excerpts(plan, index.chunks)
+    lesson_type = _lesson_type(state)
+    is_first, is_last = done == 0, done == len(groups) - 1
+    (_, system), (_, user) = build_messages(plan, excerpts, lesson_type, is_first, is_last)
+    result = _write_group(
+        [SystemMessage(system), HumanMessage(user)], config,
+        lambda text: parse_group(text, plan, excerpts, lesson_type, is_first, is_last),
+    )
+    update: dict = {
+        "written_screens": (state.get("written_screens") or []) + result["screens"],
+        "written_groups": done + 1,
+    }
+    if is_first:
+        update["lesson_title"] = result["lesson_title"]
+    if is_last:
+        update["lesson_summary"] = result["summary"]
+    return update
+
+
+def route_after_write(state: AgentState) -> str:
+    return "write_lesson" if (state.get("written_groups") or 0) < len(_groups(state)) else "assemble_lesson"
+
+
+def assemble_lesson_node(state: AgentState, config: RunnableConfig) -> dict:
+    """Assemble and validate lesson.json, and pick the output folder for the save gate."""
+    from agent.persistence import unique_output_folder
+
+    try:
+        lesson = assemble_lesson(
+            state["written_screens"], _lesson_type(state), state.get("lesson_title") or "",
+            state.get("lesson_summary") or [],
+        )
+    except ValueError as e:
+        raise NodeError("assemble_lesson", e) from e
+    index = _index(config)
+    first_file = index.chunks[0]["locator"]["file"] if index is not None and index.chunks else "lesson"
+    return {"lesson": lesson, "output_folder": str(unique_output_folder(first_file))}
+
+
+def gate_save(state: AgentState, config: RunnableConfig) -> dict:
+    """[Y/N] before writing files: Y exports the lesson folder (the CLI then opens it)."""
+    from pathlib import Path
+
+    from agent.lesson_export import export_lesson
+
+    folder = Path(state["output_folder"])
+    reply = interrupt({"gate": "save", "folder": str(folder)})
+    if not (isinstance(reply, dict) and reply.get("confirm")):
+        return {"approved": True, "saved_path": None, "answer": msg("lesson.not_saved")}
+    try:
+        index_html = export_lesson(state["lesson"], folder, placeholders=True)
+    except Exception as e:
+        raise NodeError("gate_save", e) from e
+    return {"approved": True, "saved_path": str(index_html), "answer": msg("lesson.saved")}
 
 
 def route_after_scope_check(state: AgentState) -> str:
@@ -628,4 +764,4 @@ def route_after_gate_topics(state: AgentState) -> str:
 
 
 def route_after_gate_structure(state: AgentState) -> str:
-    return _route_after_review(state, "gate_structure", "plan_structure", "end")
+    return _route_after_review(state, "gate_structure", "plan_structure", "write_lesson")

@@ -242,6 +242,33 @@ def test_decision_diagram_is_drawn_as_svg_with_a_text_alternative(open_page, les
     assert svg.bounding_box()["width"] <= 390
 
 
+def test_edge_labels_never_overlap_on_a_phone(browser, lesson, tmp_path):
+    """A wide diagram (1 question, 4 actions, long labels) at 390 px: labels stay apart."""
+    import copy
+
+    data = copy.deepcopy(lesson)
+    diagram = next(b for b in data["screens"][2]["blocks"] if b["type"] == "decision_diagram")
+    diagram["nodes"] = [{"id": "q", "label": "What is skidding?", "kind": "question"}] + [
+        {"id": f"a{i}", "label": f"Action number {i} for this case", "kind": "action"} for i in range(1, 5)]
+    diagram["edges"] = [{"from": "q", "to": f"a{i}", "label": f"Long label for case {i}"} for i in range(1, 5)]
+    url = export_lesson(data, tmp_path / "wide", source_dir=SAMPLE_DIR).resolve().as_uri()
+    p = Page(browser, url, 390)
+    try:
+        p.finish_screen(data, 0)
+        p.finish_screen(data, 0)
+        boxes = [r.bounding_box() for r in p.page.locator(".diagram rect.edge-label").all()]
+        assert len(boxes) == 4
+
+        def overlap(a, b):
+            return not (a["x"] + a["width"] <= b["x"] or b["x"] + b["width"] <= a["x"]
+                        or a["y"] + a["height"] <= b["y"] or b["y"] + b["height"] <= a["y"])
+
+        assert not any(overlap(a, b) for i, a in enumerate(boxes) for b in boxes[i + 1:])
+        assert p.overflow() <= 0 and p.errors == []
+    finally:
+        p.close()
+
+
 def test_question_can_be_answered_with_the_keyboard_only(open_page, lesson):
     p = open_page(390)
     p.finish_screen(lesson, 0)

@@ -1,0 +1,51 @@
+{
+  "_comment": "A fixed 4-screen plan (approved-structure format) for short_winter.pptx, used by evals/bench_writer.py.",
+  "lesson_type": "training",
+  "screens": [
+    {
+      "number": 1, "title": "מרחקי בלימה בכביש רטוב", "topic": "סיכוני כביש רטוב",
+      "objective": "הלומד יוכל להתאים את המרחק מהרכב שלפניו לסוג הרכב ולמצב הכביש",
+      "points": [
+        {"text": "בכביש רטוב מרחק העצירה גדל עד פי 2", "sources": [{"file": "short_winter.pptx", "slide": 2}]},
+        {"text": "רכב קל ב-50 קמ״ש: 28 מ׳ ביבש ו-40 מ׳ ברטוב; משאית עמוסה: 55 מ׳ ברטוב", "sources": [{"file": "short_winter.pptx", "slide": 2}]},
+        {"text": "שומרים 4 שניות ברכב קל ו-6 שניות במשאית", "sources": [{"file": "short_winter.pptx", "slide": 2}]}
+      ],
+      "question_idea": "נהג משאית עמוסה בגשם רואה רכב נכנס לפניו ומשאיר 3 שניות. מה עליו לעשות?",
+      "illustration": null, "decision_diagram": false
+    },
+    {
+      "number": 2, "title": "החלקה: מה עושים", "topic": "החלקה",
+      "objective": "הלומד יוכל לבחור את הפעולה הנכונה לפי סוג ההחלקה ולפי מערכת הבלימה ברכב",
+      "points": [
+        {"text": "אחור מחליק: רגל מהגז והיגוי עדין לכיוון ההחלקה", "sources": [{"file": "short_winter.pptx", "slide": 3}]},
+        {"text": "קדמי לא מגיב: משחררים גז ומיישרים מעט את ההגה", "sources": [{"file": "short_winter.pptx", "slide": 3}]},
+        {"text": "עם ABS לוחצים חזק ורציף; בלי ABS בולמים בלחיצות קצרות", "sources": [{"file": "short_winter.pptx", "slide": 3}]}
+      ],
+      "question_idea": "בפנייה בכביש רטוב האחור של רכב צי חדש מתחיל להחליק. מה עושים ברגע זה?",
+      "illustration": null, "decision_diagram": true
+    },
+    {
+      "number": 3, "title": "ראות מוגבלת", "topic": "ראות",
+      "objective": "הלומד יוכל להחליט מתי להאט ומתי לעצור בצד לפי טווח הראות",
+      "points": [
+        {"text": "ראות מתחת ל-100 מ׳: מאטים ל-50 קמ״ש ומדליקים אורות ערפל", "sources": [{"file": "short_winter.pptx", "slide": 4}]},
+        {"text": "ראות מתחת ל-50 מ׳: עוצרים בצד במקום בטוח, לא בעקומה", "sources": [{"file": "short_winter.pptx", "slide": 4}]},
+        {"text": "מעריכים ראות לפי עמודי תאורה, כ-50 מ׳ ביניהם", "sources": [{"file": "short_winter.pptx", "slide": 4}]}
+      ],
+      "question_idea": "בערפל כבד הנהג לא רואה את עמוד התאורה הבא. מה ההחלטה הנכונה?",
+      "illustration": "הלומד מזיז מחוון של עובי הערפל ורואה כמה עמודי תאורה נשארים גלויים ומה הפעולה הנדרשת",
+      "decision_diagram": false
+    },
+    {
+      "number": 4, "title": "חמשת כללי החורף", "topic": "סיכום",
+      "objective": "הלומד יוכל ליישם את חמשת כללי החורף לפני נסיעה ובמהלכה",
+      "points": [
+        {"text": "בודקים צמיגים לפני כל יציאה: עומק חריץ של 3 מ״מ לפחות", "sources": [{"file": "short_winter.pptx", "slide": 5}]},
+        {"text": "בכביש רטוב מורידים 20 קמ״ש ושומרים 4 עד 6 שניות", "sources": [{"file": "short_winter.pptx", "slide": 5}]},
+        {"text": "מדווחים על כל החלקה תוך שעתיים", "sources": [{"file": "short_winter.pptx", "slide": 5}, {"file": "short_winter.pptx", "slide": 3}]}
+      ],
+      "question_idea": "אחרי החלקה קלה בלי נזק הנהג ממשיך במשמרת. מה עליו לעשות לגבי דיווח?",
+      "illustration": null, "decision_diagram": false
+    }
+  ]
+}

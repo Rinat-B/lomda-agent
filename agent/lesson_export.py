@@ -45,22 +45,41 @@ def illustration_files(lesson: dict) -> list[str]:
     ]
 
 
-def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None) -> Path:
+PLACEHOLDER_TEMPLATE = PLAYER_DIR / "illustration_placeholder.html"
+
+
+def placeholder_html(title: str, description: str) -> str:
+    """A stand-in page for an illustration that is not built yet: its title and description."""
+    from html import escape
+
+    page = PLACEHOLDER_TEMPLATE.read_text(encoding="utf-8")
+    return page.replace("__TITLE__", escape(title)).replace("__DESCRIPTION__", escape(description))
+
+
+def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, placeholders: bool = False) -> Path:
     """Write the lesson folder; returns the path of index.html.
-    `source_dir` holds the lesson's assets/illustrations/*.html (the illustration files)."""
+    `source_dir` holds the lesson's assets/illustrations/*.html (the illustration files).
+    With placeholders=True, an illustration with no file gets a placeholder page instead."""
     errors = validate_lesson(lesson)
     if errors:
         raise LessonValidationError(errors)
 
     out_dir = Path(out_dir)
-    illustrations = []
+    illustrations = []  # (source file or None, destination, block)
+    blocks = {
+        b["file"]: b for s in lesson["screens"] for b in s["blocks"] if b.get("type") == "illustration"
+    }
     for rel in illustration_files(lesson):
-        if source_dir is None:
-            raise FileNotFoundError(f"illustration {rel} needs a source_dir to copy it from")
-        src = _inside(Path(source_dir) / rel, Path(source_dir))
-        if not src.is_file():
-            raise FileNotFoundError(f"illustration file not found: {src}")
-        illustrations.append((src, _inside(out_dir / rel, out_dir) if out_dir.exists() else out_dir / rel))
+        src = None
+        if source_dir is not None:
+            src = _inside(Path(source_dir) / rel, Path(source_dir))
+        if src is None or not src.is_file():
+            if not placeholders:
+                if source_dir is None:
+                    raise FileNotFoundError(f"illustration {rel} needs a source_dir to copy it from")
+                raise FileNotFoundError(f"illustration file not found: {src}")
+            src = None
+        illustrations.append((src, out_dir / rel, blocks[rel]))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     assets = out_dir / "assets"
@@ -68,10 +87,13 @@ def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None) -
     shutil.copyfile(PLAYER_DIR / "index.html", out_dir / "index.html")
     for name in PLAYER_ASSETS:
         shutil.copyfile(PLAYER_DIR / name, assets / name)
-    for src, dest in illustrations:
+    for src, dest, block in illustrations:
         dest = _inside(dest, out_dir)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(src, dest)
+        if src is None:
+            dest.write_text(placeholder_html(block["title"], block["description"]), encoding="utf-8")
+        else:
+            shutil.copyfile(src, dest)
     (out_dir / "lesson.js").write_text(lesson_js(lesson), encoding="utf-8")
     return out_dir / "index.html"
 

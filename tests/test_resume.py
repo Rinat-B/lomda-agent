@@ -11,7 +11,7 @@ from agent.graph import build_graph
 from agent.messages import msg
 from agent.persistence import ConversationStore, data_dir, open_checkpointer, paused_conversations
 from agent.session import Session, SourceDoc
-from tests.test_lesson_flow import FakeModel, deck_chunks, rendered
+from tests.test_lesson_flow import FakeModel, deck_chunks, rendered, scripted
 
 QUESTION = "build me a lesson from the deck"
 
@@ -35,8 +35,8 @@ def new_session_with_deck() -> Session:
 
 
 def answers(*items):
-    it = iter(items)
-    return lambda prompt: next(it)
+    """Scripted gate answers; the save gate (after writing) answers N."""
+    return scripted(list(items))
 
 
 def open_program(db: Path):

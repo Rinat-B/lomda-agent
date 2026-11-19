@@ -124,19 +124,20 @@ _UNIT_ID = re.compile(r"(?<![A-Za-z0-9])U\d+(?![A-Za-z0-9])")
 _GROUP = re.compile(r"[(\[][^()\[\]]*[)\]]")
 
 
-def strip_internal_refs(text: str, file_names: tuple[str, ...] = ()) -> str:
+def strip_internal_refs(text: str, file_names: tuple[str, ...] = (), id_pattern: re.Pattern = _UNIT_ID) -> str:
     """Remove source references the model wrote into display text: any bracketed group that
-    mentions a unit id or a source file, then any bare unit id. Sources are shown from the
-    structured `sources` field instead, in one uniform format."""
+    mentions an internal id (unit "U3" by default; the writer passes excerpt ids "E3") or a
+    source file, then any bare id. Sources are shown from the structured `sources` field
+    instead, in one uniform format."""
 
     def drop(match: re.Match) -> str:
         group = match.group(0)
-        if _UNIT_ID.search(group) or any(name in group for name in file_names):
+        if id_pattern.search(group) or any(name in group for name in file_names):
             return " "
         return group
 
     text = _GROUP.sub(drop, text)
-    text = _UNIT_ID.sub(" ", text)
+    text = id_pattern.sub(" ", text)
     text = re.sub(r"[ \t]{2,}", " ", text)
     text = re.sub(r"\s+([,.;:!?])", r"\1", text)  # no space before punctuation
     text = re.sub(r"([,;:])(\s*[,;:])+", r"\1", text)  # collapse leftover separators

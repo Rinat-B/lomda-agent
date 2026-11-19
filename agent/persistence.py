@@ -27,6 +27,25 @@ def data_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "data"
 
 
+def output_dir() -> Path:
+    """Where finished lessons are saved: output/ next to the exe (or the project root)."""
+    return data_dir().parent / "output"
+
+
+def unique_output_folder(source_file: str, base: Path | None = None) -> Path:
+    """output/<source file name>, or <name>-2, -3, ... if that folder already exists,
+    so an earlier lesson is never overwritten."""
+    import re
+
+    stem = Path(source_file).stem
+    name = re.sub(r"[^\w-]+", "_", stem, flags=re.UNICODE).strip("_") or "lesson"
+    base = base or output_dir()
+    folder, n = base / name, 2
+    while folder.exists():
+        folder, n = base / f"{name}-{n}", n + 1
+    return folder
+
+
 def db_path() -> Path:
     return data_dir() / DB_FILE_NAME
 

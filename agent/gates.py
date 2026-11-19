@@ -152,9 +152,34 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
         return {"approved": False, "feedback": feedback}
 
 
+def display_folder(folder: str) -> str:
+    """The output folder as the user knows it: relative to the program's folder."""
+    from pathlib import Path
+
+    from agent.persistence import output_dir
+
+    path = Path(folder)
+    try:
+        return str(path.relative_to(output_dir().parent))
+    except ValueError:
+        return str(path)
+
+
+def ask_save_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
+    """[Y/N] before writing the lesson folder and opening the preview."""
+    prompt = msg("gate.save.ask", path=display_folder(request["folder"]))
+    while True:
+        decision = parse_decision(_read(ask, prompt))
+        if decision is not None and decision.explicit:
+            return {"confirm": decision.approved}
+        say(msg("gate.save.ask_again"), style="yellow")
+
+
 def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
              say: Callable[..., None]) -> dict:
     """Answer whichever gate the graph is waiting at."""
     if request.get("gate") == "type":
         return ask_type_gate(request, ask, say)
+    if request.get("gate") == "save":
+        return ask_save_gate(request, ask, say)
     return ask_review_gate(request, ask, show, say)

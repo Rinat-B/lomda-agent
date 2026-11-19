@@ -15,7 +15,7 @@ from agent.cli import run_question
 from agent.graph import build_graph
 from agent.messages import msg
 from agent.session import Session, SourceDoc
-from tests.test_lesson_flow import PREFIX, deck_chunks, rendered, structure_json_reply, topics_json
+from tests.test_lesson_flow import PREFIX, deck_chunks, rendered, scripted, structure_json_reply, topics_json, writer_reply
 
 REQUEST = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
 
@@ -200,6 +200,9 @@ class GateModel:
             if "QUESTION_ME" in user:
                 return _result('{"decision": "QUESTION", "change": ""}')
             return _result("not json")
+        if system.startswith("You write the screens"):
+            self.calls.append(("write", role, user))
+            return _result(writer_reply(system, messages[1].content))
         if system.startswith("You help a reviewer"):
             self.calls.append(("answer", role, user))
             return _result("ANSWER-FROM-MAP")
@@ -225,8 +228,7 @@ def gate_model(monkeypatch):
 def run_with(answers: list[str]) -> Session:
     session = Session()
     session.add_file(Path("deck.pptx"), SourceDoc("slide", 2, deck_chunks(2)))
-    it = iter(answers)
-    run_question("build a lesson", session, build_graph(), ask_fn=lambda p: next(it))
+    run_question("build a lesson", session, build_graph(), ask_fn=scripted(answers))
     return session
 
 
@@ -239,7 +241,7 @@ def test_y_and_n_need_no_model_call(gate_model, output, answer):
 
 def test_free_text_approval(gate_model, output):
     session = run_with(["Y", "looks great APPROVE_ME", "Y"])
-    assert gate_model.kinds() == ["scope", "classify_type", "topic_map", "classify", "plan_structure"]
+    assert gate_model.kinds() == ["scope", "classify_type", "topic_map", "classify", "plan_structure", "write"]
     assert msg("gate.topics.approved") in output() and session.topic_map is not None
 
 

@@ -189,7 +189,7 @@ def test_new_conversation_resets_unavailable_models(monkeypatch, session):
 
 def test_models_yaml_order(monkeypatch):
     monkeypatch.delenv("PROFILE", raising=False)
-    assert llm.load_models("writer")[0] == "nvidia/nemotron-3.5-super-vl:free"
+    assert llm.load_models("writer")[0] == "baidu/ernie-5.5-flash-preview:free"  # see evals/bench_writer.py
 
 
 def test_missing_key(monkeypatch):

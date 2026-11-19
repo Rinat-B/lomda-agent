@@ -173,7 +173,59 @@ def prompt_kind(system: str) -> str:
         return "classify"
     if system.startswith("You help a reviewer"):
         return "answer"
+    if system.startswith("You write the screens"):
+        return "write"
     return "other"
+
+
+def writer_reply(system: str, user: str) -> str:
+    """A valid write_lesson reply for the planned screens and excerpts in the prompt."""
+    import re
+
+    start = user.index("Planned screens (JSON):\n") + len("Planned screens (JSON):\n")
+    plan = json.loads(user[start:user.index("\n\nSource excerpts:")])
+    eid = re.findall(r"\[(E\d+)\]", user)[0]
+    screens = []
+    for s in plan:
+        n = s["number"]
+        blocks = [
+            {"type": "paragraph", "text": f"Screen {n} explains the rule.", "sources": [eid]},
+            {"type": "multiple_choice", "question": f"Situation {n}: what do you do?",
+             "options": [f"act {n} a", f"act {n} b", f"act {n} c"], "correct_index": 1,
+             "feedback_correct": "Right, because of the rule.", "feedback_incorrect": "Think about the rule again.",
+             "alternate": {"question": f"Other situation {n}: what now?", "options": ["do x", "do y", "do z"],
+                           "correct_index": 0, "feedback_correct": "Yes.", "feedback_incorrect": "Not quite."},
+             "sources": [eid]},
+        ]
+        if s["illustration"]:
+            blocks.append({"type": "illustration", "title": f"Illustration {n}", "description": "The learner moves a slider."})
+        if s["decision_diagram"]:
+            blocks.append({"type": "decision_diagram", "title": "Decide",
+                           "nodes": [{"id": "n1", "label": "Is it wet?", "kind": "question"},
+                                     {"id": "n2", "label": "Slow down", "kind": "action"},
+                                     {"id": "n3", "label": "Keep going", "kind": "action"}],
+                           "edges": [{"from": "n1", "to": "n2", "label": "yes"}, {"from": "n1", "to": "n3", "label": "no"}],
+                           "sources": [eid]})
+        screens.append({"number": n, "blocks": blocks})
+    reply: dict = {"screens": screens}
+    if "This is the first group" in system:
+        reply["lesson_title"] = "Fake lesson"
+    if "This is the last group" in system:
+        reply["summary"] = ["We learned one thing.", "And another."]
+    return json.dumps(reply)
+
+
+def scripted(answers, save: str = "N"):
+    """ask_fn for tests: answers the gates in order; the save gate gets `save` (default N)."""
+    asked = iter(answers)
+    save_prefix = msg("gate.save.ask").split("{")[0]
+
+    def ask(prompt: str) -> str:
+        if prompt.startswith(save_prefix):
+            return save
+        return next(asked)
+
+    return ask
 
 
 class FakeModel:
@@ -211,6 +263,8 @@ class FakeModel:
                 self.invalid_first = False
                 return make_result(text="not json")
             return make_result(text=topics_json(4, extra_name="TIRES" if revising else None))
+        if kind == "write":
+            return make_result(text=writer_reply(system, first_user))
         raise AssertionError(f"unexpected prompt: {system[:70]}")
 
     def prompts_of(self, kind: str) -> list[str]:
@@ -228,10 +282,10 @@ def session_with_deck():
 
 
 def run_flow(monkeypatch, session, answers: list[str], model: FakeModel):
-    """Answers in order: the type gate, the topics gate, then the structure gate."""
+    """Answers in order: the type gate, the topics gate, then the structure gate (the save
+    gate answers N unless the test says otherwise)."""
     monkeypatch.setattr(nodes, "call_llm", model)
-    asked = iter(answers)
-    run_question("build me a lesson from the deck", session, build_graph(), ask_fn=lambda prompt: next(asked))
+    run_question("build me a lesson from the deck", session, build_graph(), ask_fn=scripted(answers))
 
 
 def test_approve_right_away(monkeypatch, session_with_deck, output):
@@ -312,7 +366,10 @@ def test_no_edge_bypasses_a_gate():
     assert successors("plan_structure") == {"gate_structure"}
     # A gate goes back (change), to itself (question answered), or on (approved).
     assert successors("gate_topics") == {"topic_map", "gate_topics", "plan_structure"}
-    assert successors("gate_structure") == {"plan_structure", "gate_structure", "__end__"}
+    assert successors("gate_structure") == {"plan_structure", "gate_structure", "write_lesson"}
+    assert successors("write_lesson") == {"write_lesson", "assemble_lesson"}
+    assert successors("assemble_lesson") == {"gate_save"}
+    assert successors("gate_save") == {"__end__"}
 
 
 def test_format_topic_map_shows_topic_objective_sources():

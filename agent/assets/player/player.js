@@ -267,6 +267,10 @@
     defs.appendChild(marker);
     svg.appendChild(defs);
 
+    // Labeled edges into the same node share its top, so their labels stay at the curve's middle.
+    var labeledInto = {};
+    b.edges.forEach(function (e) { if (e.label) labeledInto[e.to] = (labeledInto[e.to] || 0) + 1; });
+    var labels = [];
     b.edges.forEach(function (e) {
       var a = pos[e.from], c = pos[e.to];
       var x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = c.x + c.w / 2, y2 = c.y;
@@ -275,13 +279,28 @@
         d: "M" + x1 + "," + y1 + " C" + x1 + "," + midY + " " + x2 + "," + midY + " " + x2 + "," + (y2 - 2),
         fill: "none", stroke: P["muted"], "stroke-width": "2", "marker-end": "url(#" + markerId + ")"
       }));
-      if (e.label) {
-        var lx = (x1 + x2) / 2, ly = midY;
-        svg.appendChild(svgEl("rect", { x: lx - 28, y: ly - 14, width: 56, height: 26, rx: 6, fill: P["background"], stroke: P["border"] }));
-        var label = svgEl("text", { x: lx, y: ly + 5, "text-anchor": "middle", "font-size": String(FONT), fill: P["text"], direction: "rtl", "unicode-bidi": "embed" });
-        label.textContent = e.label;
-        svg.appendChild(label);
+      if (!e.label) return;
+      // Normally the label sits just above its target box, within the box's width: targets
+      // never overlap, so neither do their labels.
+      var own = labeledInto[e.to] === 1;
+      var maxW = own ? c.w - 4 : 120;
+      var text = e.label, w = text.length * FONT * 0.55 + 14;
+      while (w > maxW && text.length > 2) { text = text.slice(0, -2); w = (text.length + 1) * FONT * 0.55 + 14; }
+      if (text !== e.label) text += "…";
+      labels.push({ x: own ? x2 : (x1 + x2) / 2, y: own ? y2 - 16 : midY, w: Math.min(w, maxW), text: text, full: e.label });
+    });
+    labels.forEach(function (l) {  // drawn after every curve, so no curve crosses a label
+      svg.appendChild(svgEl("rect", { x: l.x - l.w / 2, y: l.y - 13, width: l.w, height: 24, rx: 6,
+                                      fill: P["background"], stroke: P["border"], "class": "edge-label" }));
+      var label = svgEl("text", { x: l.x, y: l.y + 5, "text-anchor": "middle", "font-size": String(FONT),
+                                  fill: P["text"], direction: "rtl", "unicode-bidi": "embed" });
+      label.textContent = l.text;
+      if (l.text !== l.full) {
+        var tip = svgEl("title");
+        tip.textContent = l.full;
+        label.appendChild(tip);
       }
+      svg.appendChild(label);
     });
 
     b.nodes.forEach(function (n) {

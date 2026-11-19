@@ -7,7 +7,7 @@ from langgraph.types import Command
 
 from agent.commands import CommandHandler
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
-from agent.console import ask, log, say, show_markdown
+from agent.console import ask, log, say, say_path, show_markdown
 from agent.errors import report_error, setup_logging
 from agent.gates import GateExit, ask_gate
 from agent.mcp_client import MCPManager, run_server
@@ -34,7 +34,22 @@ FRESH_RUN = {
     "feedback": None,
     "approved": None,
     "gate_answer": None,
+    "written_screens": None,
+    "written_groups": None,
+    "lesson_title": None,
+    "lesson_summary": None,
+    "lesson": None,
+    "output_folder": None,
+    "saved_path": None,
 }
+
+
+def open_preview(index_html: str) -> None:
+    """Open the exported lesson in the default browser."""
+    import webbrowser
+    from pathlib import Path
+
+    webbrowser.open(Path(index_html).resolve().as_uri())
 
 
 def graph_config(session: Session) -> dict:
@@ -61,7 +76,10 @@ def stream_until_pause(graph, payload, config: dict, resumed_node: str | None = 
             skip = None
             continue
         skip = None
-        log(f"[INFO] Entering Node: {task['name']}")
+        from agent.nodes import node_detail
+
+        detail = node_detail(task["name"], task.get("input") or {})
+        log(f"[INFO] Entering Node: {task['name']}" + (f" ({detail})" if detail else ""))
 
 
 def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = ask, store=None) -> bool:
@@ -95,12 +113,15 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             store.save(session)
 
     values = graph.get_state(config).values
-    if values.get("approved"):  # the last gate of the stage (the structure) was approved
+    if values.get("approved"):  # the lesson flow reached its end (the save gate)
         session.lesson_type = values.get("lesson_type")
         session.topic_map = values.get("topic_map")
         session.structure = values.get("structure")
     if values.get("answer"):
         show_markdown(values["answer"])
+    if values.get("saved_path"):
+        say_path(values["saved_path"])
+        open_preview(values["saved_path"])
     totals = session.totals(session.usage[start:])
     log(
         msg(

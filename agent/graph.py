@@ -6,9 +6,13 @@
                                                                 ^           |  ^  |
                                                      change ----+           |  +--+ question
                                                                             v (approved)
-                                              END <- gate_structure <- plan_structure
-                                                       |  ^  |              ^
-                                          question ----+--+  +-- change ----+
+                                                    gate_structure <- plan_structure
+                                                     |  ^  |              ^
+                                        question ----+--+  +-- change ----+
+                                                     v (approved)
+                               write_lesson (one group of 3-4 screens per run; loops until done)
+                                                     v
+                                  assemble_lesson -> gate_save [Y/N] -> END
 
 Each producing node continues only to its gate: no edge skips a gate.
 """
@@ -19,7 +23,9 @@ from langgraph.graph import END, START, StateGraph
 from agent.nodes import (
     AgentState,
     answer,
+    assemble_lesson_node,
     classify_type,
+    gate_save,
     gate_structure,
     gate_topics,
     gate_type,
@@ -27,8 +33,10 @@ from agent.nodes import (
     route_after_gate_structure,
     route_after_gate_topics,
     route_after_scope_check,
+    route_after_write,
     scope_check,
     topic_map,
+    write_lesson,
 )
 
 
@@ -44,6 +52,9 @@ def build_graph(checkpointer=None):
     graph.add_node("gate_topics", gate_topics)
     graph.add_node("plan_structure", plan_structure)
     graph.add_node("gate_structure", gate_structure)
+    graph.add_node("write_lesson", write_lesson)
+    graph.add_node("assemble_lesson", assemble_lesson_node)
+    graph.add_node("gate_save", gate_save)
 
     graph.add_edge(START, "scope_check")
     graph.add_conditional_edges(
@@ -61,6 +72,12 @@ def build_graph(checkpointer=None):
     graph.add_edge("plan_structure", "gate_structure")
     graph.add_conditional_edges(
         "gate_structure", route_after_gate_structure,
-        {"plan_structure": "plan_structure", "gate_structure": "gate_structure", "end": END},
+        {"plan_structure": "plan_structure", "gate_structure": "gate_structure", "write_lesson": "write_lesson"},
     )
+    graph.add_conditional_edges(
+        "write_lesson", route_after_write,
+        {"write_lesson": "write_lesson", "assemble_lesson": "assemble_lesson"},
+    )
+    graph.add_edge("assemble_lesson", "gate_save")
+    graph.add_edge("gate_save", END)
     return graph.compile(checkpointer=checkpointer if checkpointer is not None else InMemorySaver())
