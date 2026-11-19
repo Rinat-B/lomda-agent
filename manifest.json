@@ -1,0 +1,58 @@
+{
+  "name": "Lomda Builder Agent",
+  "version": "1.0.0",
+  "description": "An agent that turns a content owner's source material (slides, documents, links) into a ready-to-publish interactive Hebrew e-learning module, with human approval at every major stage.",
+  "creator_name": "Rinat Weiss",
+  "contact_information": "<email>",
+  "release_date": "<YYYY-MM-DD>",
+  "repository_url": "https://github.com/Rinat-B/lomda-agent",
+  "download_url": "https://github.com/Rinat-B/lomda-agent/releases/latest/download/agent.exe",
+  "target_audience": "Content owners: safety officers, legal advisors, HR and training managers",
+  "professional_fields": [
+    "Instructional Design",
+    "Corporate Training",
+    "Compliance"
+  ],
+  "tasks_capable_of_performing": [
+    "Source material analysis and learning objectives mapping",
+    "E-learning structure planning",
+    "Hebrew lesson content and quiz writing",
+    "Verified web research and enrichment",
+    "Interactive illustration and decision diagram generation"
+  ],
+  "examples_of_suitable_questions": [
+    "Create a training lesson on winter driving from C:\\docs\\winter.pptx",
+    "Build a compliance lesson from our code of ethics PDF",
+    "Add a decision diagram to screen 4 of the lesson"
+  ],
+  "technical_specifications": {
+    "framework": "LangGraph",
+    "llm_provider": "OpenRouter",
+    "supported_models": [
+      "anthropic/claude-sonnet-5.5",
+      "anthropic/claude-sonnet-5",
+      "google/gemini-3.8-flash",
+      "google/gemini-3.7-flash",
+      "google/gemini-3.1-flash-lite",
+      "google/gemini-3.5-flash-lite",
+      "google/gemma-4-26b-a4b-it:free",
+      "baidu/ernie-5.5-flash-preview:free",
+      "nvidia/nemotron-3.5-super-vl:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "google/gemma-4-31b-it:free",
+      "nvidia/nemotron-3.5-lightning:free"
+    ],
+    "features_enabled": {
+      "rag": true,
+      "web_search": true,
+      "code_execution": true,
+      "mcp_support": true
+    },
+    "required_permissions": [
+      "local_file_read",
+      "local_file_write",
+      "sandbox_code_execution",
+      "network_access"
+    ]
+  }
+}

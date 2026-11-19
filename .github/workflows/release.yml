@@ -1,0 +1,62 @@
+# Build agent.exe on Windows and attach it to a GitHub Release when a version tag is pushed.
+#
+#   git tag v1.0.0
+#   git push origin v1.0.0
+#
+# The Release is created for the tag (or updated if it exists) with dist/agent.exe as an
+# asset, so manifest.json's download_url (releases/latest/download/agent.exe) points to it.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Create the virtual env the build script expects (.venv)
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --upgrade pip
+          .venv\Scripts\python -m pip install -r requirements.txt
+
+      - name: Run the unit tests (no model calls; slow tests are skipped by pytest.ini)
+        shell: pwsh
+        env:
+          LANGSMITH_TRACING: "false"
+        run: .venv\Scripts\python -m pytest -q --ignore=tests/test_player_browser.py
+
+      - name: Build agent.exe
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/build.ps1 -DistPath dist
+
+      - name: Smoke test (the exe starts and lists its MCP server)
+        shell: pwsh
+        env:
+          OPENROUTER_API_KEY: "sk-or-ci-placeholder"
+          LANGSMITH_TRACING: "false"
+        run: |
+          "/mcp`n/quit`n" | Set-Content -Encoding utf8 smoke.txt
+          $p = Start-Process -FilePath dist\agent.exe -RedirectStandardInput smoke.txt -RedirectStandardOutput smoke_out.txt -NoNewWindow -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "agent.exe did not exit within 120 s" }
+          if (-not (Select-String -Path smoke_out.txt -Pattern "source-reader" -Quiet)) { Get-Content smoke_out.txt; throw "smoke test failed" }
+
+      - name: Attach agent.exe to the Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/agent.exe
+          generate_release_notes: true
