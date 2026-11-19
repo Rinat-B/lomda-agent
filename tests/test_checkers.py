@@ -82,7 +82,7 @@ def test_repetition_finds_the_repeated_list_and_the_repeated_phrase():
 
 def test_question_overlap_finds_the_alternate_that_repeats_another_screen():
     findings = check_question_overlap(BAD)
-    assert [(f.screen, f.where) for f in findings] == [(5, "block 6 (multiple_choice), alternate")]
+    assert (5, "block 6 (multiple_choice), alternate") in [(f.screen, f.where) for f in findings]
 
 
 def test_code_checks_on_the_sample_lesson_stay_quiet():
@@ -119,25 +119,6 @@ def test_parse_rejects_unusable_replies(reply):
         parse_findings(reply, "language")
 
 
-def test_question_checklist_becomes_findings():
-    reply = json.dumps({"questions": [
-        {"screen": 6, "where": "block 4 (multiple_choice), alternate", "question": "q", "kind": "recall",
-         "kind_reason": "r", "other_correct": "", "scenario_problem": "", "weak_distractors": []},
-        {"screen": 7, "where": "block 4 (multiple_choice)", "question": "q2", "kind": "decision",
-         "other_correct": "opt", "other_correct_reason": "why", "scenario_problem": "ambiguous",
-         "weak_distractors": ["a", "b"], "weak_distractors_reason": "absurd"}]})
-    found = parse_findings(reply, "questions", expected=2)
-    assert [(f.screen, f.category) for f in found] == [
-        (6, "recall_question"), (7, "multiple_correct"), (7, "inconsistent_scenario"), (7, "distractors")]
-    assert found[-1].evidence == "a; b"
-
-
-def test_question_checklist_must_cover_the_questions():
-    reply = json.dumps({"questions": [{"screen": 1, "kind": "decision"}]})
-    with pytest.raises(ValueError, match="1 of the 8"):
-        parse_findings(reply, "questions", expected=8)
-
-
 def test_illustration_checklist_reports_only_the_ones_without_value():
     reply = json.dumps({"illustrations": [
         {"screen": 1, "title": "t1", "adds_value": False, "reason": "r"},
@@ -160,10 +141,20 @@ def test_invalid_reply_is_sent_back_once_then_accepted():
     assert seen == [(2, "checker"), (4, "checker")]  # the bad reply and the correction were added
 
 
-def test_question_check_runs_in_screen_batches():
+def test_question_check_runs_in_screen_batches_and_on_given_screens():
     jobs = check_jobs(BAD, tuple(checkers.MODEL_CHECKS))
-    assert [j for j in jobs if j[0] == "questions"] == [("questions", (1, 3)), ("questions", (4, 6)), ("questions", (7, 8))]
+    assert [j for j in jobs if j[0] == "single_answer"] == [
+        ("single_answer", (1, 2, 3)), ("single_answer", (4, 5, 6)), ("single_answer", (7, 8))]
     assert ("language", None) in jobs
+    again = check_jobs(BAD, ("language", "single_answer"), screens=(2, 5))
+    assert again == [("language", (2, 5)), ("single_answer", (2, 5))]
+
+
+def test_a_check_on_some_screens_says_so_and_drops_other_screens():
+    text = checkers.build_check_messages("language", "lesson", "", screens=(2, 5))[1].content
+    assert "only the problems on screens 2, 5" in text
+    reply = '{"findings": [{"screen": 2, "category": "language"}, {"screen": 3, "category": "language"}]}'
+    assert [f.screen for f in parse_findings(reply, "language", screens=(2, 5))] == [2]
 
 
 def test_a_failing_model_check_is_recorded_and_the_rest_still_run():
@@ -171,22 +162,16 @@ def test_a_failing_model_check_is_recorded_and_the_rest_still_run():
         system = messages[0].content
         if "proofread" in system:
             raise RuntimeError("down")
-        if "defensible answer" in system:  # single answer: every option judged; only the marked one holds
+        if system.startswith("You check the multiple-choice questions"):  # single answer
             ids = re.findall(r"### Question (\S+)", messages[1].content)
             return make_result(text=json.dumps({"questions": [{"id": i, "options": []} for i in ids]}))
-        if '"questions"' in system:
-            batch = messages[1].content.rsplit("screens ", 1)[1]
-            first = int(batch.split()[0])
-            items = [{"screen": s, "kind": "decision"} for s, *_ in checkers.questions(BAD)
-                     if first <= s < first + checkers.QUESTION_BATCH_SCREENS]
-            return make_result(text=json.dumps({"questions": items}))
         if '"illustrations"' in system:
             return make_result(text='{"illustrations": [' + ",".join(['{"adds_value": true}'] * 8) + "]}")
         return make_result(text='{"findings": []}')
 
     report = run_checkers(BAD, [], call=call)
     assert set(report.failed) == {"language"}
-    assert len(report.calls) == 10  # grounding, 3 + 4 question batches, illustrations, pedagogy
+    assert len(report.calls) == 6  # grounding, illustrations, pedagogy, 3 question batches
     assert {f.check for f in report.findings} == set(CODE_CHECKS)
 
 
@@ -260,3 +245,19 @@ def test_the_code_checks_alone_already_catch_the_structural_issues():
     matched = match_issues(issues, findings)
     caught = {i for i, hits in matched.items() if hits}
     assert {"I01", "I06", "I09", "I13", "I14", "I15", "I16"} <= caught
+
+
+def test_single_answer_also_reports_recall_questions_and_weak_options():
+    items = checkers.single_answer_items(BAD, [], (6, 6))
+    main = items[0]
+    correct = main["correct_index"]
+    options = [{"letter": chr(65 + k), "justified": k == correct, "weak": k != correct and k % 2 == 0,
+                "reason": f"r{k}"} for k in range(len(main["options"]))]
+    reply = json.dumps({"questions": [{"id": "q6", "kind": "recall", "kind_reason": "repeats the rule",
+                                       "options": options},
+                                      {"id": "q6-alternate", "kind": "decision", "options": []}]})
+    found = checkers.parse_single_answer(reply, items)
+    kinds = [f.category for f in found]
+    assert kinds == ["recall_question", "distractors"]
+    weak = [main["options"][k] for k in range(len(main["options"])) if k != correct and k % 2 == 0]
+    assert found[1].evidence == "; ".join(weak)

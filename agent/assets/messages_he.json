@@ -228,7 +228,7 @@
     "review": {
       "title": "## הלומדה לבדיקה: {title}",
       "summary": "{type} · {screens} מסכים · {rounds} סבבי תיקון · {found} ממצאים: {fixed} תוקנו, {open} פתוחים",
-      "coverage": "כיסוי המבנה: {covered} מתוך {total} נקודות תוכן ({percent}%).",
+      "coverage": "כיסוי המקור: {taught} מתוך {total} נקודות מהותיות ({percent}%).",
       "open_title": "### ממצאים פתוחים",
       "open_item": "- מסך {screen}: {problem}",
       "open_lesson_item": "- כל הלומדה: {problem}",
@@ -239,7 +239,9 @@
       "ask_again": "לא הבנתי. כתבו Y לאישור, או N ואחריו מה לשנות (אפשר לציין מספרי מסכים).",
       "ask_feedback": "מה לשנות בלומדה? (אפשר לציין מספרי מסכים) ",
       "revising": "מתקנים את הלומדה לפי ההערה...",
-      "approved": "הלומדה אושרה."
+      "approved": "הלומדה אושרה.",
+      "missing_item": "- חסר: {point}",
+      "budget_stop": "סבב תיקון נוסף לא התחיל בגלל תקציב הקריאות ({used} עד כה, {needed} לסבב, תקרה {budget})."
     },
     "write_files": {
       "title": "הקבצים שייכתבו לתיקייה:",
@@ -298,7 +300,8 @@
     "found": "[INFO] הבודקים מצאו {count} ממצאים ({screens} מסכים לתיקון).",
     "fixing": "[INFO] סבב תיקון {round} מתוך {max}: מתקנים את המסכים {screens}.",
     "verified": "[INFO] אחרי התיקון: {fixed} ממצאים תוקנו, {open} פתוחים.",
-    "failed_check": "[INFO] הבודק {check} לא הצליח לרוץ: {error}"
+    "failed_check": "[INFO] הבודק {check} לא הצליח לרוץ: {error}",
+    "budget_stop": "[INFO] סבב תיקון נוסף היה מביא את הלומדה מעבר לתקציב ({used} קריאות עד כה, {needed} לסבב, תקרה {budget}). עוברים לשער 3 עם הממצאים הפתוחים."
   },
   "report": {
     "title": "# דוח לבעל התוכן: {title}",
@@ -307,7 +310,7 @@
     "files": "- **קבצי מקור:** {files}",
     "screens": "- **מסכים:** {count}",
     "coverage_title": "## כיסוי",
-    "coverage": "{covered} מתוך {total} נקודות התוכן שבמבנה המאושר נשענות על מקור שמצוטט בלומדה ({percent}%).",
+    "coverage": "{taught} מתוך {total} הנקודות המהותיות במקור נכנסו ללומדה ({percent}%).",
     "coverage_low": "הכיסוי מתחת לסף של {threshold}%: כדאי לבדוק אילו נקודות חסרות.",
     "checks_title": "## בדיקות",
     "rounds": "- **סבבי תיקון:** {rounds} (לכל היותר {max})",
@@ -315,7 +318,7 @@
     "writers": "- **כותבים:** {models}",
     "checkers": "- **בודקים:** {models}",
     "same_family": "- **שימו לב:** הבודקים היו מאותה משפחת מודלים כמו הכותב ({families}), כי לא היה זמין בודק ממשפחה אחרת.",
-    "failed": "- **בדיקה שלא רצה:** {check} ({error})",
+    "failed": "- **בדיקה שלא רצה:** {check} (הפרטים ביומן logs/agent.log)",
     "open_title": "## ממצאים פתוחים",
     "no_open": "אין ממצאים פתוחים.",
     "item": "- **מסך {screen}**, {where} ({category}): {problem}",
@@ -359,6 +362,33 @@
       "multiple_choice": "שאלה",
       "illustration": "המחשה",
       "decision_diagram": "תרשים החלטה"
+    },
+    "coverage_unknown": "לא ניתן היה לחלץ את הנקודות המהותיות מהמקור, ולכן הכיסוי לא נמדד.",
+    "missing_title": "נקודות מהמקור שלא נכנסו ללומדה:",
+    "missing_item": "- {point}",
+    "budget_stop": "- **תקציב קריאות:** סבב תיקון נוסף לא התחיל, כי היה מביא את הלומדה מעבר ל-{budget} קריאות ({used} עד כה, {needed} לסבב).",
+    "check_screens": "{check} (מסכים {screens})",
+    "checks": {
+      "language": "בודק העברית",
+      "grounding": "בודק הביסוס",
+      "single_answer": "בודק השאלות",
+      "illustrations": "בודק ההמחשות",
+      "pedagogy": "בודק הפדגוגיה",
+      "key_points": "חילוץ הנקודות המהותיות"
+    },
+    "nodes": {
+      "scope_check": "סיווג הבקשה",
+      "classify_type": "סוג הלומדה",
+      "topic_map": "מפת נושאים",
+      "plan_structure": "מבנה הלומדה",
+      "write_lesson": "כתיבה",
+      "evaluator": "בדיקות",
+      "fix_screens": "תיקונים",
+      "gate_topics": "שער 1",
+      "gate_structure": "שער 2",
+      "gate_review": "שער 3",
+      "answer": "תשובה לשאלה",
+      "key_points": "נקודות מהותיות במקור"
     }
   },
   "checks": {
@@ -370,10 +400,10 @@
     "address_lesson": "הלומדה מערבבת פנייה ביחיד וברבים; צריך לבחור צורה אחת.",
     "address_evidence": "יחיד: {singular}; רבים: {plural}",
     "address_counts": "{singular} צורות ביחיד, {plural} צורות ברבים",
-    "list_repeated": "הרשימה חוזרת על מסך {screen} במקום להוסיף משהו חדש.",
-    "list_repeated_evidence": "{shared} מתוך {count} הפריטים מופיעים גם במסך {screen}, בלוק {block}",
     "phrase_repeated": "אותו צירוף מופיע פעמיים באותה פסקה.",
     "question_overlap": "שתי שאלות במסכים שונים בודקות את אותה החלטה, עם כמעט אותה תשובה נכונה.",
-    "question_overlap_evidence": "אותה החלטה כמו במסך {screen}, בלוק {block}"
+    "question_overlap_evidence": "אותה החלטה כמו במסך {screen}, בלוק {block}",
+    "repeated_fact": "העובדה כבר נלמדת במסך {screen}, בלוק {block}. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+    "dyk_repeated": "\"הידעת?\" חוזר על עובדה שמופיעה גם במסך {screen}, בלוק {block}. \"הידעת?\" הוא רק לעובדה שלא מופיעה בשום מקום אחר בלומדה."
   }
 }

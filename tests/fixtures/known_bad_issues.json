@@ -1,24 +1,346 @@
 {
-  "_comment": "Problems found by hand in known_bad_lesson.json (screens are 1-based). A finding matches an issue when its screen is in 'screens' (null = any screen or the whole lesson), its category is in 'categories', and, if 'keywords' is given, one keyword appears in its evidence, problem, suggestion or where.",
-  "issues": [
-    {"id": "I01", "description": "התשובה הנכונה ארוכה בהרבה מהמסיחים (יחס אורך)", "screens": null, "categories": ["answer_length"]},
-    {"id": "I02", "description": "מסיחים חלשים במסך 2: להאיץ, לצפצף, לעבור לנתיב הנגדי", "screens": [2], "categories": ["distractors"]},
-    {"id": "I03", "description": "מסיחים חלשים במסכים 6-8: להאיץ, לצאת בכל זאת, לוותר על בדיקה, אין צורך באורות", "screens": [6, 7, 8], "categories": ["distractors"]},
-    {"id": "I04", "description": "עובדה לא מבוססת במסך 2: 'יותר מפי 2 ... בכביש יבש' למשאית", "screens": [2], "categories": ["ungrounded", "other"], "keywords": ["יבש", "פי 2", "פי שניים"]},
-    {"id": "I05", "description": "עובדה לא מבוססת במסך 1: 'ההדרכה קצרה במתכוון'", "screens": [1], "categories": ["ungrounded", "enrichment_misuse", "other"], "keywords": ["מתכוון", "כוונה", "מבחן ארוך", "הזמן הדרוש"]},
-    {"id": "I06", "description": "פנייה לא אחידה: 'אתה' בשאלות ו'קחו/חשבו/שאלו' במשוב", "screens": null, "categories": ["address"]},
-    {"id": "I07", "description": "שגיאת שפה במסך 3: 'אבלע' במקום 'אבלום'", "screens": [3], "categories": ["language", "other"], "keywords": ["אבלע"]},
-    {"id": "I08", "description": "מילה שגויה בכותרת האיור במסך 3: 'כמה נשאר מהבולם' במקום הצמיג", "screens": [3], "categories": ["language", "ungrounded", "other"], "keywords": ["בולם"]},
-    {"id": "I09", "description": "משפט כפול בפסקה הראשונה במסך 1 (שלוש שאלות קצרות)", "screens": [1], "categories": ["duplicate_text", "repetition", "language"], "keywords": ["שלוש שאלות", "שאלות קצרות"]},
-    {"id": "I10", "description": "שאלה 6: עמוד אחד ≈ 50 מ׳, לכן גם 'לעצור בצד' סביר (יותר מתשובה נכונה אחת)", "screens": [6], "categories": ["multiple_correct", "inconsistent_scenario"], "keywords": ["עמוד", "לעצור", "עוצר", "עצירה", "50 מ"]},
-    {"id": "I11", "description": "שאלה 7: 'אחרי העקומה' מול 'מיד אחרי העקומה' – תרחיש לא חד", "screens": [7], "categories": ["multiple_correct", "inconsistent_scenario"], "keywords": ["מיד אחרי", "אחרי העקומה", "אחריה"]},
-    {"id": "I12", "description": "שאלה 1: התרחיש סותר את הכלל (משובץ אחרי 1 בדצמבר) ו'פנה לממונה' לא במקור", "screens": [1], "categories": ["inconsistent_scenario", "ungrounded", "multiple_correct"], "keywords": ["ממונה", "דצמבר", "משובץ", "שיבוץ"]},
-    {"id": "I13", "description": "תרשים במסך 4: 'צריך לבלום' מקביל לסוגי ההחלקה, וענפים לא מגיעים לסוף", "screens": [4], "categories": ["diagram_logic"]},
-    {"id": "I14", "description": "תרשימים במסכים 6 ו-7: לשאלה הראשונה רק ענף 'כן'", "screens": [6, 7], "categories": ["diagram_logic"]},
-    {"id": "I15", "description": "מסך 5 חוזר על הרשימה של מסך 4", "screens": [4, 5], "categories": ["repetition"]},
-    {"id": "I16", "description": "השאלה החלופית במסך 5 בודקת את אותה החלטה כמו שאלת מסך 4", "screens": [4, 5], "categories": ["question_overlap"]},
-    {"id": "I17", "description": "'הידעת' במסך 4 (דיווח תוך שעתיים) הוא כלל ליבה ולא העשרה", "screens": [4], "categories": ["enrichment_misuse"]},
-    {"id": "I18", "description": "שאלות שינון: החלופית של שאלה 6 (אורות גבוהים) והחלופית של שאלה 7 (אילו אורות)", "screens": [6, 7], "categories": ["recall_question"]},
-    {"id": "I19", "description": "איורים שלא מוסיפים: מסכים 1, 5, 8", "screens": [1, 5, 8], "categories": ["illustration_value"]}
-  ]
+ "_comment": "Problems found by hand in each fixture lesson (screens are 1-based). A finding matches an issue when its screen is in 'screens' (null = any screen or the whole lesson), its category is in 'categories', and, if 'keywords' is given, one keyword appears in its evidence, problem, suggestion or where. Lessons: known_bad_lesson.json (short_winter, day 5) and known_bad_lesson_2.json (short_winter, day 6 run of 19.11).",
+ "lessons": [
+  {
+   "lesson": "known_bad_lesson.json",
+   "issues": [
+    {
+     "id": "I01",
+     "description": "התשובה הנכונה ארוכה בהרבה מהמסיחים (יחס אורך)",
+     "screens": null,
+     "categories": [
+      "answer_length"
+     ]
+    },
+    {
+     "id": "I02",
+     "description": "מסיחים חלשים במסך 2: להאיץ, לצפצף, לעבור לנתיב הנגדי",
+     "screens": [
+      2
+     ],
+     "categories": [
+      "distractors"
+     ]
+    },
+    {
+     "id": "I03",
+     "description": "מסיחים חלשים במסכים 6-8: להאיץ, לצאת בכל זאת, לוותר על בדיקה, אין צורך באורות",
+     "screens": [
+      6,
+      7,
+      8
+     ],
+     "categories": [
+      "distractors"
+     ]
+    },
+    {
+     "id": "I04",
+     "description": "עובדה לא מבוססת במסך 2: 'יותר מפי 2 ... בכביש יבש' למשאית",
+     "screens": [
+      2
+     ],
+     "categories": [
+      "ungrounded",
+      "other"
+     ],
+     "keywords": [
+      "יבש",
+      "פי 2",
+      "פי שניים"
+     ]
+    },
+    {
+     "id": "I05",
+     "description": "עובדה לא מבוססת במסך 1: 'ההדרכה קצרה במתכוון'",
+     "screens": [
+      1
+     ],
+     "categories": [
+      "ungrounded",
+      "enrichment_misuse",
+      "other"
+     ],
+     "keywords": [
+      "מתכוון",
+      "כוונה",
+      "מבחן ארוך",
+      "הזמן הדרוש"
+     ]
+    },
+    {
+     "id": "I06",
+     "description": "פנייה לא אחידה: 'אתה' בשאלות ו'קחו/חשבו/שאלו' במשוב",
+     "screens": null,
+     "categories": [
+      "address"
+     ]
+    },
+    {
+     "id": "I07",
+     "description": "שגיאת שפה במסך 3: 'אבלע' במקום 'אבלום'",
+     "screens": [
+      3
+     ],
+     "categories": [
+      "language",
+      "other"
+     ],
+     "keywords": [
+      "אבלע"
+     ]
+    },
+    {
+     "id": "I08",
+     "description": "מילה שגויה בכותרת האיור במסך 3: 'כמה נשאר מהבולם' במקום הצמיג",
+     "screens": [
+      3
+     ],
+     "categories": [
+      "language",
+      "ungrounded",
+      "other"
+     ],
+     "keywords": [
+      "בולם"
+     ]
+    },
+    {
+     "id": "I09",
+     "description": "משפט כפול בפסקה הראשונה במסך 1 (שלוש שאלות קצרות)",
+     "screens": [
+      1
+     ],
+     "categories": [
+      "duplicate_text",
+      "repetition",
+      "language"
+     ],
+     "keywords": [
+      "שלוש שאלות",
+      "שאלות קצרות"
+     ]
+    },
+    {
+     "id": "I10",
+     "description": "שאלה 6: עמוד אחד ≈ 50 מ׳, לכן גם 'לעצור בצד' סביר (יותר מתשובה נכונה אחת)",
+     "screens": [
+      6
+     ],
+     "categories": [
+      "multiple_correct",
+      "inconsistent_scenario"
+     ],
+     "keywords": [
+      "עמוד",
+      "לעצור",
+      "עוצר",
+      "עצירה",
+      "50 מ"
+     ]
+    },
+    {
+     "id": "I11",
+     "description": "שאלה 7: 'אחרי העקומה' מול 'מיד אחרי העקומה' – תרחיש לא חד",
+     "screens": [
+      7
+     ],
+     "categories": [
+      "multiple_correct",
+      "inconsistent_scenario"
+     ],
+     "keywords": [
+      "מיד אחרי",
+      "אחרי העקומה",
+      "אחריה"
+     ]
+    },
+    {
+     "id": "I12",
+     "description": "שאלה 1: התרחיש סותר את הכלל (משובץ אחרי 1 בדצמבר) ו'פנה לממונה' לא במקור",
+     "screens": [
+      1
+     ],
+     "categories": [
+      "inconsistent_scenario",
+      "ungrounded",
+      "multiple_correct"
+     ],
+     "keywords": [
+      "ממונה",
+      "דצמבר",
+      "משובץ",
+      "שיבוץ"
+     ]
+    },
+    {
+     "id": "I13",
+     "description": "תרשים במסך 4: 'צריך לבלום' מקביל לסוגי ההחלקה, וענפים לא מגיעים לסוף",
+     "screens": [
+      4
+     ],
+     "categories": [
+      "diagram_logic"
+     ]
+    },
+    {
+     "id": "I14",
+     "description": "תרשימים במסכים 6 ו-7: לשאלה הראשונה רק ענף 'כן'",
+     "screens": [
+      6,
+      7
+     ],
+     "categories": [
+      "diagram_logic"
+     ]
+    },
+    {
+     "id": "I15",
+     "description": "מסך 5 חוזר על הרשימה של מסך 4",
+     "screens": [
+      4,
+      5
+     ],
+     "categories": [
+      "repetition"
+     ]
+    },
+    {
+     "id": "I16",
+     "description": "השאלה החלופית במסך 5 בודקת את אותה החלטה כמו שאלת מסך 4",
+     "screens": [
+      4,
+      5
+     ],
+     "categories": [
+      "question_overlap"
+     ]
+    },
+    {
+     "id": "I17",
+     "description": "'הידעת' במסך 4 (דיווח תוך שעתיים) הוא כלל ליבה ולא העשרה",
+     "screens": [
+      4
+     ],
+     "categories": [
+      "enrichment_misuse"
+     ]
+    },
+    {
+     "id": "I18",
+     "description": "שאלות שינון: החלופית של שאלה 6 (אורות גבוהים) והחלופית של שאלה 7 (אילו אורות)",
+     "screens": [
+      6,
+      7
+     ],
+     "categories": [
+      "recall_question"
+     ]
+    },
+    {
+     "id": "I19",
+     "description": "איורים שלא מוסיפים: מסכים 1, 5, 8",
+     "screens": [
+      1,
+      5,
+      8
+     ],
+     "categories": [
+      "illustration_value"
+     ]
+    }
+   ]
+  },
+  {
+   "lesson": "known_bad_lesson_2.json",
+   "issues": [
+    {
+     "id": "J01",
+     "description": "שגיאת עברית בכותרת ההמחשה במסך 3: 'מחזרים שליטה' במקום 'מחזירים'",
+     "screens": [
+      3
+     ],
+     "categories": [
+      "language",
+      "other"
+     ],
+     "keywords": [
+      "מחזרים"
+     ]
+    },
+    {
+     "id": "J02",
+     "description": "שגיאת עברית בשאלה החלופית במסך 8: 'ולישר' במקום 'וליישר'",
+     "screens": [
+      8
+     ],
+     "categories": [
+      "language",
+      "other"
+     ],
+     "keywords": [
+      "ולישר",
+      "לישר"
+     ]
+    },
+    {
+     "id": "J03",
+     "description": "'הידעת?' במסך 4 (דיווח על כמעט-תאונה) הוא כלל של מסך 7",
+     "screens": [
+      4
+     ],
+     "categories": [
+      "enrichment_misuse",
+      "repetition"
+     ]
+    },
+    {
+     "id": "J04",
+     "description": "'הידעת?' במסך 6 חוזר על כלל עמודי התאורה ממסך 5",
+     "screens": [
+      6
+     ],
+     "categories": [
+      "enrichment_misuse",
+      "repetition"
+     ]
+    },
+    {
+     "id": "J05",
+     "description": "'הידעת?' במסך 7 חוזר על 'רכבי הצי משנת 2019... ABS' ממסך 4",
+     "screens": [
+      7
+     ],
+     "categories": [
+      "enrichment_misuse",
+      "repetition"
+     ]
+    },
+    {
+     "id": "J06",
+     "description": "השאלה החלופית במסך 8 בודקת החלקה קדמית (לא את חמשת הכללים) וחוזרת על החלופית של מסך 3",
+     "screens": [
+      8
+     ],
+     "categories": [
+      "question_overlap"
+     ]
+    },
+    {
+     "id": "J07",
+     "description": "אותו כלל בפסקה, ברשימה ובהסבר של 'עצרו וחשבו' (מסכים 2-5)",
+     "screens": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "categories": [
+      "repetition",
+      "duplicate_text"
+     ]
+    }
+   ]
+  }
+ ]
 }

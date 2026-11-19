@@ -1,6 +1,7 @@
 """Graph state and node logic."""
 
 import json
+import logging
 import re
 import threading
 import time
@@ -200,7 +201,8 @@ class AgentState(TypedDict, total=False):
     review_round: int | None  # automatic fix rounds done (at most MAX_FIX_ROUNDS)
     fixed_screens: list[int] | None  # screens rewritten in the last fix (verified next)
     owner_request: bool | None  # the last fix came from the content owner at gate 3
-    review: dict | None  # {"failed": {check: error}, "same_family": [families]} for the report
+    review: dict | None  # {"failed": {check: error}, "same_family": [families], "budget_stop": {...}}
+    key_points: list[dict] | None  # the source's key points (extracted once), for coverage
     report_path: str | None
 
 
@@ -819,16 +821,48 @@ def _checker_call(config: RunnableConfig, state: AgentState, review: dict):
     return call
 
 
+KEY_POINTS_ATTEMPTS = 2
+
+
+def extract_key_points(chunks: list[dict], config: RunnableConfig | None) -> list[dict] | None:
+    """The source's key points, by the small model (once per lesson); None if it fails."""
+    from agent.evaluation import key_points_messages, parse_key_points
+
+    system, user = key_points_messages(chunks)
+    messages: list = [SystemMessage(system), HumanMessage(user)]
+    for _ in range(KEY_POINTS_ATTEMPTS):
+        try:
+            result = _call("key_points", messages, config, timeout=LONG_REQUEST_TIMEOUT_SECONDS, role="small")
+        except NodeError as e:
+            log(msg("evaluator.failed_check", check="key_points", error=str(e.cause)[:160]))
+            return None
+        try:
+            return parse_key_points(result.text)
+        except ValueError as err:
+            messages += [AIMessage(result.text),
+                         HumanMessage(f"That reply was invalid: {err}. Reply again with only the JSON object.")]
+    return None
+
+
+def _calls_so_far(config: RunnableConfig | None) -> int | None:
+    records = _configurable(config).get("usage_records")
+    return len(records()) if records else None
+
+
 def evaluator(state: AgentState, config: RunnableConfig) -> dict:
-    """Run the checkers. First time: everything on the whole lesson. After a fix: code checks
-    on the whole lesson, and one verification call per rewritten group of screens."""
-    from agent.evaluation import actionable, first_evaluation, verify_fixes
+    """Run the checkers. First time: the source's key points (once), then every check on the
+    whole lesson. After a fix: each finding on a rewritten screen is checked again by the
+    checker that found it. Then decide whether another fix round fits the call budget."""
+    from agent.evaluation import CALL_BUDGET, MAX_FIX_ROUNDS, actionable, first_evaluation, round_cost, verify_fixes
 
     index = _index(config)
     chunks = index.chunks if index is not None else []
     review = dict(state.get("review") or {})
+    update: dict = {}
     call = _checker_call(config, state, review)
     if state.get("findings") is None:
+        if state.get("key_points") is None and chunks:
+            update["key_points"] = extract_key_points(chunks, config) or []
         findings, failed, _ = first_evaluation(state["lesson"], chunks, call)
         screens = sorted({f["screen"] for f in actionable(findings)})
         log(msg("evaluator.found", count=len(findings), screens=len(screens)))
@@ -839,14 +873,23 @@ def evaluator(state: AgentState, config: RunnableConfig) -> dict:
                 open=sum(f["status"] == "open" for f in findings)))
     for check, error in failed.items():
         log(msg("evaluator.failed_check", check=check, error=str(error)[:160]))
+        logging.getLogger("lomda_agent").warning("check %s failed: %s", check, error)
     review["failed"] = {**(review.get("failed") or {}), **failed}
-    return {"findings": findings, "review": review, "fixed_screens": []}
+    review.pop("budget_stop", None)
+    used = _calls_so_far(config)
+    if (used is not None and not state.get("owner_request") and actionable(findings)
+            and (state.get("review_round") or 0) < MAX_FIX_ROUNDS):
+        needed = round_cost(findings)
+        if used + needed > CALL_BUDGET:
+            review["budget_stop"] = {"used": used, "needed": needed, "budget": CALL_BUDGET}
+            log(msg("evaluator.budget_stop", used=used, needed=needed, budget=CALL_BUDGET))
+    return {**update, "findings": findings, "review": review, "fixed_screens": []}
 
 
 def route_after_evaluator(state: AgentState) -> str:
     from agent.evaluation import MAX_FIX_ROUNDS, actionable
 
-    if state.get("owner_request"):
+    if state.get("owner_request") or (state.get("review") or {}).get("budget_stop"):
         return "gate_review"
     if actionable(state.get("findings") or []) and (state.get("review_round") or 0) < MAX_FIX_ROUNDS:
         return "fix_screens"
@@ -906,10 +949,9 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
 
 def review_summary(state: AgentState) -> dict:
     """What gate 3 shows besides the preview."""
-    from agent.evaluation import coverage
+    from agent.evaluation import coverage_summary
 
     findings = state.get("findings") or []
-    covered, total = coverage(state["structure"], state["lesson"]) if state.get("structure") else (0, 0)
     return {
         "title": state["lesson"]["title"],
         "lesson_type": state["lesson"]["lesson_type"],
@@ -919,8 +961,8 @@ def review_summary(state: AgentState) -> dict:
         "fixed": sum(f["status"] == "fixed" for f in findings),
         "open": [{"screen": f.get("screen"), "problem": f.get("problem", "")}
                  for f in findings if f["status"] == "open"],
-        "covered": covered,
-        "total": total,
+        "coverage": coverage_summary(state.get("key_points"), state["lesson"]),
+        "budget_stop": (state.get("review") or {}).get("budget_stop"),
     }
 
 

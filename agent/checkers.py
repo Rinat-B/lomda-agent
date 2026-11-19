@@ -52,13 +52,13 @@ CATEGORIES = (
 # answer length: the correct option is this much longer than the longest / the average distractor
 LONGEST_RATIO = 1.4
 MEAN_RATIO = 1.8
-# repetition: share of a list's items that appear in another screen's list
-LIST_OVERLAP = 0.5
+# repetition: a sentence whose content words appear (in any prefix form) in another block's sentence
+FACT_SIMILARITY = 0.75
+MIN_FACT_WORDS = 4
 # questions on different screens with this similar a correct answer test the same decision
 ANSWER_OVERLAP = 0.7
 PHRASE_WORDS = 3
 MODEL_ATTEMPTS = 2
-QUESTION_BATCH_SCREENS = 3  # screens per question-checklist call: keeps each reply short enough
 CHECK_TIMEOUT_SECONDS = 240  # like the writer: free models think for a long time
 SOURCE_BUDGET_CHARS = 20_000
 
@@ -224,30 +224,88 @@ def check_address(lesson: dict) -> list[Finding]:
     return out
 
 
-def _similarity(a: list[str], b: list[str]) -> float:
-    sa, sb = set(a), set(b)
-    if not sa or not sb:
+def _content_words(text: str) -> list[set[str]]:
+    """Each content word of the text as its set of Hebrew prefix variants (stopwords dropped)."""
+    from agent.tools import prefix_variants, stopwords
+
+    stop = stopwords()
+    return [set(prefix_variants(w)) for w in words(text)
+            if w not in stop and (len(w) > 1 or w.isdigit())]
+
+
+def _similarity(a: list[set[str]], b: list[set[str]]) -> float:
+    """Share of the shorter text's words that appear (in any prefix form) in the other one."""
+    if not a or not b:
         return 0.0
-    return len(sa & sb) / min(len(sa), len(sb))
+    short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+    pool = set().union(*long_)
+    return sum(1 for w in short if w & pool) / len(short)
+
+
+def _number_words() -> dict[str, str]:
+    return json.loads(WORDS_PATH.read_text(encoding="utf-8")).get("number_words", {})
+
+
+def _numbers(text: str) -> set[str]:
+    """The numbers of a text, with Hebrew number words as digits ("twice" counts as 2)."""
+    found = set(re.findall(r"\d+(?:[.,]\d+)?", text))
+    table = _number_words()
+    for w in words(text):
+        for form in (w, w[1:] if len(w) > 2 else w):  # one prefix letter, e.g. "and two"
+            if form in table:
+                found.add(table[form])
+                break
+    return found
+
+
+_SENTENCE_END = re.compile(r"(?<=[.!?;])\s+|\n+")
+FACT_BLOCKS = ("paragraph", "list", "stop_and_think", "did_you_know")
+
+
+def facts(lesson: dict) -> list[tuple[int, int, str, str]]:
+    """(screen, block, block type, sentence) for every taught sentence: paragraphs, list
+    items, stop-and-think explanations and did-you-know boxes (not questions or feedback)."""
+    out = []
+    for s_no, screen in enumerate(lesson["screens"], 1):
+        for b_no, b in enumerate(screen["blocks"], 1):
+            if b["type"] not in FACT_BLOCKS:
+                continue
+            if b["type"] == "list":
+                parts = list(b["items"])
+            else:
+                text = b["explanation"] if b["type"] == "stop_and_think" else b["text"]
+                parts = [p for p in _SENTENCE_END.split(text)]
+            out += [(s_no, b_no, b["type"], p.strip()) for p in parts if p and p.strip()]
+    return out
 
 
 def check_repetition(lesson: dict) -> list[Finding]:
-    """Lists repeated on another screen, and phrases repeated inside one paragraph."""
+    """A fact taught in more than one block (also across screens), and a phrase repeated
+    inside one paragraph. One finding per pair of blocks."""
     out = []
-    lists = [(s_no, b_no, [" ".join(words(i)) for i in block["items"]])
-             for s_no, screen in enumerate(lesson["screens"], 1)
-             for b_no, block in enumerate(screen["blocks"], 1) if block["type"] == "list"]
-    for i, (s1, b1, items1) in enumerate(lists):
-        for s2, b2, items2 in lists[i + 1:]:
-            if s1 == s2:
+    items = [(s, b, t, text, _content_words(text), _numbers(text)) for s, b, t, text in facts(lesson)]
+    items = [it for it in items if len(it[4]) >= MIN_FACT_WORDS]
+    reported: set[tuple] = set()
+    for i, (s2, b2, t2, text2, w2, n2) in enumerate(items):
+        for s1, b1, t1, text1, w1, n1 in items[:i]:
+            if (s1, b1) == (s2, b2):
                 continue
-            shared = set(items1) & set(items2)
-            if len(shared) >= LIST_OVERLAP * min(len(items1), len(items2)):
-                out.append(Finding(
-                    check="repetition", category="repetition", screen=s2, where=_where(b2, "list"),
-                    evidence=msg("checks.list_repeated_evidence", shared=len(shared), count=len(items2),
-                                 screen=s1, block=b1),
-                    problem=msg("checks.list_repeated", screen=s1)))
+            if _similarity(w1, w2) < FACT_SIMILARITY:
+                continue
+            if not (n1 <= n2 or n2 <= n1):  # different numbers: a different fact
+                continue
+            dyk_first = t1 == "did_you_know" and t2 != "did_you_know"
+            screen, block, kind, other = (s1, b1, t1, (s2, b2)) if dyk_first else (s2, b2, t2, (s1, b1))
+            key = (screen, block)
+            if key in reported:
+                continue
+            reported.add(key)
+            dyk = "did_you_know" in (t1, t2)
+            out.append(Finding(
+                check="repetition", category="enrichment_misuse" if dyk else "repetition", screen=screen,
+                where=_where(block, kind), evidence=text1 if dyk_first else text2,
+                problem=msg("checks.dyk_repeated" if dyk else "checks.repeated_fact",
+                            screen=other[0], block=other[1])))
     for s_no, screen in enumerate(lesson["screens"], 1):
         for b_no, block in enumerate(screen["blocks"], 1):
             if block["type"] != "paragraph":
@@ -266,7 +324,8 @@ def check_repetition(lesson: dict) -> list[Finding]:
 def check_question_overlap(lesson: dict) -> list[Finding]:
     """Questions on different screens whose correct answers are nearly the same."""
     out = []
-    qs = [(s_no, b_no, label, words(q["options"][q["correct_index"]])) for s_no, b_no, label, q in questions(lesson)]
+    qs = [(s_no, b_no, label, _content_words(q["options"][q["correct_index"]]))
+          for s_no, b_no, label, q in questions(lesson)]
     for i, (s1, b1, l1, a1) in enumerate(qs):
         for s2, b2, l2, a2 in qs[i + 1:]:
             if s1 != s2 and _similarity(a1, a2) >= ANSWER_OVERLAP:
@@ -357,17 +416,6 @@ FINDINGS_FORMAT = (
     '"where": "block <n> (<type>)[, alternate]", "category": "<one of: CATS>", "evidence": "...", '
     '"problem": "...", "suggestion": "..."}]}. If there is nothing to report, reply {"findings": []}.'
 )
-QUESTIONS_FORMAT = (
-    " Assess EVERY question and EVERY alternate question, in lesson order, even when it is fine. "
-    'Reply with only a JSON object: {"questions": [{"screen": <n>, "where": "block <n> '
-    '(multiple_choice)" or "block <n> (multiple_choice), alternate", "question": "<the first words '
-    'of the question>", "kind": "decision" or "recall", "kind_reason": "...", "other_correct": '
-    '"<exact text of another option that is also correct or defensible, or empty>", '
-    '"other_correct_reason": "...", "scenario_problem": "<what in the scenario is ambiguous or '
-    'contradicts the rule, the source or the marked answer, or empty>", "weak_distractors": '
-    '["<exact text of each weak wrong option>"], "weak_distractors_reason": "..."}]}. '
-    "All reasons in Hebrew."
-)
 ILLUSTRATIONS_FORMAT = (
     " Assess EVERY illustration, in lesson order. Reply with only a JSON object: "
     '{"illustrations": [{"screen": <n>, "where": "block <n> (illustration)", "title": "...", '
@@ -383,10 +431,11 @@ MODEL_CHECKS: dict[str, dict] = {
         "prompt": (
             "Your task: proofread the Hebrew. Read every block, including titles of illustrations, "
             "options and feedback. Report: spelling and grammar errors; wrong or non-existent words "
-            "and wrong verb forms; a word that names the wrong thing for the context (for example "
-            "one car part instead of another); unclear or awkward sentences; and a sentence or "
-            "phrase that repeats what the same block already said (category duplicate_text). "
-            "Do not report singular versus plural address; that is checked elsewhere."
+            "and wrong verb forms (check every verb letter by letter: a missing or extra letter "
+            "makes a different or non-existent word); a word that names the wrong thing for the "
+            "context (for example one car part instead of another); unclear or awkward sentences; "
+            "and a sentence or phrase that repeats what the same block already said (category "
+            "duplicate_text). Do not report singular versus plural address; that is checked elsewhere."
         ),
     },
     "grounding": {
@@ -402,31 +451,6 @@ MODEL_CHECKS: dict[str, dict] = {
             "anything that contradicts the source. Check every block, including did-you-know boxes, "
             "explanations, options, feedback and illustration descriptions. A faithful rephrasing "
             "or a direct consequence of what the source says is fine."
-        ),
-    },
-    "questions": {
-        "categories": ("multiple_correct", "inconsistent_scenario", "recall_question", "distractors"),
-        "source": True,
-        "format": "questions",
-        "prompt": (
-            "Your task: check the multiple-choice questions. A lesson question must present a "
-            "realistic situation and ask for a decision, with exactly one correct option. For each "
-            "question:\n"
-            "- kind: \"recall\" when the learner only has to repeat a rule or a fact (the stem "
-            "already states the key condition and asks what the rule says, what to turn on, what is "
-            "true); \"decision\" when the learner must interpret details of the situation to choose "
-            "an action.\n"
-            "- other_correct: be strict. Imagine a learner who chose a different option and argues "
-            "for it from the scenario and the source. If the argument holds, quote that option. "
-            "Typical cases: a scenario detail that, by the source's own numbers, also meets the "
-            "condition of another rule; a more cautious action that the source also requires or "
-            "allows; two options that differ only in wording.\n"
-            "- scenario_problem: a detail of the scenario that contradicts the rule or the marked "
-            "answer, a detail the answer depends on that is left ambiguous (for example a place "
-            "described in words that the rule treats differently), or a marked answer that adds an "
-            "action the source does not mention.\n"
-            "- weak_distractors: wrong options a learner would rule out without knowing the material "
-            "because they are absurd, obviously dangerous, unrelated or careless."
         ),
     },
     "illustrations": {
@@ -447,13 +471,16 @@ MODEL_CHECKS: dict[str, dict] = {
         "source": True,
         "format": "findings",
         "prompt": (
-            "Your task: check the lesson as a teacher. Report:\n"
-            "- repetition: a screen or a block that repeats content already taught on another "
-            "screen without adding anything;\n"
+            "Your task: check the lesson as a teacher. Each fact should be taught once. Report:\n"
+            "- repetition: a screen or a block that repeats content already taught (on this screen "
+            "or another one) without adding anything;\n"
             "- question_overlap: two questions (including alternates) on different screens that test "
-            "the same decision;\n"
-            "- enrichment_misuse: a did-you-know box that holds a core rule the learner must follow "
-            "or that a question tests; did-you-know is only for extra, optional enrichment;\n"
+            "the same decision; and an alternate question that tests a different objective than its "
+            "main question (the alternate is shown on a retry, so it must check the same objective "
+            "with a new situation);\n"
+            "- enrichment_misuse: a did-you-know box that holds a core rule the learner must follow, "
+            "a fact that a question tests, or a fact that appears anywhere else in the lesson; "
+            "did-you-know is only for an extra fact found nowhere else;\n"
             "- diagram_logic: a decision diagram whose branches are not mutually exclusive, mixes "
             "different kinds of decisions as parallel branches, misses a branch (for example only "
             "'yes'), leaves actions disconnected from the rest of the flow, or contradicts the source."
@@ -461,18 +488,29 @@ MODEL_CHECKS: dict[str, dict] = {
     },
 }
 
-_FORMATS = {"findings": FINDINGS_FORMAT, "questions": QUESTIONS_FORMAT, "illustrations": ILLUSTRATIONS_FORMAT}
+_FORMATS = {"findings": FINDINGS_FORMAT, "illustrations": ILLUSTRATIONS_FORMAT}
 # share of the lesson's questions / illustrations a checklist reply must cover
 MIN_COVERAGE = 0.8
 
+Screens = tuple[int, ...] | None  # None = the whole lesson
 
-def build_check_messages(name: str, lesson_text: str, source_text: str,
-                         screens: tuple[int, int] | None = None) -> list[BaseMessage]:
+
+def _in(screen, screens: Screens) -> bool:
+    return not screens or screen in screens
+
+
+def screens_label(screens: Screens) -> str:
+    return ", ".join(str(s) for s in screens) if screens else "all"
+
+
+def build_check_messages(name: str, lesson_text: str, source_text: str, screens: Screens = None) -> list[BaseMessage]:
     spec = MODEL_CHECKS[name]
     system = (COMMON + " " + spec["prompt"] + _FORMATS[spec["format"]]).replace("CATS", ", ".join(spec["categories"]))
     user = f"The lesson:\n{lesson_text}"
     if screens:
-        user += f"\n\nAssess only the questions on screens {screens[0]} to {screens[1]}; the rest is context."
+        what = "illustrations" if spec["format"] == "illustrations" else "problems"
+        user += (f"\n\nAssess and report only the {what} on screens {screens_label(screens)}; "
+                 "the other screens are context.")
     if spec["source"]:
         system += SOURCE_DATA_RULE
         user = f"Source material:\n{source_text}\n\n{user}"
@@ -531,27 +569,6 @@ def _check_coverage(items: list[dict], expected: int, what: str) -> None:
         raise ValueError(f"you assessed {len(items)} of the {expected} {what}; assess every one")
 
 
-def _parse_questions(data: dict, name: str, expected: int) -> list[Finding]:
-    items = _items(data, "questions")
-    _check_coverage(items, expected, "questions (main and alternate)")
-    out = []
-    for q in items:
-        base = {"check": name, "screen": _screen(q.get("screen")), "where": _text(q.get("where"))}
-        stem = _text(q.get("question"))
-        if str(q.get("kind", "")).strip().lower() == "recall":
-            out.append(Finding(category="recall_question", evidence=stem, problem=_text(q.get("kind_reason")), **base))
-        if _text(q.get("other_correct")):
-            out.append(Finding(category="multiple_correct", evidence=_text(q.get("other_correct")),
-                               problem=_text(q.get("other_correct_reason")), **base))
-        if _text(q.get("scenario_problem")):
-            out.append(Finding(category="inconsistent_scenario", evidence=stem,
-                               problem=_text(q.get("scenario_problem")), **base))
-        if _text(q.get("weak_distractors")):
-            out.append(Finding(category="distractors", evidence=_text(q.get("weak_distractors")),
-                               problem=_text(q.get("weak_distractors_reason")), **base))
-    return out
-
-
 def _parse_illustrations(data: dict, name: str, expected: int) -> list[Finding]:
     items = _items(data, "illustrations")
     _check_coverage(items, expected, "illustrations")
@@ -561,30 +578,36 @@ def _parse_illustrations(data: dict, name: str, expected: int) -> list[Finding]:
             for i in items if i.get("adds_value") is False or str(i.get("adds_value")).lower() == "false"]
 
 
-_PARSERS = {"findings": _parse_plain, "questions": _parse_questions, "illustrations": _parse_illustrations}
+_PARSERS = {"findings": _parse_plain, "illustrations": _parse_illustrations}
 
 
-def expected_items(lesson: dict, name: str, screens: tuple[int, int] | None = None) -> int:
-    fmt = MODEL_CHECKS[name]["format"]
-    if fmt == "questions":
-        return sum(1 for s_no, *_ in questions(lesson) if not screens or screens[0] <= s_no <= screens[1])
-    if fmt == "illustrations":
-        return sum(1 for s in lesson["screens"] for b in s["blocks"] if b["type"] == "illustration")
+def expected_items(lesson: dict, name: str, screens: Screens = None) -> int:
+    if MODEL_CHECKS[name]["format"] == "illustrations":
+        return sum(1 for i, s in enumerate(lesson["screens"], 1) if _in(i, screens)
+                   for b in s["blocks"] if b["type"] == "illustration")
     return 0
 
 
-def parse_findings(text: str, name: str, expected: int = 0) -> list[Finding]:
-    """The model's reply as findings; ValueError when it is not usable (sent back to the model)."""
+def parse_findings(text: str, name: str, expected: int = 0, screens: Screens = None) -> list[Finding]:
+    """The model's reply as findings; ValueError when it is not usable (sent back to the model).
+    With `screens`, findings on other screens (or on no screen) are dropped."""
     fmt = MODEL_CHECKS[name]["format"]
-    return _PARSERS[fmt](_json_object(text, fmt), name, expected)
+    found = _PARSERS[fmt](_json_object(text, fmt), name, expected)
+    return [f for f in found if not screens or f.screen in screens]
 
 
-# ---- single answer: every option judged on its own, from the question's excerpts only --------
+# ---- single answer: every question on its own, from the question's excerpts only ----------------
 SINGLE_ANSWER_PROMPT = (
-    "You check whether multiple-choice questions of a Hebrew e-learning lesson have exactly one "
-    "defensible answer. For each question you get only its source excerpts, the situation and "
-    "the options; you are not told which option the author marked as correct. Judge EVERY "
-    "option on its own:\n"
+    "You check the multiple-choice questions of a Hebrew e-learning lesson. For each question "
+    "you get only its source excerpts, the situation and the options; you are not told which "
+    "option the author marked as correct. A good question presents a situation, asks for a "
+    "decision, and has exactly one defensible answer and plausible wrong options.\n"
+    "For the question:\n"
+    "- kind: \"recall\" when the learner only has to repeat a rule or a fact (the stem already "
+    "states the key condition and asks what the rule says, what to turn on, what is true); "
+    "\"decision\" when the learner must interpret details of the situation to choose an action. "
+    "kind_reason: why.\n"
+    "For EVERY option, on its own:\n"
     "- rule: the rule of the excerpts that would make this option the right action, with its "
     "condition (or \"none\").\n"
     "- check: what the situation says about that condition. When the excerpts give numbers "
@@ -604,14 +627,17 @@ SINGLE_ANSWER_PROMPT = (
     "as 'after the junction' may be right after it; 'soon' may be too late).\n"
     "- at_risk: true when, under worst_reading, the option would break a rule of the excerpts "
     "(for example a rule that forbids stopping right after a junction).\n"
-    "Write every rule, check and reason in Hebrew. Reply with only a JSON object: "
-    '{"questions": [{"id": "<question id>", "options": [{"letter": "A", "rule": "...", '
-    '"check": "...", "borderline": true or false, "justified": true or false, '
-    '"worst_reading": "...", "at_risk": true or false, "reason": "..."}]}]}, with every question and every option.'
+    "- weak: true when a learner would rule the option out without knowing the material, "
+    "because it is absurd, obviously dangerous, careless or unrelated.\n"
+    "Write every reason in Hebrew. Reply with only a JSON object: "
+    '{"questions": [{"id": "<question id>", "kind": "decision" or "recall", "kind_reason": "...", '
+    '"options": [{"letter": "A", "rule": "...", "check": "...", "borderline": true or false, '
+    '"justified": true or false, "worst_reading": "...", "at_risk": true or false, '
+    '"weak": true or false, "reason": "..."}]}]}, with every question and every option.'
 ) + SOURCE_DATA_RULE
 
 MODEL_CHECKS["single_answer"] = {
-    "categories": ("multiple_correct", "wrong_answer"),
+    "categories": ("multiple_correct", "wrong_answer", "inconsistent_scenario", "recall_question", "distractors"),
     "source": True,
     "format": "single_answer",
     "prompt": SINGLE_ANSWER_PROMPT,
@@ -623,11 +649,11 @@ def _block_chunks(block: dict, chunks: list[dict]) -> list[dict]:
     return [c for c in chunks if any(chunk_matches(c["locator"], loc) or c["locator"] == loc for loc in locs)]
 
 
-def single_answer_items(lesson: dict, chunks: list[dict], screens: tuple[int, int] | None = None) -> list[dict]:
+def single_answer_items(lesson: dict, chunks: list[dict], screens: Screens = None) -> list[dict]:
     """Each question and alternate with only the excerpts its block cites."""
     items = []
     for s_no, b_no, label, q in questions(lesson):
-        if screens and not screens[0] <= s_no <= screens[1]:
+        if not _in(s_no, screens):
             continue
         block = lesson["screens"][s_no - 1]["blocks"][b_no - 1]
         qid = block.get("id") or f"q{s_no}"
@@ -664,7 +690,11 @@ def parse_single_answer(text: str, items: list[dict]) -> list[Finding]:
         reply = replies.get(it["id"])
         if not reply:
             continue
-        verdicts, risky = {}, {}
+        base = {"check": "single_answer", "screen": it["screen"], "where": it["where"]}
+        if str(reply.get("kind", "")).strip().lower() == "recall":
+            out.append(Finding(category="recall_question", evidence=it["question"],
+                               problem=_text(reply.get("kind_reason")), **base))
+        verdicts, risky, weak = {}, {}, []
         for o in reply.get("options") or []:
             if isinstance(o, dict):
                 letter = str(o.get("letter", "")).strip().upper()[:1]
@@ -674,7 +704,8 @@ def parse_single_answer(text: str, items: list[dict]) -> list[Finding]:
                     verdicts[k] = (_truthy(o.get("justified")) or _truthy(o.get("borderline")), reason)
                     if _truthy(o.get("at_risk")):
                         risky[k] = _text(o.get("worst_reading")) or reason
-        base = {"check": "single_answer", "screen": it["screen"], "where": it["where"]}
+                    if _truthy(o.get("weak")):
+                        weak.append((k, _text(o.get("reason"))))
         correct = it["correct_index"]
         others = [k for k, (ok, _) in sorted(verdicts.items()) if ok and k != correct]
         if others:
@@ -687,6 +718,10 @@ def parse_single_answer(text: str, items: list[dict]) -> list[Finding]:
         elif correct in risky:
             out.append(Finding(category="inconsistent_scenario", evidence=it["options"][correct],
                                problem=risky[correct], **base))
+        weak = [(k, r) for k, r in weak if k != correct]
+        if weak:
+            out.append(Finding(category="distractors", evidence="; ".join(it["options"][k] for k, _ in weak),
+                               problem="; ".join(r for _, r in weak if r), **base))
     return out
 
 
@@ -711,7 +746,7 @@ def _ask_until_valid(name: str, messages: list[BaseMessage], parse, call: ModelC
 
 
 def run_model_check(name: str, lesson: dict, lesson_text: str, source_text: str,
-                    call: ModelCall = call_llm, screens: tuple[int, int] | None = None,
+                    call: ModelCall = call_llm, screens: Screens = None,
                     chunks: list[dict] | None = None) -> tuple[list[Finding], list[LLMResult]]:
     if MODEL_CHECKS[name]["format"] == "single_answer":
         items = single_answer_items(lesson, chunks or [], screens)
@@ -720,42 +755,54 @@ def run_model_check(name: str, lesson: dict, lesson_text: str, source_text: str,
         return _ask_until_valid(name, build_single_answer_messages(items),
                                 lambda text: parse_single_answer(text, items), call)
     expected = expected_items(lesson, name, screens)
+    if screens and MODEL_CHECKS[name]["format"] == "illustrations" and not expected:
+        return [], []
     return _ask_until_valid(name, build_check_messages(name, lesson_text, source_text, screens),
-                            lambda text: parse_findings(text, name, expected), call)
+                            lambda text: parse_findings(text, name, expected, screens), call)
 
 
-# screens per call for the per-question checks: shorter replies time out less and focus better
-BATCH_SCREENS = {"questions": QUESTION_BATCH_SCREENS, "single_answer": 2}
+# screens per call for the per-question check: shorter replies time out less and focus better
+SINGLE_ANSWER_BATCH = 3
+BATCH_SCREENS = {"single_answer": SINGLE_ANSWER_BATCH}
 
 
-def check_jobs(lesson: dict, model_checks: tuple[str, ...]) -> list[tuple[str, tuple[int, int] | None]]:
-    """(check name, screen range) per model call: question checks go in screen batches."""
-    jobs: list[tuple[str, tuple[int, int] | None]] = []
-    count = len(lesson["screens"])
+def check_jobs(lesson: dict, model_checks: tuple[str, ...], screens: Screens = None) -> list[tuple[str, Screens]]:
+    """(check name, screens) per model call. The per-question check goes in batches of
+    screens; the others run once, on the whole lesson or on `screens`."""
+    numbers = list(screens) if screens else list(range(1, len(lesson["screens"]) + 1))
+    jobs: list[tuple[str, Screens]] = []
     for name in model_checks:
         size = BATCH_SCREENS.get(MODEL_CHECKS[name]["format"])
-        if size and count > size:
-            jobs += [(name, (a, min(a + size - 1, count))) for a in range(1, count + 1, size)]
+        if size:
+            jobs += [(name, tuple(numbers[i:i + size])) for i in range(0, len(numbers), size)]
         else:
-            jobs.append((name, None))
+            jobs.append((name, tuple(screens) if screens else None))
     return jobs
 
 
+def job_label(name: str, screens: Screens) -> str:
+    return name if not screens else f"{name} {screens_label(screens)}"
+
+
 def run_checkers(lesson: dict, chunks: list[dict], call: ModelCall = call_llm,
-                 model_checks: tuple[str, ...] | None = None, workers: int = 6) -> CheckReport:
-    """All code checks, then the model checks in parallel. A failed model check is recorded, not raised."""
+                 model_checks: tuple[str, ...] | None = None, workers: int = 6,
+                 screens: Screens = None, code: bool = True,
+                 jobs_list: list[tuple[str, Screens]] | None = None) -> CheckReport:
+    """Code checks (unless code=False), then the model checks in parallel, on the whole lesson
+    or only on `screens` (or exactly `jobs_list`). A failed model check is recorded, not raised."""
     model_checks = tuple(MODEL_CHECKS) if model_checks is None else model_checks
     report = CheckReport()
-    for check in CODE_CHECKS.values():
-        report.findings += check(lesson)
+    if code:
+        for check in CODE_CHECKS.values():
+            report.findings += check(lesson)
     lesson_text = render_lesson(lesson)
     source_text = render_source(cited_chunks(lesson, chunks))
-    jobs = {(name if screens is None else f"{name} {screens[0]}-{screens[1]}"): (name, screens)
-            for name, screens in check_jobs(lesson, model_checks)}
+    planned = jobs_list if jobs_list is not None else check_jobs(lesson, model_checks, screens)
+    jobs = {job_label(name, s): (name, s) for name, s in planned}
 
     def run(label: str) -> None:
-        name, screens = jobs[label]
-        findings, calls = run_model_check(name, lesson, lesson_text, source_text, call, screens, chunks)
+        name, job_screens = jobs[label]
+        findings, calls = run_model_check(name, lesson, lesson_text, source_text, call, job_screens, chunks)
         report.findings.extend(findings)
         report.calls.extend(calls)
         report.failed.pop(label, None)
@@ -769,7 +816,7 @@ def run_checkers(lesson: dict, chunks: list[dict], call: ModelCall = call_llm,
                 report.failed[label] = f"{type(e).__name__}: {e}"
     # A second chance, one at a time: free models often time out only under parallel load.
     for label in list(report.failed):
-        if isinstance(report.failed[label], str) and "MissingApiKeyError" not in report.failed[label]:
+        if "MissingApiKeyError" not in report.failed[label]:
             try:
                 run(label)
             except Exception as e:  # noqa: BLE001

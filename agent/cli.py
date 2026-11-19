@@ -49,6 +49,7 @@ FRESH_RUN = {
     "owner_request": None,
     "review": None,
     "report_path": None,
+    "key_points": None,
 }
 
 

@@ -4,10 +4,9 @@ sources per screen, models, cost. All the Hebrew text comes from messages_he.jso
 import re
 from datetime import date
 
-from agent.evaluation import MAX_FIX_ROUNDS, coverage
+from agent.evaluation import COVERAGE_THRESHOLD, MAX_FIX_ROUNDS, coverage_summary
 from agent.messages import msg, msg_or_none
 
-COVERAGE_THRESHOLD = 85
 REPORT_FILE = "report.md"
 
 
@@ -45,6 +44,13 @@ def quote_text(evidence: str) -> str:
     return _one_line(_PROMPT_LABEL.sub("", evidence or ""))
 
 
+def check_label(label: str) -> str:
+    """ "single_answer 1, 2, 3" -> the check's Hebrew name and its screens."""
+    name, _, screens = label.partition(" ")
+    hebrew = msg_or_none(f"report.checks.{name}") or name
+    return msg("report.check_screens", check=hebrew, screens=screens) if screens else hebrew
+
+
 def _finding_lines(f: dict) -> list[str]:
     category = _category(f["category"])
     if f.get("screen"):
@@ -75,14 +81,18 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         msg("report.files", files=", ".join(files) or "-"),
         msg("report.screens", count=len(lesson["screens"])), "",
     ]
-    if state.get("structure"):
-        covered, total = coverage(state["structure"], lesson)
-        percent = round(100 * covered / total) if total else 100
-        lines += [msg("report.coverage_title"), "",
-                  msg("report.coverage", covered=covered, total=total, percent=percent)]
-        if percent < COVERAGE_THRESHOLD:
+    cov = coverage_summary(state.get("key_points"), lesson)
+    lines += [msg("report.coverage_title"), ""]
+    if cov:
+        lines.append(msg("report.coverage", taught=cov["taught"], total=cov["total"], percent=cov["percent"]))
+        if cov["percent"] < COVERAGE_THRESHOLD:
             lines.append(msg("report.coverage_low", threshold=COVERAGE_THRESHOLD))
-        lines.append("")
+        if cov["missing"]:
+            lines += ["", msg("report.missing_title")]
+            lines += [msg("report.missing_item", point=p) for p in cov["missing"]]
+    else:
+        lines.append(msg("report.coverage_unknown"))
+    lines.append("")
 
     lines += [msg("report.checks_title"), "",
               msg("report.rounds", rounds=state.get("review_round") or 0, max=MAX_FIX_ROUNDS),
@@ -95,7 +105,9 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
     if review.get("same_family"):
         lines.append(msg("report.same_family", families=", ".join(review["same_family"])))
     for check, error in (review.get("failed") or {}).items():
-        lines.append(msg("report.failed", check=check, error=_one_line(error)[:200]))
+        lines.append(msg("report.failed", check=check_label(check)))
+    if review.get("budget_stop"):
+        lines.append(msg("report.budget_stop", **review["budget_stop"]))
     lines.append("")
 
     lines += [msg("report.open_title"), ""]
@@ -126,7 +138,8 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
     for r in usage:
         by_node.setdefault(r.node, []).append(r)
     for node, records in by_node.items():
-        lines.append(msg("report.cost_node", node=node, calls=len(records), cost=sum(r.cost for r in records)))
+        lines.append(msg("report.cost_node", node=msg_or_none(f"report.nodes.{node}") or node, calls=len(records),
+                         cost=sum(r.cost for r in records)))
     if elapsed_minutes is not None:
         lines += ["", msg("report.elapsed", minutes=elapsed_minutes)]
     return "\n".join(lines).rstrip() + "\n"

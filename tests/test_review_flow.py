@@ -11,8 +11,8 @@ import agent.nodes as nodes
 from agent import cli
 from agent.evaluation import (
     MAX_FIX_ROUNDS,
-    coverage,
     fix_groups,
+    key_point_coverage,
     owner_findings,
     reconcile_code_findings,
 )
@@ -28,8 +28,8 @@ BAD_WORD = "bad word on screen 2"
 
 
 class ReviewModel(FakeModel):
-    """The proofreader reports one problem on screen 2 in the first check; the verifier
-    resolves it unless `never_fixed`."""
+    """The proofreader reports one problem on screen 2 in the first check. When it checks
+    again (only screen 2), the problem is gone, unless `never_fixed`."""
 
     def __init__(self, never_fixed: bool = False, **kw):
         super().__init__(**kw)
@@ -41,18 +41,15 @@ class ReviewModel(FakeModel):
         kind = prompt_kind(system)
         if kind == "write" and "Problems to fix" in user:
             self.revisions.append(user)
-        if kind == "check" and "proofread" in system and self.kinds.count("check_language") == 0:
-            self.kinds.append("check_language")
+        if kind == "check" and "proofread" in system:
+            again = "report only the problems on screens" in user
+            self.kinds.append("recheck_language" if again else "check_language")
             self.prompts.append((system, user))
+            if again and not self.never_fixed:
+                return make_result(text='{"findings": []}')
             return make_result(text=json.dumps({"findings": [
                 {"screen": 2, "where": "block 1 (paragraph)", "category": "language",
                  "evidence": "Screen 2 explains", "problem": BAD_WORD, "suggestion": "fix it"}]}))
-        if kind == "verify":
-            self.kinds.append("verify")
-            self.prompts.append((system, user))
-            ids = re.findall(r'"id": "(F\d+)"', user)
-            return make_result(text=json.dumps({"resolved": [{"id": i, "resolved": not self.never_fixed, "reason": "ok"}
-                                                             for i in ids], "new_findings": []}))
         return super().__call__(messages, **kwargs)
 
 
@@ -113,7 +110,9 @@ def test_a_finding_is_fixed_on_its_screen_only_and_verified(monkeypatch, deck_se
     graph = run(monkeypatch, deck_session, model)
     assert len(model.revisions) == 1 and revised_numbers(model.revisions[0]) == [2]
     assert BAD_WORD in model.revisions[0]  # the finding is sent to the writer
-    assert model.kinds.count("verify") == 1
+    assert model.kinds.count("recheck_language") == 1  # the same checker, on screen 2 only
+    recheck = model.prompts[model.kinds.index("recheck_language")][1]
+    assert "screens 2;" in recheck
     state = final_state(graph, deck_session)
     assert state["review_round"] == 1
     assert [(f["problem"], f["status"]) for f in state["findings"]] == [(BAD_WORD, "fixed")]
@@ -126,10 +125,11 @@ def test_a_finding_is_fixed_on_its_screen_only_and_verified(monkeypatch, deck_se
     assert len(model.kinds) < 30
 
 
-def test_fixing_stops_after_two_rounds_and_the_finding_stays_open(monkeypatch, deck_session, output, out_dir):
+def test_a_finding_its_checker_still_reports_stays_open_after_two_rounds(monkeypatch, deck_session, output, out_dir):
     model = ReviewModel(never_fixed=True)
     graph = run(monkeypatch, deck_session, model, save="Y")
     assert len(model.revisions) == MAX_FIX_ROUNDS
+    assert model.kinds.count("recheck_language") == MAX_FIX_ROUNDS
     state = final_state(graph, deck_session)
     assert state["review_round"] == MAX_FIX_ROUNDS
     open_ = [f for f in state["findings"] if f["status"] == "open"]
@@ -208,11 +208,14 @@ def test_code_findings_are_reconciled_by_content():
     assert len(new) == len(old)  # nothing duplicated
 
 
-def test_coverage_counts_planned_points_the_lesson_cites():
-    structure = {"screens": [{"points": [{"sources": [{"file": "a.pptx", "slide": 1}]},
-                                         {"sources": [{"file": "a.pptx", "slide": 2}]}]}]}
-    lesson = {"screens": [{"blocks": [{"type": "paragraph", "sources": [{"file": "a.pptx", "slide": 1, "paragraph": 2}]}]}]}
-    assert coverage(structure, lesson) == (1, 2)
+def test_coverage_is_measured_against_the_source_key_points():
+    lesson = {"screens": [{"blocks": [{"type": "paragraph", "text": "Keep 4 seconds of distance in a car on wet roads."}]},
+                          {"blocks": [{"type": "list", "items": ["Report every skid to the fleet desk within two hours."]}]}]}
+    points = [{"text": "Keep 4 seconds of distance in a car"}, {"text": "Keep 6 seconds of distance in a truck"},
+              {"text": "Report every skid within two hours"}, {"text": "Check tyres before every trip"}]
+    taught, missing = key_point_coverage(points, lesson)
+    assert [p["text"] for p in taught] == ["Keep 4 seconds of distance in a car", "Report every skid within two hours"]
+    assert [p["text"] for p in missing] == ["Keep 6 seconds of distance in a truck", "Check tyres before every trip"]
 
 
 def test_report_lists_open_and_fixed_findings_and_the_same_family_note():
@@ -236,16 +239,21 @@ def test_report_lists_open_and_fixed_findings_and_the_same_family_note():
     assert msg("report.counts", found=3, fixed=1, open=2) in text
     assert "open problem" in text and "do this" in text and "lesson-wide" in text and "fixed problem" in text
     assert msg("report.same_family", families="nvidia") in text
-    assert "pedagogy" in text and "google/c:free" in text
+    assert msg("report.checks.pedagogy") in text and "google/c:free" in text
     assert msg("report.elapsed", minutes=12) in text
     assert msg("report.cost", calls=2, tokens="25", cost=0.01) in text
 
 
 def test_gate_3_text_and_write_files_list(output):
     summary = {"title": "T", "lesson_type": "training", "screens": 8, "rounds": 2, "found": 12, "fixed": 9,
-               "open": [{"screen": 4, "problem": "p" * 3}] * 10, "covered": 9, "total": 10}
+               "open": [{"screen": 4, "problem": "p" * 3}] * 10,
+               "coverage": {"taught": 9, "total": 10, "percent": 90, "missing": ["the missing point"]},
+               "budget_stop": {"used": 25, "needed": 7, "budget": 29}}
     text = format_review(summary)
-    assert msg("gate.review.open_more", count=2) in text and "90%" in text
+    assert msg("gate.review.open_more", count=2) in text
+    assert msg("gate.review.coverage", taught=9, total=10, percent=90) in text
+    assert msg("gate.review.missing_item", point="the missing point") in text
+    assert msg("gate.review.budget_stop", used=25, needed=7, budget=29) in text
     said: list[str] = []
     reply = ask_write_files_gate({"folder": "C:/x/output/deck", "files": ["index.html", "report.md"], "exists": True},
                                  lambda prompt: "Y", lambda text, style=None: said.append(text))
@@ -262,3 +270,51 @@ def test_report_shows_locations_in_hebrew_and_quotes_without_prompt_labels():
     assert where_text("") == "-"
     assert quote_text("[screen 2, block 1, paragraph] text one [screen 2, block 2, list] - text two") == "text one - text two"
     assert quote_text("[screen 3, block 5, multiple_choice] alternate question (shown on retry): what now?") == "what now?"
+
+
+def test_report_measures_coverage_against_the_source_key_points(monkeypatch, deck_session, output, out_dir):
+    model = FakeModel()
+    graph = run(monkeypatch, deck_session, model, save="Y")
+    assert model.kinds.count("key_points") == 1  # extracted once
+    state = final_state(graph, deck_session)
+    assert len(state["key_points"]) == 3
+    report = (out_dir / "deck" / "report.md").read_text(encoding="utf-8")
+    assert msg("report.coverage", taught=2, total=3, percent=67) in report
+    assert msg("report.coverage_low", threshold=85) in report
+    assert msg("report.missing_item", point="Tyres need 3 mm of tread.") in report
+
+
+def test_a_fix_round_that_does_not_fit_the_call_budget_is_not_started(monkeypatch, deck_session, output, out_dir):
+    import agent.evaluation as evaluation
+
+    monkeypatch.setattr(evaluation, "CALL_BUDGET", 5)
+    model = ReviewModel()
+    graph = run(monkeypatch, deck_session, model, save="Y")
+    assert model.revisions == []  # no fix round
+    state = final_state(graph, deck_session)
+    assert state["review"]["budget_stop"]["budget"] == 5
+    assert [f["status"] for f in state["findings"]] == ["open"]
+    report = (out_dir / "deck" / "report.md").read_text(encoding="utf-8")
+    assert msg("report.budget_stop", **state["review"]["budget_stop"]) in report
+
+
+def test_repeated_facts_are_found_across_blocks_and_screens():
+    from agent.checkers import check_repetition
+
+    lesson = json.loads((Path(__file__).parent / "fixtures" / "known_bad_lesson_2.json").read_text(encoding="utf-8"))
+    found = check_repetition(lesson)
+    dyk = {f.screen for f in found if f.category == "enrichment_misuse"}
+    assert {4, 6, 7} <= dyk  # did-you-know boxes that repeat facts taught elsewhere
+    same_screen = [f for f in found if f.category == "repetition" and f.screen == 2 and "(list)" in f.where]
+    assert same_screen  # the list repeats the paragraph above it
+    assert len({(f.screen, f.where) for f in found}) == len(found)  # one finding per block
+
+
+def test_coverage_reads_hebrew_number_words_as_numbers():
+    from agent.checkers import _numbers
+
+    twice_word = chr(0x05E9) + chr(0x05E0) + chr(0x05D9) + chr(0x05D9) + chr(0x05DD)  # "two"
+    assert _numbers(f"distance grows up to x{' '}{twice_word}") == {"2"}
+    lesson = {"screens": [{"blocks": [{"type": "paragraph", "text": f"wet road stopping distance grows {twice_word}"}]}]}
+    taught, missing = key_point_coverage([{"text": "wet road stopping distance grows 2"}], lesson)
+    assert len(taught) == 1 and not missing

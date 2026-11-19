@@ -175,10 +175,12 @@ def prompt_kind(system: str) -> str:
         return "answer"
     if system.startswith("You write the screens"):
         return "write"
-    if system.startswith("You check whether multiple-choice"):
+    if system.startswith("You check the multiple-choice questions"):
         return "single_answer"
     if system.startswith("You review a Hebrew e-learning lesson"):
-        return "verify" if "were rewritten to fix review findings" in system else "check"
+        return "check"
+    if system.startswith("You list the key points"):
+        return "key_points"
     return "other"
 
 
@@ -189,10 +191,11 @@ def checker_reply(kind: str, user: str) -> str:
     if kind == "single_answer":
         ids = re.findall(r"### Question (\S+)", user)
         return json.dumps({"questions": [{"id": i, "options": []} for i in ids]})
-    if kind == "verify":
-        return json.dumps({"resolved": [], "new_findings": []})
-    count = user.count("multiple_choice] question") + user.count("multiple_choice] alternate question")
-    return json.dumps({"findings": [], "questions": [{"screen": 1, "kind": "decision"}] * count,
+    if kind == "key_points":  # two points the fake lesson teaches, one it does not
+        return json.dumps({"points": [{"text": "Screen 1 explains the rule.", "source": "deck.pptx, slide 1"},
+                                      {"text": "Screen 2 explains the rule.", "source": "deck.pptx, slide 1"},
+                                      {"text": "Tyres need 3 mm of tread.", "source": "deck.pptx, slide 2"}]})
+    return json.dumps({"findings": [],
                        "illustrations": [{"adds_value": True}] * user.count(", illustration] Title")})
 
 
@@ -286,7 +289,7 @@ class FakeModel:
             return make_result(text=topics_json(4, extra_name="TIRES" if revising else None))
         if kind == "write":
             return make_result(text=writer_reply(system, first_user))
-        if kind in ("check", "single_answer", "verify"):
+        if kind in ("check", "single_answer", "key_points"):
             return make_result(text=checker_reply(kind, first_user))
         raise AssertionError(f"unexpected prompt: {system[:70]}")
 

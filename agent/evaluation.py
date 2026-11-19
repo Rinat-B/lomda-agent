@@ -2,37 +2,41 @@
 
 - first evaluation: all checkers on the whole lesson; every finding gets an id and status "open";
 - fix rounds (at most MAX_FIX_ROUNDS): only the screens with open findings are rewritten;
-- after a fix: code checks run again on the whole lesson (their findings are reconciled by
-  content), and one model call per fixed group verifies the old findings of those screens and
-  reports new problems in them. Whatever is still open goes to gate 3 and report.md.
+- after a fix, every finding is checked again by the checker that found it, on the rewritten
+  screens only: code checks run again on the whole lesson, and each model check that had a
+  finding on a rewritten screen runs again on those screens. A finding is "fixed" only when
+  its checker no longer reports it (same check, screen and category); whatever the re-run
+  reports that is new becomes a new open finding.
+- a call budget: a fix round starts only if it fits (fix calls + re-check calls).
+- coverage: the share of the source's key points (extracted once by the small model) that
+  the lesson teaches, measured in code.
 """
 
 import json
-from concurrent.futures import ThreadPoolExecutor
-
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+import re
 
 from agent.checkers import (
-    CATEGORIES,
-    CHECK_TIMEOUT_SECONDS,
+    BATCH_SCREENS,
     CODE_CHECKS,
-    COMMON,
-    MODEL_ATTEMPTS,
+    MODEL_CHECKS,
     Finding,
+    _content_words,
     _items,
     _json_object,
-    _screen,
+    _numbers,
+    _similarity,
     _text,
-    cited_chunks,
-    render_lesson,
-    render_source,
+    block_texts,
     run_checkers,
 )
-from agent.guards import SOURCE_DATA_RULE
+from agent.guards import SOURCE_DATA_RULE, chunk_text_for_prompt, wrap_sources
 
 MAX_FIX_ROUNDS = 2
 FIX_GROUP_MAX = 4
 OWNER_CHECK = "owner"
+CALL_BUDGET = 29  # model calls for a whole lesson (fewer than 30)
+COVERAGE_THRESHOLD = 85
+POINT_MATCH = 0.7  # share of a key point's words found on one screen for it to count as taught
 
 
 def finding_dict(f: Finding, fid: str, round_: int) -> dict:
@@ -89,107 +93,70 @@ def fix_groups(screens: list[int], max_size: int = FIX_GROUP_MAX) -> list[list[i
     return [ordered[i:i + max_size] for i in range(0, len(ordered), max_size)]
 
 
-VERIFY_PROMPT = COMMON + (
-    " Your task: some screens were rewritten to fix review findings. You get the source "
-    "material, the new version of those screens, and the findings (with ids) that were reported "
-    "on the old version. For every finding, say whether the new version resolves it. Then report "
-    "real new problems in these screens only, in the same terms as a reviewer: language, "
-    "grounding in the source, questions with more than one defensible answer, recall questions, "
-    "weak distractors, repetition, illustrations that add nothing, diagram logic. Reply with only "
-    'a JSON object: {"resolved": [{"id": "F1", "resolved": true or false, "reason": "<Hebrew>"}], '
-    '"new_findings": [{"screen": <n>, "where": "block <n> (<type>)", "category": "<one of: '
-    + ", ".join(c for c in CATEGORIES if c != "other") + '>", "evidence": "...", "problem": "...", '
-    '"suggestion": "..."}]}.'
-) + SOURCE_DATA_RULE
+def _model_check_name(f: dict) -> str | None:
+    return f["check"] if f["check"] in MODEL_CHECKS else None
 
 
-def _subset(lesson: dict, screens: list[int]) -> dict:
-    """The lesson with only some screens (numbers are kept in the rendered labels)."""
-    keep = set(screens)
-    return {**lesson, "screens": [s if i in keep else {**s, "blocks": []}
-                                  for i, s in enumerate(lesson["screens"], 1)]}
+def recheck_jobs(findings: list[dict], screens: list[int]) -> list[tuple[str, tuple[int, ...]]]:
+    """The model check jobs that re-check the open findings on `screens`: each check that
+    found something there runs again on exactly those screens (in batches where it batches)."""
+    per_check: dict[str, set[int]] = {}
+    for f in findings:
+        name = _model_check_name(f)
+        if name and f["status"] == "open" and f.get("screen") in screens:
+            per_check.setdefault(name, set()).add(f["screen"])
+    jobs = []
+    for name in MODEL_CHECKS:  # a stable order
+        if name not in per_check:
+            continue
+        numbers = sorted(per_check[name])
+        size = BATCH_SCREENS.get(MODEL_CHECKS[name]["format"])
+        if size:
+            jobs += [(name, tuple(numbers[i:i + size])) for i in range(0, len(numbers), size)]
+        else:
+            jobs.append((name, tuple(numbers)))
+    return jobs
 
 
-def verify_group(lesson: dict, chunks: list[dict], screens: list[int], old: list[dict], call) -> tuple[dict, list[Finding], int]:
-    """One call: {finding id: (resolved, reason)} for the old findings, and new findings."""
-    subset = _subset(lesson, screens)
-    text = "\n".join(line for line in render_lesson(subset).splitlines())
-    items = [{"id": f["id"], "screen": f.get("screen"), "where": f.get("where", ""), "category": f["category"],
-              "problem": f.get("problem", ""), "quote": f.get("evidence", "")} for f in old]
-    user = (f"Source material:\n{render_source(cited_chunks(subset, chunks))}\n\n"
-            f"New version of screens {screens}:\n{text}\n\nFindings on the old version (JSON):\n"
-            f"{json.dumps(items, ensure_ascii=False, indent=1)}")
-    messages: list = [SystemMessage(VERIFY_PROMPT), HumanMessage(user)]
-    error, calls = "", 0
-    for _ in range(MODEL_ATTEMPTS):
-        result = call(messages, timeout=CHECK_TIMEOUT_SECONDS, role="checker")
-        calls += 1
-        try:
-            data = _json_object(result.text, "resolved")
-            resolved = {str(r.get("id")): (r.get("resolved") is True or str(r.get("resolved")).lower() == "true",
-                                           _text(r.get("reason"))) for r in _items(data, "resolved")}
-            new = []
-            for raw in data.get("new_findings") or []:
-                if not isinstance(raw, dict):
-                    continue
-                screen = _screen(raw.get("screen"))
-                if screen not in screens:
-                    continue
-                new.append(Finding(check="verify", category=str(raw.get("category", "other")), screen=screen,
-                                   **{k: _text(raw.get(k)) for k in ("where", "evidence", "problem", "suggestion")}))
-            return resolved, new, calls
-        except ValueError as e:
-            error = str(e)
-            messages += [AIMessage(result.text),
-                         HumanMessage(f"That reply was invalid: {error}. Reply again with only the JSON object.")]
-    raise ValueError(f"verify: no valid reply after {MODEL_ATTEMPTS} attempts: {error}")
+def round_cost(findings: list[dict]) -> int:
+    """Model calls a fix round would take: the writer calls and the re-check calls."""
+    screens = sorted({f["screen"] for f in actionable(findings)})
+    return len(fix_groups(screens)) + len(recheck_jobs(findings, screens))
+
+
+def _same(old: dict, new: Finding) -> bool:
+    return old["check"] == new.check and old.get("screen") == new.screen and old["category"] == new.category
 
 
 def verify_fixes(findings: list[dict], lesson: dict, chunks: list[dict], fixed: list[int], round_: int,
                  call) -> tuple[list[dict], dict, int]:
-    """After a fix round: reconcile code findings, verify the model findings of the fixed screens."""
+    """After a fix round: every finding on a rewritten screen is checked again by its checker."""
+    jobs = recheck_jobs(findings, fixed)  # before reconciling: the old open findings decide the jobs
     findings = reconcile_code_findings(findings, lesson, round_)
-    failed: dict = {}
-    calls = 0
-    groups = fix_groups(fixed)
-    old_by_group = [[f for f in findings if f["status"] == "open" and not is_code_finding(f)
-                     and f["check"] != OWNER_CHECK and f.get("screen") in g] for g in groups]
-    results: list = [None] * len(groups)
-
-    def run(i: int):
-        results[i] = verify_group(lesson, chunks, groups[i], old_by_group[i], call)
-
-    with ThreadPoolExecutor(max_workers=max(1, len(groups))) as pool:
-        futures = [pool.submit(run, i) for i in range(len(groups))]
-        for i, fut in enumerate(futures):
-            try:
-                fut.result()
-            except Exception as e:  # noqa: BLE001 - the findings simply stay open
-                failed[f"verify {groups[i]}"] = f"{type(e).__name__}: {e}"
-    next_id = _next_id(findings)
-    for res in results:
-        if res is None:
-            continue
-        resolved, new, n = res
-        calls += n
-        for k, f in enumerate(findings):
-            if f["id"] in resolved and f["status"] == "open" and resolved[f["id"]][0]:
-                findings[k] = {**f, "status": "fixed", "fixed_round": round_, "resolution": resolved[f["id"]][1]}
-        for nf in new:
-            findings.append(finding_dict(nf, f"F{next_id}", round_))
+    report = run_checkers(lesson, chunks, call=call, code=False, jobs_list=jobs) if jobs else None
+    failed = dict(report.failed) if report else {}
+    fresh = report.findings if report else []
+    failed_checks = {label.split(" ", 1)[0] for label in failed}
+    out = []
+    for f in findings:
+        name = _model_check_name(f)
+        if (name and f["status"] == "open" and f.get("screen") in fixed and name not in failed_checks
+                and not any(_same(f, n) for n in fresh)):
+            f = {**f, "status": "fixed", "fixed_round": round_}
+        elif f["check"] == OWNER_CHECK and f["status"] == "open" and f.get("screen") in fixed:
+            f = {**f, "status": "fixed", "fixed_round": round_}  # the owner sees the result at gate 3
+        out.append(f)
+    next_id = _next_id(out)
+    for n in fresh:
+        if not any(_same(f, n) and f["status"] == "open" for f in out):
+            out.append(finding_dict(n, f"F{next_id}", round_))
             next_id += 1
-    # findings of the owner's request are done once their screens were rewritten
-    for k, f in enumerate(findings):
-        if f["check"] == OWNER_CHECK and f["status"] == "open" and f.get("screen") in fixed:
-            findings[k] = {**f, "status": "fixed", "fixed_round": round_}
-    return findings, failed, calls
+    return out, failed, len(report.calls) if report else 0
 
 
 def owner_findings(feedback: str, screen_count: int, findings: list[dict], round_: int) -> list[dict]:
     """The content owner's change request at gate 3, as findings on the screens it names
     (numbers in the text), or on every screen when it names none."""
-    import re
-
     numbers = sorted({int(n) for n in re.findall(r"\d+", feedback) if 1 <= int(n) <= screen_count})
     screens = numbers or list(range(1, screen_count + 1))
     next_id = _next_id(findings)
@@ -201,11 +168,66 @@ def owner_findings(feedback: str, screen_count: int, findings: list[dict], round
     ]
 
 
-def coverage(structure: dict, lesson: dict) -> tuple[int, int]:
-    """(planned content points whose sources the lesson cites, all planned points)."""
-    from agent.writer import chunk_matches
+# ---- coverage of the source's key points --------------------------------------------------------
+KEY_POINTS_PROMPT = (
+    "You list the key points of a content owner's source material for an e-learning lesson: "
+    "every rule, obligation, threshold or number, procedure step and condition that an employee "
+    "must know. One point per fact, as a short Hebrew sentence close to the source's wording, "
+    "with the place it comes from. Leave out titles, greetings and decoration. Reply with only a "
+    'JSON object: {"points": [{"text": "...", "source": "<file, slide/page/paragraph>"}]}.'
+) + SOURCE_DATA_RULE
+KEY_POINTS_SOURCE_CHARS = 20_000
 
-    cited = [loc for s in lesson["screens"] for b in s["blocks"] for loc in b.get("sources", [])]
-    points = [p for s in structure["screens"] for p in s["points"]]
-    covered = sum(1 for p in points if any(chunk_matches(c, loc) or c == loc for loc in p["sources"] for c in cited))
-    return covered, len(points)
+
+def key_points_messages(chunks: list[dict]) -> tuple[str, str]:
+    lines, size = [], 0
+    for c in chunks:
+        loc = c["locator"]
+        where = ", ".join(f"{k} {loc[k]}" for k in ("slide", "page", "paragraph") if k in loc)
+        text = chunk_text_for_prompt(c)
+        if size + len(text) > KEY_POINTS_SOURCE_CHARS:
+            break
+        lines.append(f"({loc.get('file', '')}, {where}) {text}")
+        size += len(text)
+    return KEY_POINTS_PROMPT, f"Source material:\n{wrap_sources(chr(10).join(lines))}"
+
+
+def parse_key_points(text: str) -> list[dict]:
+    points = [{"text": _text(p.get("text")), "source": _text(p.get("source"))}
+              for p in _items(_json_object(text, "points"), "points")]
+    points = [p for p in points if p["text"]]
+    if not points:
+        raise ValueError("the points list is empty")
+    return points
+
+
+def screen_text(screen: dict) -> str:
+    return " ".join(t for b in screen["blocks"] for t in block_texts(b))
+
+
+def key_point_coverage(points: list[dict], lesson: dict) -> tuple[list[dict], list[dict]]:
+    """(taught points, missing points): a point is taught when one screen holds most of its
+    words (in any Hebrew prefix form) and all of its numbers."""
+    screens = [(_content_words(screen_text(s)), _numbers(screen_text(s))) for s in lesson["screens"]]
+    taught, missing = [], []
+    for p in points:
+        words, numbers = _content_words(p["text"]), _numbers(p["text"])
+        if not words:
+            continue
+        pool_hit = any(_similarity(words, sw) >= POINT_MATCH and numbers <= sn and len(words) <= len(sw)
+                       for sw, sn in screens)
+        (taught if pool_hit else missing).append(p)
+    return taught, missing
+
+
+def coverage_summary(points: list[dict] | None, lesson: dict) -> dict | None:
+    if not points:
+        return None
+    taught, missing = key_point_coverage(points, lesson)
+    total = len(taught) + len(missing)
+    return {"taught": len(taught), "total": total, "missing": [p["text"] for p in missing],
+            "percent": round(100 * len(taught) / total) if total else 100}
+
+
+def dumps(value) -> str:
+    return json.dumps(value, ensure_ascii=False)

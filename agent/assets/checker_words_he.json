@@ -1,5 +1,5 @@
 {
-  "_comment": "Word lists for code checks (agent/checkers.py). Whole words after removing punctuation; a leading vav is also stripped. Ambiguous words (the object marker, 'important') are left out.",
+  "_comment": "Word lists for code checks (agent/checkers.py). Whole words after removing punctuation; a leading vav is also stripped. Ambiguous words (the object marker, 'important') are left out. number_words: Hebrew number words compared as digits (coverage and repeated facts).",
   "address_singular": [
     "אתה",
     "לך",
@@ -43,5 +43,29 @@
     "שימו",
     "עצרו",
     "תעשו"
-  ]
+  ],
+  "number_words": {
+    "אחד": "1",
+    "אחת": "1",
+    "שניים": "2",
+    "שתיים": "2",
+    "שני": "2",
+    "שתי": "2",
+    "שלושה": "3",
+    "שלוש": "3",
+    "ארבעה": "4",
+    "ארבע": "4",
+    "חמישה": "5",
+    "חמש": "5",
+    "שישה": "6",
+    "שש": "6",
+    "שבעה": "7",
+    "שבע": "7",
+    "שמונה": "8",
+    "תשעה": "9",
+    "תשע": "9",
+    "עשרה": "10",
+    "עשר": "10",
+    "כפליים": "2"
+  }
 }

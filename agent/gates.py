@@ -131,9 +131,13 @@ def format_review(summary: dict) -> str:
         msg("gate.review.summary", type=msg(f"lesson_types.{summary['lesson_type']}"), screens=summary["screens"],
             rounds=summary["rounds"], found=summary["found"], fixed=summary["fixed"], open=len(summary["open"])),
     ]
-    if summary.get("total"):
-        percent = round(100 * summary["covered"] / summary["total"])
-        lines.append(msg("gate.review.coverage", covered=summary["covered"], total=summary["total"], percent=percent))
+    cov = summary.get("coverage")
+    if cov:
+        lines.append(msg("gate.review.coverage", taught=cov["taught"], total=cov["total"], percent=cov["percent"]))
+        for point in cov["missing"][:OPEN_FINDINGS_SHOWN]:
+            lines.append(msg("gate.review.missing_item", point=point))
+    if summary.get("budget_stop"):
+        lines.append(msg("gate.review.budget_stop", **summary["budget_stop"]))
     lines += ["", msg("gate.review.open_title"), ""]
     open_ = summary["open"]
     if not open_:
