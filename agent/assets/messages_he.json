@@ -126,7 +126,8 @@
     "not_listed": "[INFO] מודלים מ-models.yaml שלא מופיעים כרגע ב-OpenRouter ולא ייבחרו: {models}",
     "profile": "[INFO] פרופיל מודלים: {profile}",
     "invalid_output": "[INFO] המודל {model} החזיר מסכים לא תקינים גם אחרי תיקון. עוברים למודל הבא: {next_model}",
-    "marked_unavailable": "[INFO] המודל {model} לא זמין ({error}) ויידלג עד סוף השיחה. עוברים למודל הבא: {next_model}"
+    "marked_unavailable": "[INFO] המודל {model} לא זמין ({error}) ויידלג עד סוף השיחה. עוברים למודל הבא: {next_model}",
+    "writer_wait": "[INFO] אף מודל כותב לא ענה (עומס או רשת). ממתינים {seconds} שניות ומנסים שוב."
   },
   "tracing": {
     "enabled": "[INFO] ניטור LangSmith פעיל (פרויקט: {project})",
@@ -301,7 +302,8 @@
     "fixing": "[INFO] סבב תיקון {round} מתוך {max}: מתקנים את המסכים {screens}.",
     "verified": "[INFO] אחרי התיקון: {fixed} ממצאים תוקנו, {open} פתוחים.",
     "failed_check": "[INFO] הבודק {check} לא הצליח לרוץ: {error}",
-    "budget_stop": "[INFO] סבב תיקון נוסף היה מביא את הלומדה מעבר לתקציב ({used} קריאות עד כה, {needed} לסבב, תקרה {budget}). עוברים לשער 3 עם הממצאים הפתוחים."
+    "budget_stop": "[INFO] סבב תיקון נוסף היה מביא את הלומדה מעבר לתקציב ({used} קריאות עד כה, {needed} לסבב, תקרה {budget}). עוברים לשער 3 עם הממצאים הפתוחים.",
+    "fix_failed": "[INFO] התיקון של המסכים {screens} נכשל. המסכים נשארים כמו שהיו, והממצאים שלהם פתוחים."
   },
   "report": {
     "title": "# דוח לבעל התוכן: {title}",
@@ -389,7 +391,8 @@
       "gate_review": "שער 3",
       "answer": "תשובה לשאלה",
       "key_points": "נקודות מהותיות במקור"
-    }
+    },
+    "fix_failed": "- **תיקון שנכשל:** המסכים {screens} נשארו כמו שהיו (אף מודל כותב לא החזיר גרסה תקינה)."
   },
   "checks": {
     "answer_length": "התשובה הנכונה ארוכה בהרבה מהמסיחים ({correct} תווים מול {low}–{high}), ואפשר לנחש אותה לפי האורך.",

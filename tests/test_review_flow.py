@@ -318,3 +318,31 @@ def test_coverage_reads_hebrew_number_words_as_numbers():
     lesson = {"screens": [{"blocks": [{"type": "paragraph", "text": f"wet road stopping distance grows {twice_word}"}]}]}
     taught, missing = key_point_coverage([{"text": "wet road stopping distance grows 2"}], lesson)
     assert len(taught) == 1 and not missing
+
+
+class FixFailsModel(ReviewModel):
+    """Every rewrite call fails as if no writer model answered (rate limit, network)."""
+
+    def __call__(self, messages, **kwargs):
+        from agent.errors import AllModelsFailedError
+
+        if prompt_kind(messages[0].content) == "write" and "Problems to fix" in messages[1].content:
+            self.revisions.append(messages[1].content)
+            raise AllModelsFailedError([("w", RuntimeError("Connection error."))])
+        return super().__call__(messages, **kwargs)
+
+
+def test_a_fix_that_fails_keeps_the_lesson_and_the_finding_open(monkeypatch, deck_session, output, out_dir):
+    monkeypatch.setattr(nodes, "WRITE_RETRY_WAITS", (0,))
+    model = FixFailsModel()
+    graph = run(monkeypatch, deck_session, model, save="Y")
+    state = final_state(graph, deck_session)
+    assert state["review"]["fix_failed"] == [2]
+    assert [f["status"] for f in state["findings"]] == ["open"]
+    from agent.llm import load_models
+
+    # every writer model, twice per round (once more after the wait), in both rounds
+    assert len(model.revisions) == len(load_models("writer")) * 2 * MAX_FIX_ROUNDS
+    assert (out_dir / "deck" / "lesson.json").is_file()  # the lesson was still saved
+    report = (out_dir / "deck" / "report.md").read_text(encoding="utf-8")
+    assert msg("report.fix_failed", screens="2") in report

@@ -714,6 +714,29 @@ def _write_group(messages: list, config: RunnableConfig, parse, node: str = "wri
     skipped = unavailable_models()
     candidates = [m for m in load_models("writer") if m not in skipped] or load_models("writer")
     problems: list[str] = []
+    for pass_no, wait in enumerate(WRITE_RETRY_WAITS + (None,)):
+        unreachable = _write_pass(messages, config, parse, node, candidates, problems)
+        if not isinstance(unreachable, bool):
+            return unreachable  # (parsed reply, model)
+        if not unreachable or wait is None:
+            break
+        # Every writer failed to answer (rate limit, network): wait once, then try them all again.
+        log(msg("llm.writer_wait", seconds=wait))
+        time.sleep(wait)
+    raise NodeError(node, ValueError("no writer model produced valid screens: " + " | ".join(problems)))
+
+
+# Waits before another pass over the writer models when none of them answered at all.
+WRITE_RETRY_WAITS: tuple[int, ...] = (60,)
+
+
+def _write_pass(messages: list, config: RunnableConfig, parse, node: str, candidates: list[str],
+                problems: list[str]):
+    """One pass over the writer models: (parsed, model) on success, else True when no model
+    answered at all (worth waiting), False when some answered but with invalid screens."""
+    from agent.errors import AllModelsFailedError
+
+    unreachable = True
     for i, model in enumerate(candidates):
         attempt_messages = list(messages)
         for _ in range(WRITE_ATTEMPTS_PER_MODEL):
@@ -724,6 +747,7 @@ def _write_group(messages: list, config: RunnableConfig, parse, node: str = "wri
                     problems.append(f"{model}: {e.cause}")
                     break  # this model is down or slow: try the next one
                 raise  # missing key, 401, daily quota...: no point trying other models
+            unreachable = False
             try:
                 return parse(result.text), result.model
             except ValueError as err:
@@ -735,7 +759,7 @@ def _write_group(messages: list, config: RunnableConfig, parse, node: str = "wri
         else:
             if i + 1 < len(candidates):
                 log(msg("llm.invalid_output", model=model, next_model=candidates[i + 1]))
-    raise NodeError(node, ValueError("no writer model produced valid screens: " + " | ".join(problems)))
+    return unreachable
 
 
 def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
@@ -928,6 +952,8 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
     written = {int(s["id"][1:]): s for s in state["written_screens"]}
     lesson_type = _lesson_type(state)
     models: list[str] = []
+    rewritten: list[int] = []
+    review = dict(state.get("review") or {})
     for group in fix_groups(numbers):
         plan = [plan_by_number[n] for n in group if n in plan_by_number]
         if not plan:
@@ -936,19 +962,30 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
         current = [written[n] for n in group if n in written]
         (_, system), (_, user) = build_revision_messages(
             plan, excerpts, lesson_type, current, [f for f in todo if f["screen"] in group])
-        result, model = _write_group(
-            [SystemMessage(system), HumanMessage(user)], config,
-            lambda text, plan=plan, excerpts=excerpts: parse_group(text, plan, excerpts, lesson_type, False, False),
-            node="fix_screens",
-        )
+        try:
+            result, model = _write_group(
+                [SystemMessage(system), HumanMessage(user)], config,
+                lambda text, plan=plan, excerpts=excerpts: parse_group(text, plan, excerpts, lesson_type, False, False),
+                node="fix_screens",
+            )
+        except NodeError as e:
+            if not isinstance(e.cause, ValueError):
+                raise  # missing key, 401, daily quota: the user must act
+            # The lesson is kept: these screens stay as they were and their findings stay open.
+            log(msg("evaluator.fix_failed", screens=_screens_text(group)))
+            logging.getLogger("lomda_agent").warning("fix_screens failed for %s: %s", group, e)
+            review["fix_failed"] = sorted(set(review.get("fix_failed") or []) | set(group))
+            continue
         models.append(model)
+        rewritten += group
         for screen in result["screens"]:
             written[int(screen["id"][1:])] = screen
     return {
         "written_screens": [written[n] for n in sorted(written)],
         "findings": findings,
         "review_round": round_,
-        "fixed_screens": numbers,
+        "fixed_screens": rewritten,
+        "review": review,
         "owner_request": owner,
         "feedback": None,
         "writer_models": (state.get("writer_models") or []) + models,

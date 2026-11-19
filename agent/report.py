@@ -106,6 +106,8 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         lines.append(msg("report.same_family", families=", ".join(review["same_family"])))
     for check, error in (review.get("failed") or {}).items():
         lines.append(msg("report.failed", check=check_label(check)))
+    if review.get("fix_failed"):
+        lines.append(msg("report.fix_failed", screens=", ".join(str(n) for n in review["fix_failed"])))
     if review.get("budget_stop"):
         lines.append(msg("report.budget_stop", **review["budget_stop"]))
     lines.append("")
