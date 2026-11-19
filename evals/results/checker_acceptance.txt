@@ -1,0 +1,44 @@
+caught 16/19 (84%) in 173 s, 7 model calls
+CAUGHT I01 התשובה הנכונה ארוכה בהרבה מהמסיחים (יחס אורך)  [by: answer_length]
+CAUGHT I02 מסיחים חלשים במסך 2: להאיץ, לצפצף, לעבור לנתיב הנגדי  [by: questions]
+CAUGHT I03 מסיחים חלשים במסכים 6-8: להאיץ, לצאת בכל זאת, לוותר על בדיקה, אין צורך באורות  [by: questions]
+CAUGHT I04 עובדה לא מבוססת במסך 2: 'יותר מפי 2 ... בכביש יבש' למשאית  [by: grounding]
+CAUGHT I05 עובדה לא מבוססת במסך 1: 'ההדרכה קצרה במתכוון'  [by: grounding]
+CAUGHT I06 פנייה לא אחידה: 'אתה' בשאלות ו'קחו/חשבו/שאלו' במשוב  [by: address]
+MISSED I07 שגיאת שפה במסך 3: 'אבלע' במקום 'אבלום'
+CAUGHT I08 מילה שגויה בכותרת האיור במסך 3: 'כמה נשאר מהבולם' במקום הצמיג  [by: language]
+CAUGHT I09 משפט כפול בפסקה הראשונה במסך 1 (שלוש שאלות קצרות)  [by: language, repetition]
+MISSED I10 שאלה 6: עמוד אחד ≈ 50 מ׳, לכן גם 'לעצור בצד' סביר (יותר מתשובה נכונה אחת)
+MISSED I11 שאלה 7: 'אחרי העקומה' מול 'מיד אחרי העקומה' – תרחיש לא חד
+CAUGHT I12 שאלה 1: התרחיש סותר את הכלל (משובץ אחרי 1 בדצמבר) ו'פנה לממונה' לא במקור  [by: grounding, questions]
+CAUGHT I13 תרשים במסך 4: 'צריך לבלום' מקביל לסוגי ההחלקה, וענפים לא מגיעים לסוף  [by: diagrams, pedagogy]
+CAUGHT I14 תרשימים במסכים 6 ו-7: לשאלה הראשונה רק ענף 'כן'  [by: diagrams, pedagogy]
+CAUGHT I15 מסך 5 חוזר על הרשימה של מסך 4  [by: pedagogy, repetition]
+CAUGHT I16 השאלה החלופית במסך 5 בודקת את אותה החלטה כמו שאלת מסך 4  [by: pedagogy, question_overlap]
+CAUGHT I17 'הידעת' במסך 4 (דיווח תוך שעתיים) הוא כלל ליבה ולא העשרה  [by: pedagogy]
+CAUGHT I18 שאלות שינון: החלופית של שאלה 6 (אורות גבוהים) והחלופית של שאלה 7 (אילו אורות)  [by: questions]
+CAUGHT I19 איורים שלא מוסיפים: מסכים 1, 5, 8  [by: illustrations]
+
+findings not in the list (15):
+- [grounding/ungrounded] screen 4 block 8 (decision_diagram): תרשים ההחלטה מעביר את שתי אפשרויות הבלימה (עם ABS ובלעדיו) ישירות לצעד הדיווח למוקד, ומשמיט את פעולת הבלימה השונה בהתאם ל-ABS ואת הפרדתה מהדיווח, בניגוד לנוהל במקור. | node n4 (question): צריך לבלום — יש ABS ברכב? ... node n5 (action): אחרי ההחלקה: מדווחים למוקד הצי ת
+- [questions/distractors] screen 3 block 5 (multiple_choice): א מסוכן משיקול פשוט (הקטנת מרחק ל-2 שניות בגשם), אפשר לפסול בלי להכיר את החומר. | לצמצם ל-2 שניות, כי ברכב קל אין בעיה לעצור.
+- [questions/distractors] screen 3 block 5 (multiple_choice), alternate: ג מסוכן/מגוכח (האצה כדי לסגור פער), אפשר לפסול ללא החומר. | אאיץ כדי להשלים את המרחק מהר יותר.
+- [questions/distractors] screen 4 block 6 (multiple_choice): היגוי חד נגדי והאצה בזמן החלקה הן פעולות מסוכנות ברורות שאפשר לפסול גם בלי להכיר את החומר. | לסובב את ההגה בחדות לכיוון ההפוך, עד שהרכב יתיישר.; להאיץ כדי לייצב את הרכב.
+- [questions/distractors] screen 4 block 6 (multiple_choice), alternate: החזקת ההגה בכיוון הפנייה עם לחיצה על הגז היא פעולה מסוכנת ברורה שאפשר לפסול בלי לימוד החומר. | להמשיך להחזיק את ההגה בכיוון הפנייה וללחוץ חזק על הגז.
+- [questions/recall_question] screen 5 block 6 (multiple_choice): הגזע מציין את התנאי המרכזי (החלקה בלי נזק) ושואל ישירות מה הכלל קובע לגבי מועד הדיווח למוקד הצי. | אתה נוהג בכביש רטוב והרכב מחליק קלות. אין נזק לרכב, ואתה חושב שאפשר לדווח רק בסוף היום. מה עליך לעשו
+- [questions/recall_question] screen 5 block 6 (multiple_choice), alternate: התנאי (החלקת אחור) נאמר במפורש בתסריט והתשובה הנכונה היא הכללים הישירים למצב זה, בלי צורך לשקול פרטי תסריט מרובים. | אתה נוסע ברכב הצי והאחור מחליק בכביש רטוב. מהי הפעולה הראשונה שעליך לבצע?
+- [questions/distractors] screen 5 block 6 (multiple_choice), alternate: בדיקת צמיגים באמצע החלקה אינה קשורה לביצוע והיא בלתי סבירה באופן ברור, כך שאפשר לפסול אותה בלי להכיר את החומר. | לבדוק את עומק החריץ בצמיגים
+- [questions/recall_question] screen 8 block 5 (multiple_choice): הגזע מציין את הנתון המכריע (2.5 מ״מ, מתחת לדרישת 3 מ״מ) ושואל מה הכלל קובע לפני היציאה, כך שאין צורך בפרשנות של מצב מורכב. | לפני יציאה למשמרת אתה בודק את הצמיגים ומגלה עומק חריץ של 2.5 מ״מ בצמיג אחד. מה עליך לעשות?
+- [questions/recall_question] screen 8 block 5 (multiple_choice), alternate: הגזע מציג את התנאים (כביש רטוב, מהירות מותרת 90 קמ״ש) ושואל מה הכלל קובע — הפחתת 20 קמ״ש ושמירת מרחק 4 עד 6 שניות — ללא פרשנות מצב. | אתה יוצא לנסיעה בכביש רטוב. המהירות המותרת היא 90 קמ״ש. מה עליך לעשות?
+- [illustrations/illustration_value] screen 4 block 7 (illustration): הלומד בוחר מצב החלקה בלבד ורואה את הפעולה הנכונה שמוצגת לו; הוא לא מקבל החלטה ולא שופט תוצאה — חזרה על הכלל שכבר במלל. | סימולטור החלקה
+- [illustrations/illustration_value] screen 4 block 8 (illustration): תרשים זרימה שחוזר על הכללים שכבר במלל; לחיצה על צמתים רק מגלה את אותו תוכן, ללא שיקול דעת של הלומד. | מה עושים כשהרכב מחליק
+- [illustrations/illustration_value] screen 6 block 6 (illustration): תרשים החלטות שחוזר על הכללים שכבר במלל (ראות מתחת ל-100 מ׳, מתחת ל-50 מ׳); אינו דורש מהלומד לשפוט מצב בעצמו. | מהערכת ראות לפעולה בערפל
+- [illustrations/illustration_value] screen 7 block 6 (illustration): תרשים זרימה שחוזר על הכלל שכבר במלל (ראות מתחת ל-50 מ׳, לא לעצור בעקומה); אין מניפולציה שדורשת שיפוט. | מתי עוצרים בצד בראות מוגבלת
+- [pedagogy/enrichment_misuse] screen 2 block 5 (did_you_know): תיבת "ידעת?" מכילה כלל ליבה שנבחן בשאלה באותו מסך (מרחק בלימה 55 מטר ומרחק בטוח של 6 שניות למשאית עמוסה). הדיד-יו-נואל מיועד להעשרה בלבד, לא לכלל מחייב שנשאלים עליו. | מרחק העצירה של משאית חלוקה עמוסה בכביש רטוב ב-50 קמ״ש הוא 55 מ׳ — יותר מפי 2 מהמרחק של אותה משאית בכ
+call: nvidia/nemotron-3.5-super-vl:free in 10061 / out 14525 tokens
+call: nvidia/nemotron-3.5-super-vl:free in 11247 / out 13012 tokens
+call: nvidia/nemotron-3.5-super-vl:free in 11517 / out 22665 tokens
+call: nvidia/nemotron-3.5-super-vl:free in 11517 / out 13028 tokens
+call: nvidia/nemotron-3.5-super-vl:free in 11517 / out 12370 tokens
+call: nvidia/nemotron-3.5-super-vl:free in 10077 / out 8246 tokens
+call: nvidia/nemotron-3.5-super-vl:free in 11277 / out 16264 tokens
