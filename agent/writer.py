@@ -119,8 +119,12 @@ WRITE_PROMPT = (
     "source excerpts. List the ids of the excerpts that support each block in its \"sources\" "
     "(for example [\"E2\"]). Do not add facts that are not in the excerpts. The excerpt ids and "
     "file names are internal: never write them inside a text field.\n"
+    "Address: speak to the learner in the second person plural everywhere (questions, "
+    "feedback, stop-and-think, illustration descriptions), never in the singular; options are "
+    "written as actions (infinitive), not in the first person.\n"
     "Teaching: a screen must actually teach its objective, so it should not be thin. Use "
-    "paragraphs and lists. Where predicting helps learning, add a stop_and_think block: a "
+    "paragraphs and lists, but never say the same thing twice: a list must not repeat the "
+    "sentences of a paragraph on the screen, and a screen must not repeat another screen. Where predicting helps learning, add a stop_and_think block: a "
     "question the learner answers in their head first, then the explanation.\n"
     "Questions: each screen has exactly one multiple_choice block, built from the screen's "
     "question idea. It checks whether the learner can act correctly, so describe a concrete "
@@ -189,6 +193,44 @@ def build_messages(plan_screens: list[dict], excerpts: list[tuple[str, dict]], l
     user = (
         f"Planned screens (JSON):\n{json.dumps(plan, ensure_ascii=False, indent=1)}\n\n"
         f"Source excerpts:\n\n{format_excerpts(excerpts)}"
+    )
+    return [("system", system), ("user", user)]
+
+
+REVISE_EXTRA = (
+    "Revision: these screens were already written and a review found the problems listed below. "
+    "Rewrite each listed screen so that every problem is fixed, keep what is fine, and do not "
+    "introduce new problems. Every screen still follows its plan.\n"
+)
+
+
+def _screen_for_revision(screen: dict, excerpts: list[tuple[str, dict]]) -> dict:
+    """A written screen as the writer sees it: locators turned back into excerpt ids."""
+    ids = {json.dumps(c["locator"], sort_keys=True): eid for eid, c in excerpts}
+    blocks = []
+    for b in screen["blocks"]:
+        block = {k: v for k, v in b.items() if k not in ("sources", "id", "file", "height", "source_line")}
+        if "sources" in b:
+            block["sources"] = [ids[k] for k in (json.dumps(loc, sort_keys=True) for loc in b["sources"]) if k in ids]
+        blocks.append(block)
+    return {"number": int(screen["id"][1:]), "blocks": blocks}
+
+
+def build_revision_messages(plan_screens: list[dict], excerpts: list[tuple[str, dict]], lesson_type: str,
+                            current: list[dict], findings: list[dict]) -> list[tuple[str, str]]:
+    """(system, user) for rewriting some screens: the plan, the excerpts, the current version
+    of those screens and the review findings to fix (or the content owner's request)."""
+    (_, system), (_, user) = build_messages(plan_screens, excerpts, lesson_type, first=False, last=False)
+    system = system.replace("Reply with only a JSON object", REVISE_EXTRA + "Reply with only a JSON object", 1)
+    problems = [
+        {"screen": f.get("screen"), "where": f.get("where", ""), "problem": f.get("problem", ""),
+         "quote": f.get("evidence", ""), "suggestion": f.get("suggestion", "")}
+        for f in findings
+    ]
+    user += (
+        f"\n\nCurrent version of these screens (JSON):\n"
+        f"{json.dumps([_screen_for_revision(s, excerpts) for s in current], ensure_ascii=False, indent=1)}"
+        f"\n\nProblems to fix (JSON):\n{json.dumps(problems, ensure_ascii=False, indent=1)}"
     )
     return [("system", system), ("user", user)]
 

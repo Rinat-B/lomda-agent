@@ -21,6 +21,16 @@ def plain_console(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_browser_preview(monkeypatch):
+    """Gate 3 exports a preview and opens a browser; tests only record the lesson."""
+    from agent import cli
+
+    previews: list = []
+    monkeypatch.setattr(cli, "preview_lesson", previews.append)
+    return previews
+
+
+@pytest.fixture(autouse=True)
 def fresh_model_availability():
     """Models marked unavailable in one test must not leak into the next."""
     from agent.llm import reset_model_state

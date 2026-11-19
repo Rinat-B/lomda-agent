@@ -12,7 +12,13 @@
                                                      v (approved)
                                write_lesson (one group of 3-4 screens per run; loops until done)
                                                      v
-                                  assemble_lesson -> gate_save [Y/N] -> END
+                         +--------------------> assemble_lesson -> evaluator (all checkers / verify fixes)
+                         |                                            |  open findings, round < 2
+                    fix_screens <-------------------------------------+
+                         ^                                            v (no findings, or 2 rounds done)
+                         +------------ change (owner) --------- gate_review (gate 3, preview) --+ question
+                                                                      v (approved)           <--+
+                                                         write_files [Y/N] (+ report.md) -> END
 
 Each producing node continues only to its gate: no edge skips a gate.
 """
@@ -25,17 +31,22 @@ from agent.nodes import (
     answer,
     assemble_lesson_node,
     classify_type,
-    gate_save,
+    evaluator,
+    fix_screens,
+    gate_review,
     gate_structure,
     gate_topics,
     gate_type,
     plan_structure,
     route_after_gate_structure,
+    route_after_evaluator,
+    route_after_gate_review,
     route_after_gate_topics,
     route_after_scope_check,
     route_after_write,
     scope_check,
     topic_map,
+    write_files,
     write_lesson,
 )
 
@@ -54,7 +65,10 @@ def build_graph(checkpointer=None):
     graph.add_node("gate_structure", gate_structure)
     graph.add_node("write_lesson", write_lesson)
     graph.add_node("assemble_lesson", assemble_lesson_node)
-    graph.add_node("gate_save", gate_save)
+    graph.add_node("evaluator", evaluator)
+    graph.add_node("fix_screens", fix_screens)
+    graph.add_node("gate_review", gate_review)
+    graph.add_node("write_files", write_files)
 
     graph.add_edge(START, "scope_check")
     graph.add_conditional_edges(
@@ -78,6 +92,14 @@ def build_graph(checkpointer=None):
         "write_lesson", route_after_write,
         {"write_lesson": "write_lesson", "assemble_lesson": "assemble_lesson"},
     )
-    graph.add_edge("assemble_lesson", "gate_save")
-    graph.add_edge("gate_save", END)
+    graph.add_edge("assemble_lesson", "evaluator")
+    graph.add_conditional_edges(
+        "evaluator", route_after_evaluator, {"fix_screens": "fix_screens", "gate_review": "gate_review"},
+    )
+    graph.add_edge("fix_screens", "assemble_lesson")
+    graph.add_conditional_edges(
+        "gate_review", route_after_gate_review,
+        {"gate_review": "gate_review", "fix_screens": "fix_screens", "write_files": "write_files"},
+    )
+    graph.add_edge("write_files", END)
     return graph.compile(checkpointer=checkpointer if checkpointer is not None else InMemorySaver())

@@ -2,7 +2,7 @@
 
 Real model calls (role "checker"), so it is marked slow and skipped by default and in CI.
 Run it with:  .venv\\Scripts\\python -m pytest -m slow -s
-The full report is written to evals/results/checker_acceptance.txt.
+The full report is written to evals/results/checker_acceptance_<profile>.txt.
 """
 
 import os
@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 REQUIRED_SHARE = 0.8
+MUST_CATCH = ("I10", "I11")  # questions 6 and 7: more than one defensible answer
 
 pytestmark = pytest.mark.slow
 
@@ -23,6 +24,7 @@ def test_checkers_find_most_known_problems():
         pytest.skip("OPENROUTER_API_KEY is not set")
     from evals.checker_eval import run
 
-    issues, matched, report, text = run()  # the report is also in evals/results/checker_acceptance.txt
+    issues, matched, report, text = run()  # the report is also in evals/results/checker_acceptance_<profile>.txt
     caught = [i["id"] for i in issues if matched[i["id"]]]
     assert len(caught) >= REQUIRED_SHARE * len(issues), text
+    assert set(MUST_CATCH) <= set(caught), text

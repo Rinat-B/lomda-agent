@@ -41,6 +41,14 @@ FRESH_RUN = {
     "lesson": None,
     "output_folder": None,
     "saved_path": None,
+    "lesson_started": None,
+    "writer_models": None,
+    "findings": None,
+    "review_round": None,
+    "fixed_screens": None,
+    "owner_request": None,
+    "review": None,
+    "report_path": None,
 }
 
 
@@ -52,11 +60,24 @@ def open_preview(index_html: str) -> None:
     webbrowser.open(Path(index_html).resolve().as_uri())
 
 
+def preview_lesson(lesson: dict) -> None:
+    """Gate 3: export the lesson to data/preview (placeholders for illustrations) and open it."""
+    import shutil
+
+    from agent.lesson_export import export_lesson
+    from agent.persistence import data_dir
+
+    folder = data_dir() / "preview"
+    shutil.rmtree(folder, ignore_errors=True)
+    open_preview(str(export_lesson(lesson, folder, placeholders=True)))
+
+
 def graph_config(session: Session) -> dict:
     return {
         "configurable": {
             "thread_id": session.thread_id,
             "usage_recorder": session.record_usage,
+            "usage_records": lambda: list(session.usage[session.run_start:]),
             "index": session.index,
         }
     }
@@ -96,7 +117,8 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             if not snapshot.interrupts:
                 break
             paused_node = snapshot.next[0] if snapshot.next else None
-            resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say)
+            resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say,
+                              preview=preview_lesson, say_path=say_path)
             stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
     except (GateExit, EOFError):
         say(msg("gate.paused"), style="yellow")
@@ -113,7 +135,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             store.save(session)
 
     values = graph.get_state(config).values
-    if values.get("approved"):  # the lesson flow reached its end (the save gate)
+    if values.get("approved"):  # the lesson flow reached its end (write_files)
         session.lesson_type = values.get("lesson_type")
         session.topic_map = values.get("topic_map")
         session.structure = values.get("structure")
@@ -121,6 +143,8 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
         show_markdown(values["answer"])
     if values.get("saved_path"):
         say_path(values["saved_path"])
+        if values.get("report_path"):
+            say_path(values["report_path"])
         open_preview(values["saved_path"])
     totals = session.totals(session.usage[start:])
     log(
@@ -138,6 +162,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
 
 def run_question(question: str, session: Session, graph, ask_fn: Callable[[str], str] = ask, store=None) -> bool:
     """Run one question through the graph from a fresh state."""
+    session.run_start = len(session.usage)
     return run_graph(session, graph, {**FRESH_RUN, "question": question}, ask_fn, store)
 
 

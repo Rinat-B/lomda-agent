@@ -17,7 +17,14 @@ ROOT = Path(__file__).resolve().parent.parent
 LESSON_PATH = ROOT / "tests" / "fixtures" / "known_bad_lesson.json"
 ISSUES_PATH = ROOT / "tests" / "fixtures" / "known_bad_issues.json"
 SOURCE_PATH = ROOT / "evals" / "fixtures" / "short_winter.pptx"
-RESULT_PATH = ROOT / "evals" / "results" / "checker_acceptance.txt"
+RESULTS_DIR = ROOT / "evals" / "results"
+
+
+def result_path() -> Path:
+    """One report per profile: checker_acceptance_free.txt, checker_acceptance_balanced.txt."""
+    from agent.llm import active_profile
+
+    return RESULTS_DIR / f"checker_acceptance_{active_profile()}.txt"
 
 
 def load_issues() -> list[dict]:
@@ -50,8 +57,11 @@ def unmatched_findings(issues: list[dict], findings: list) -> list:
 
 def format_report(issues: list[dict], matched: dict[str, list], extra: list, report, seconds: float) -> str:
     caught = sum(1 for i in issues if matched[i["id"]])
-    lines = [f"caught {caught}/{len(issues)} ({caught / len(issues):.0%}) in {seconds:.0f} s, "
-             f"{len(report.calls)} model calls"]
+    from agent.llm import active_profile
+
+    cost = sum(c.cost for c in report.calls)
+    lines = [f"profile {active_profile()}: caught {caught}/{len(issues)} ({caught / len(issues):.0%}) "
+             f"in {seconds:.0f} s, {len(report.calls)} model calls, cost ${cost:.4f}"]
     if report.failed:
         lines.append(f"failed checks: {report.failed}")
     for i in issues:
@@ -63,7 +73,7 @@ def format_report(issues: list[dict], matched: dict[str, list], extra: list, rep
     for f in extra:
         lines.append(f"- [{f.check}/{f.category}] screen {f.screen} {f.where}: {f.problem} | {f.evidence[:100]}")
     for c in report.calls:
-        lines.append(f"call: {c.model} in {c.prompt_tokens} / out {c.completion_tokens} tokens")
+        lines.append(f"call: {c.model} in {c.prompt_tokens} / out {c.completion_tokens} tokens, ${c.cost:.4f}")
     return "\n".join(lines)
 
 
@@ -79,8 +89,9 @@ def run():
     seconds = time.monotonic() - start
     matched = match_issues(issues, report.findings)
     text = format_report(issues, matched, unmatched_findings(issues, report.findings), report, seconds)
-    RESULT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    RESULT_PATH.write_text(text + "\n", encoding="utf-8")
+    path = result_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text + "\n", encoding="utf-8")
     return issues, matched, report, text
 
 

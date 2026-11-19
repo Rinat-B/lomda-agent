@@ -142,8 +142,18 @@
   },
   "gate": {
     "answers": {
-      "approve": ["y", "yes", "כן", "ט"],
-      "reject": ["n", "no", "לא", "מ"]
+      "approve": [
+        "y",
+        "yes",
+        "כן",
+        "ט"
+      ],
+      "reject": [
+        "n",
+        "no",
+        "לא",
+        "מ"
+      ]
     },
     "topics": {
       "title": "## מפת נושאים ({count} נושאים)",
@@ -183,10 +193,6 @@
       "revising": "מעדכן את המבנה לפי ההערה...",
       "approved": "מבנה הלומדה אושר. כותבים את המסכים..."
     },
-    "save": {
-      "ask": "הלומדה מוכנה. לשמור ל-{path} ולפתוח תצוגה מקדימה? [Y/N]: ",
-      "ask_again": "כתבו Y כדי לשמור ולפתוח, או N כדי לא לשמור."
-    },
     "names": {
       "type": "אישור סוג הלומדה",
       "topics": "אישור מפת נושאים",
@@ -208,21 +214,55 @@
         "illustration": "המחשה",
         "diagram": "תרשים",
         "motif": "מוטיב"
+      },
+      "review": {
+        "lesson": "לומדה",
+        "screen": "מסך",
+        "question": "שאלה",
+        "finding": "ממצא",
+        "illustration": "המחשה",
+        "diagram": "תרשים"
       }
     },
-    "paused": "השיחה נשמרה בשער. כדי להמשיך אחר כך כתבו /resume."
+    "paused": "השיחה נשמרה בשער. כדי להמשיך אחר כך כתבו /resume.",
+    "review": {
+      "title": "## הלומדה לבדיקה: {title}",
+      "summary": "{type} · {screens} מסכים · {rounds} סבבי תיקון · {found} ממצאים: {fixed} תוקנו, {open} פתוחים",
+      "coverage": "כיסוי המבנה: {covered} מתוך {total} נקודות תוכן ({percent}%).",
+      "open_title": "### ממצאים פתוחים",
+      "open_item": "- מסך {screen}: {problem}",
+      "open_lesson_item": "- כל הלומדה: {problem}",
+      "open_more": "- ועוד {count} (כולם בדוח report.md)",
+      "no_open": "אין ממצאים פתוחים.",
+      "preview": "התצוגה המקדימה נפתחה בדפדפן.",
+      "ask": "לאשר את הלומדה? [Y/N + הערה]: ",
+      "ask_again": "לא הבנתי. כתבו Y לאישור, או N ואחריו מה לשנות (אפשר לציין מספרי מסכים).",
+      "ask_feedback": "מה לשנות בלומדה? (אפשר לציין מספרי מסכים) ",
+      "revising": "מתקנים את הלומדה לפי ההערה...",
+      "approved": "הלומדה אושרה."
+    },
+    "write_files": {
+      "title": "הקבצים שייכתבו לתיקייה:",
+      "file": "- {name}",
+      "exists": "שימו לב: התיקייה כבר קיימת, והקבצים בה יידרסו.",
+      "ask": "לכתוב את הקבצים ולפתוח את הלומדה? [Y/N]: ",
+      "ask_again": "כתבו Y כדי לכתוב את הקבצים, או N כדי לא לכתוב."
+    }
   },
   "lesson_types": {
     "training": "הכשרה",
     "compliance": "ציות"
   },
   "structure": {
-    "none_words": ["אין", "ללא"]
+    "none_words": [
+      "אין",
+      "ללא"
+    ]
   },
   "lesson": {
     "default_title": "לומדה",
-    "saved": "הלומדה נשמרה ונפתחת בדפדפן:",
-    "not_saved": "הלומדה לא נשמרה."
+    "not_saved": "הלומדה לא נשמרה.",
+    "files_saved": "הלומדה והדוח נשמרו ונפתחים בדפדפן:"
   },
   "guard": {
     "flagged": "נמצאו {count} קטעים ב-{name} שנראים כמו הוראות למודל. הם סומנו, ויטופלו כמידע בלבד ולא כהוראות:",
@@ -251,5 +291,89 @@
   },
   "graph": {
     "out_of_scope": "מצטער, אני יכול לעזור רק בנושאים שקשורים ליצירת לומדות ולמידה. אשמח לעזור אם יש לכם שאלה בתחום הזה."
+  },
+  "evaluator": {
+    "same_family": "[INFO] אין בודק זמין ממשפחה אחרת מהכותב ({writer_families}). ממשיכים עם {models} מאותה משפחה; זה יירשם בדוח.",
+    "no_writer_record": "[INFO] לא ידוע איזה מודל כתב את הלומדה; הבודקים נבחרים מכל רשימת checker.",
+    "found": "[INFO] הבודקים מצאו {count} ממצאים ({screens} מסכים לתיקון).",
+    "fixing": "[INFO] סבב תיקון {round} מתוך {max}: מתקנים את המסכים {screens}.",
+    "verified": "[INFO] אחרי התיקון: {fixed} ממצאים תוקנו, {open} פתוחים.",
+    "failed_check": "[INFO] הבודק {check} לא הצליח לרוץ: {error}"
+  },
+  "report": {
+    "title": "# דוח לבעל התוכן: {title}",
+    "type": "- **סוג:** {type}",
+    "date": "- **תאריך:** {date}",
+    "files": "- **קבצי מקור:** {files}",
+    "screens": "- **מסכים:** {count}",
+    "coverage_title": "## כיסוי",
+    "coverage": "{covered} מתוך {total} נקודות התוכן שבמבנה המאושר נשענות על מקור שמצוטט בלומדה ({percent}%).",
+    "coverage_low": "הכיסוי מתחת לסף של {threshold}%: כדאי לבדוק אילו נקודות חסרות.",
+    "checks_title": "## בדיקות",
+    "rounds": "- **סבבי תיקון:** {rounds} (לכל היותר {max})",
+    "counts": "- **ממצאים:** {found} נמצאו, {fixed} תוקנו, {open} פתוחים",
+    "writers": "- **כותבים:** {models}",
+    "checkers": "- **בודקים:** {models}",
+    "same_family": "- **שימו לב:** הבודקים היו מאותה משפחת מודלים כמו הכותב ({families}), כי לא היה זמין בודק ממשפחה אחרת.",
+    "failed": "- **בדיקה שלא רצה:** {check} ({error})",
+    "open_title": "## ממצאים פתוחים",
+    "no_open": "אין ממצאים פתוחים.",
+    "item": "- **מסך {screen}**, {where} ({category}): {problem}",
+    "item_lesson": "- **כל הלומדה** ({category}): {problem}",
+    "quote": "  - ציטוט: \"{text}\"",
+    "suggestion": "  - הצעה: {text}",
+    "fixed_title": "## ממצאים שתוקנו",
+    "no_fixed": "לא תוקנו ממצאים.",
+    "fixed_item": "- **מסך {screen}** ({category}, סבב {round}): {problem}",
+    "sources_title": "## מקורות לפי מסך",
+    "source_item": "- **מסך {number}: {title}** — {sources}",
+    "cost_title": "## עלות ושימוש",
+    "cost": "{calls} קריאות למודל, {tokens} טוקנים, ${cost:.4f}.",
+    "cost_node": "- {node}: {calls} קריאות, ${cost:.4f}",
+    "elapsed": "זמן מתחילת בניית הלומדה: {minutes} דקות (כולל זמן ההמתנה בשערים).",
+    "category": {
+      "language": "עברית",
+      "duplicate_text": "טקסט כפול",
+      "address": "פנייה לא אחידה",
+      "ungrounded": "לא מבוסס במקור",
+      "multiple_correct": "יותר מתשובה נכונה אחת",
+      "wrong_answer": "התשובה המסומנת לא מוצדקת",
+      "inconsistent_scenario": "תרחיש לא עקבי",
+      "recall_question": "שאלת זיכרון",
+      "distractors": "מסיחים חלשים",
+      "answer_length": "אורך התשובות",
+      "diagram_logic": "לוגיקת תרשים",
+      "repetition": "חזרה",
+      "question_overlap": "שאלות חופפות",
+      "enrichment_misuse": "\"הידעת?\" שמחזיק כלל ליבה",
+      "illustration_value": "המחשה שלא מוסיפה",
+      "other": "אחר"
+    },
+    "block": "בלוק {number} ({type})",
+    "alternate": "שאלה חלופית",
+    "block_types": {
+      "paragraph": "פסקה",
+      "list": "רשימה",
+      "stop_and_think": "עצרו וחשבו",
+      "did_you_know": "הידעת?",
+      "multiple_choice": "שאלה",
+      "illustration": "המחשה",
+      "decision_diagram": "תרשים החלטה"
+    }
+  },
+  "checks": {
+    "answer_length": "התשובה הנכונה ארוכה בהרבה מהמסיחים ({correct} תווים מול {low}–{high}), ואפשר לנחש אותה לפי האורך.",
+    "diagram_branches": "בצומת השאלה {node} יש {count} ענפים; להחלטה צריך לפחות שניים (למשל כן ולא).",
+    "diagram_same_target": "כל הענפים של צומת השאלה {node} מובילים לאותו צומת ({target}), כך שהתשובה לא משנה את התוצאה.",
+    "diagram_unreached": "הצומת {node} לא מחובר לצומת ההתחלה {root}.",
+    "address_screen": "במסך הזה פונים ללומד גם ביחיד וגם ברבים.",
+    "address_lesson": "הלומדה מערבבת פנייה ביחיד וברבים; צריך לבחור צורה אחת.",
+    "address_evidence": "יחיד: {singular}; רבים: {plural}",
+    "address_counts": "{singular} צורות ביחיד, {plural} צורות ברבים",
+    "list_repeated": "הרשימה חוזרת על מסך {screen} במקום להוסיף משהו חדש.",
+    "list_repeated_evidence": "{shared} מתוך {count} הפריטים מופיעים גם במסך {screen}, בלוק {block}",
+    "phrase_repeated": "אותו צירוף מופיע פעמיים באותה פסקה.",
+    "question_overlap": "שתי שאלות במסכים שונים בודקות את אותה החלטה, עם כמעט אותה תשובה נכונה.",
+    "question_overlap_evidence": "אותה החלטה כמו במסך {screen}, בלוק {block}"
   }
 }

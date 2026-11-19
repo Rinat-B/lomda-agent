@@ -121,8 +121,36 @@ def ask_type_gate(request: dict, ask: Callable[[str], str], say: Callable[..., N
         say(msg("gate.type.ask_again"), style="yellow")
 
 
+OPEN_FINDINGS_SHOWN = 8
+
+
+def format_review(summary: dict) -> str:
+    """Gate 3: the lesson's title, review counts, coverage and the open findings."""
+    lines = [
+        msg("gate.review.title", title=summary["title"]), "",
+        msg("gate.review.summary", type=msg(f"lesson_types.{summary['lesson_type']}"), screens=summary["screens"],
+            rounds=summary["rounds"], found=summary["found"], fixed=summary["fixed"], open=len(summary["open"])),
+    ]
+    if summary.get("total"):
+        percent = round(100 * summary["covered"] / summary["total"])
+        lines.append(msg("gate.review.coverage", covered=summary["covered"], total=summary["total"], percent=percent))
+    lines += ["", msg("gate.review.open_title"), ""]
+    open_ = summary["open"]
+    if not open_:
+        lines.append(msg("gate.review.no_open"))
+    for f in open_[:OPEN_FINDINGS_SHOWN]:
+        problem = " ".join(str(f.get("problem") or "").split())
+        if f.get("screen"):
+            lines.append(msg("gate.review.open_item", screen=f["screen"], problem=problem))
+        else:
+            lines.append(msg("gate.review.open_lesson_item", problem=problem))
+    if len(open_) > OPEN_FINDINGS_SHOWN:
+        lines.append(msg("gate.review.open_more", count=len(open_) - OPEN_FINDINGS_SHOWN))
+    return "\n".join(lines)
+
+
 def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
-                    say: Callable[..., None]) -> dict:
+                    say: Callable[..., None], preview: Callable[[dict], None] | None = None) -> dict:
     """Show the reviewed item (or the answer to the last question) and read the reply.
 
     Returns the interrupt resume value: {"approved", "feedback"} for Y/N answers (decided
@@ -133,6 +161,11 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
         show(request["answer"])  # the item is unchanged; it is already on screen
     elif gate == "structure":
         show(format_structure(request["structure"]))
+    elif gate == "review":
+        if preview is not None:
+            preview(request["lesson"])
+            say(msg("gate.review.preview"))
+        show(format_review(request["summary"]))
     else:  # "topics"; older saved conversations used the key "topics"
         show(format_topic_map(request.get("topic_map") or request.get("topics")))
     while True:
@@ -165,21 +198,29 @@ def display_folder(folder: str) -> str:
         return str(path)
 
 
-def ask_save_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
-    """[Y/N] before writing the lesson folder and opening the preview."""
-    prompt = msg("gate.save.ask", path=display_folder(request["folder"]))
+def ask_write_files_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None],
+                         say_path: Callable[..., None] | None = None) -> dict:
+    """[Y/N] before writing the lesson folder: the target, the files, a warning if it exists."""
+    path_line = say_path or say
+    say(msg("gate.write_files.title"))
+    path_line(display_folder(request["folder"]))
+    for name in request.get("files", []):
+        path_line(msg("gate.write_files.file", name=name))
+    if request.get("exists"):
+        say(msg("gate.write_files.exists"), style="yellow")
     while True:
-        decision = parse_decision(_read(ask, prompt))
+        decision = parse_decision(_read(ask, msg("gate.write_files.ask")))
         if decision is not None and decision.explicit:
             return {"confirm": decision.approved}
-        say(msg("gate.save.ask_again"), style="yellow")
+        say(msg("gate.write_files.ask_again"), style="yellow")
 
 
 def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
-             say: Callable[..., None]) -> dict:
+             say: Callable[..., None], preview: Callable[[dict], None] | None = None,
+             say_path: Callable[..., None] | None = None) -> dict:
     """Answer whichever gate the graph is waiting at."""
     if request.get("gate") == "type":
         return ask_type_gate(request, ask, say)
-    if request.get("gate") == "save":
-        return ask_save_gate(request, ask, say)
-    return ask_review_gate(request, ask, show, say)
+    if request.get("gate") in ("write_files", "save"):  # "save": conversations paused before day 6
+        return ask_write_files_gate(request, ask, say, say_path)
+    return ask_review_gate(request, ask, show, say, preview)

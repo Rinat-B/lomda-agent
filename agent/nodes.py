@@ -2,6 +2,8 @@
 
 import json
 import re
+import threading
+import time
 from typing import Callable, TypedDict
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -119,8 +121,9 @@ PLAN_ATTEMPTS = 3
 PLAN_STRUCTURE_PROMPT = (
     "You are an instructional designer. Plan the screens of a {type_name} e-learning lesson "
     "from the approved topic map and the source units. {type_rules}\n"
-    "Rules: every topic of the map gets at least one screen (one to three screens per topic, "
-    "at most {max_screens} screens in total), in a logical order. For each screen give: "
+    "Rules: every topic of the map gets one screen, in a logical order; give a topic a second "
+    "screen only when it teaches more than one separate decision, so that no screen repeats "
+    "another (at most {max_screens} screens in total). For each screen give: "
     "number; title (Hebrew); topic (the exact topic name from the map); 2-4 content points "
     "(short Hebrew sentences, each with the ids of the source units it comes from, for "
     "example \"U3\"; use only the given ids). Source ids belong only in the \"sources\" "
@@ -134,9 +137,16 @@ PLAN_STRUCTURE_PROMPT = (
     "screen and can be answered without understanding, so do not ask for those; put such "
     "facts in the situation instead. For example, rather than asking for the minimum tread "
     "depth, say that this morning the learner found a tyre with 2.5 mm of tread and ask "
-    "whether to go out on deliveries. illustration (Hebrew: an idea for an interactive illustration of "
-    "this screen, or null for none); decision_diagram (true only if the screen teaches an "
-    "if/then decision process that appears in the source). Also give 2-3 descriptions in "
+    "whether to go out on deliveries. "
+    "Media enter a lesson only when they convey something a sentence cannot; decoration is "
+    "rejected. illustration (Hebrew: an idea for an interactive illustration of this screen, or "
+    "null): plan one only when the learner changes something and judges the result, so that it "
+    "practises a decision of the screen or shows one quantity changing another; never for "
+    "ticking a box, clicking to reveal a rule the text already states, a card, a timeline or a "
+    "list. Most screens have none. decision_diagram (true only if the screen teaches an if/then "
+    "decision process that appears in the source, where every question has at least two "
+    "outcomes, such as yes and no; parallel cases of one rule are a list, not a diagram). "
+    "Also give 2-3 descriptions in "
     "Hebrew, in words, of a visual motif for the whole lesson.\n"
     "Reply with only a JSON object and no other text, in exactly this shape: "
     '{{"screens": [{{"number": 1, "title": "...", "topic": "...", "points": [{{"text": "...", '
@@ -184,6 +194,14 @@ class AgentState(TypedDict, total=False):
     lesson: dict | None  # the assembled, validated lesson.json
     output_folder: str | None
     saved_path: str | None  # index.html of the exported lesson
+    lesson_started: float | None  # time.time() when the lesson flow began (for report.md)
+    writer_models: list[str] | None  # the models that actually wrote (or rewrote) screens
+    findings: list[dict] | None  # every review finding, with id and status open / fixed
+    review_round: int | None  # automatic fix rounds done (at most MAX_FIX_ROUNDS)
+    fixed_screens: list[int] | None  # screens rewritten in the last fix (verified next)
+    owner_request: bool | None  # the last fix came from the content owner at gate 3
+    review: dict | None  # {"failed": {check: error}, "same_family": [families]} for the report
+    report_path: str | None
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -395,9 +413,9 @@ def classify_type(state: AgentState, config: RunnableConfig) -> dict:
             data = {}
         proposed = str(data.get("type", "")).strip().lower()
         if proposed in LESSON_TYPES:
-            return {"lesson_type": proposed}
+            return {"lesson_type": proposed, "lesson_started": time.time()}
         messages += [AIMessage(result.text), HumanMessage('Reply with only {"type": "training" or "compliance", "reason": "..."}.')]
-    return {"lesson_type": TRAINING}  # unclear: propose training; the user confirms or switches
+    return {"lesson_type": TRAINING, "lesson_started": time.time()}  # unclear: propose training; the user confirms
 
 
 def gate_type(state: AgentState, config: RunnableConfig) -> dict:
@@ -498,8 +516,17 @@ GLOSSARY = {
         "diagram": "the decision-diagram flag of a screen",
         "motif": "the visual motif descriptions for the whole lesson (not a screen's illustration)",
     },
+    "review": {
+        "lesson": "the whole written lesson",
+        "screen": "one screen of the lesson, by its number",
+        "question": "the multiple-choice question of a screen (or its alternate)",
+        "finding": "a problem the automatic review reported",
+        "illustration": "the planned interactive illustration of a screen",
+        "diagram": "the decision diagram of a screen",
+    },
 }
-SUBJECTS = {"topics": "topic map", "structure": "lesson structure"}
+SUBJECTS = {"topics": "topic map", "structure": "lesson structure", "review": "written lesson"}
+ITEM_KEYS = {"topics": "topic_map", "structure": "structure", "review": "lesson"}
 
 
 def glossary_text(gate: str) -> str:
@@ -531,8 +558,21 @@ def _structure_for_prompt(structure: dict) -> str:
     return "\n".join(lines)
 
 
+def _review_for_prompt(state: AgentState) -> str:
+    from agent.checkers import render_lesson
+
+    open_ = [f for f in state.get("findings") or [] if f["status"] == "open"]
+    lines = [render_lesson(state["lesson"]), "", "Open review findings:"]
+    lines += [f"- screen {f.get('screen') or '-'}: {f.get('problem', '')}" for f in open_] or ["- none"]
+    return "\n".join(lines)
+
+
 def _gate_item_text(gate: str, state: AgentState) -> str:
-    return _topics_for_prompt(state["topic_map"]) if gate == "topics" else _structure_for_prompt(state["structure"])
+    if gate == "topics":
+        return _topics_for_prompt(state["topic_map"])
+    if gate == "review":
+        return _review_for_prompt(state)
+    return _structure_for_prompt(state["structure"])
 
 
 def classify_gate_reply(text: str, gate: str, item_text: str, config: RunnableConfig | None) -> tuple[str, str]:
@@ -572,7 +612,7 @@ def answer_gate_question(question: str, gate: str, item_text: str, config: Runna
     return _call(f"gate_{gate}", [SystemMessage(system), HumanMessage(user)], config).text
 
 
-def _review_gate(gate: str, state: AgentState, config: RunnableConfig) -> dict:
+def _review_gate(gate: str, state: AgentState, config: RunnableConfig, extra: dict | None = None) -> dict:
     """Shared logic of the review gates. Pauses with interrupt(); the CLI shows the item (or
     the answer to the reviewer's last question) and resumes with either
     {"approved": bool, "feedback": str} for Y/N answers (no model call), or
@@ -580,8 +620,8 @@ def _review_gate(gate: str, state: AgentState, config: RunnableConfig) -> dict:
     A question is answered and the gate asks again with the item unchanged.
     On resume LangGraph re-runs the node from the top: nothing may be printed before
     interrupt(); the CLI prints the "[INFO] Entering Node" lines."""
-    item_key = "topic_map" if gate == "topics" else "structure"
-    request: dict = {"gate": gate, item_key: state[item_key]}
+    item_key = ITEM_KEYS[gate]
+    request: dict = {"gate": gate, item_key: state[item_key], **(extra or {})}
     if state.get("gate_answer"):
         request["answer"] = state["gate_answer"]
     reply = interrupt(request)
@@ -629,6 +669,10 @@ def _groups(state: AgentState) -> list[tuple[int, int]]:
     return screen_groups(len(state["structure"]["screens"]))
 
 
+def _screens_text(numbers: list[int]) -> str:
+    return ", ".join(str(n) for n in numbers)
+
+
 def node_detail(node: str, state: dict) -> str | None:
     """Extra text for the "[INFO] Entering Node" line, e.g. write_lesson (screens 1-4)."""
     if node == "write_lesson" and state.get("structure"):
@@ -637,12 +681,23 @@ def node_detail(node: str, state: dict) -> str | None:
         if done < len(groups):
             first, last = groups[done]
             return f"screens {first}-{last}" if first != last else f"screen {first}"
+    if node == "evaluator":
+        if state.get("fixed_screens"):
+            return f"verify screens {_screens_text(state['fixed_screens'])}"
+        return "all checks"
+    if node == "fix_screens":
+        from agent.evaluation import MAX_FIX_ROUNDS
+
+        if state.get("feedback"):
+            return "owner request"
+        return f"round {(state.get('review_round') or 0) + 1} of {MAX_FIX_ROUNDS}"
     return None
 
 
-def _write_group(messages: list, config: RunnableConfig, parse) -> dict:
-    """Ask the writer models in order. A model gets its validation error back once; if the
-    reply is still invalid (or the model fails), the next writer model is tried."""
+def _write_group(messages: list, config: RunnableConfig, parse, node: str = "write_lesson") -> tuple[dict, str]:
+    """Ask the writer models in order; returns (parsed reply, model). A model gets its
+    validation error back once; if the reply is still invalid (or the model fails), the
+    next writer model is tried."""
     from agent.errors import AllModelsFailedError
     from agent.llm import load_models, unavailable_models
 
@@ -653,15 +708,14 @@ def _write_group(messages: list, config: RunnableConfig, parse) -> dict:
         attempt_messages = list(messages)
         for _ in range(WRITE_ATTEMPTS_PER_MODEL):
             try:
-                result = _call("write_lesson", attempt_messages, config,
-                               timeout=WRITE_TIMEOUT_SECONDS, models=[model])
+                result = _call(node, attempt_messages, config, timeout=WRITE_TIMEOUT_SECONDS, models=[model])
             except NodeError as e:
                 if isinstance(e.cause, AllModelsFailedError):
                     problems.append(f"{model}: {e.cause}")
                     break  # this model is down or slow: try the next one
                 raise  # missing key, 401, daily quota...: no point trying other models
             try:
-                return parse(result.text)
+                return parse(result.text), result.model
             except ValueError as err:
                 problems.append(f"{model}: {err}")
                 attempt_messages = attempt_messages + [
@@ -671,7 +725,7 @@ def _write_group(messages: list, config: RunnableConfig, parse) -> dict:
         else:
             if i + 1 < len(candidates):
                 log(msg("llm.invalid_output", model=model, next_model=candidates[i + 1]))
-    raise NodeError("write_lesson", ValueError("no writer model produced valid screens: " + " | ".join(problems)))
+    raise NodeError(node, ValueError("no writer model produced valid screens: " + " | ".join(problems)))
 
 
 def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
@@ -688,13 +742,14 @@ def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
     lesson_type = _lesson_type(state)
     is_first, is_last = done == 0, done == len(groups) - 1
     (_, system), (_, user) = build_messages(plan, excerpts, lesson_type, is_first, is_last)
-    result = _write_group(
+    result, model = _write_group(
         [SystemMessage(system), HumanMessage(user)], config,
         lambda text: parse_group(text, plan, excerpts, lesson_type, is_first, is_last),
     )
     update: dict = {
         "written_screens": (state.get("written_screens") or []) + result["screens"],
         "written_groups": done + 1,
+        "writer_models": (state.get("writer_models") or []) + [model],
     }
     if is_first:
         update["lesson_title"] = result["lesson_title"]
@@ -708,7 +763,7 @@ def route_after_write(state: AgentState) -> str:
 
 
 def assemble_lesson_node(state: AgentState, config: RunnableConfig) -> dict:
-    """Assemble and validate lesson.json, and pick the output folder for the save gate."""
+    """Assemble and validate lesson.json, and pick the output folder for write_files."""
     from agent.persistence import unique_output_folder
 
     try:
@@ -718,26 +773,200 @@ def assemble_lesson_node(state: AgentState, config: RunnableConfig) -> dict:
         )
     except ValueError as e:
         raise NodeError("assemble_lesson", e) from e
+    update: dict = {"lesson": lesson}
+    if not state.get("output_folder"):
+        index = _index(config)
+        first_file = index.chunks[0]["locator"]["file"] if index is not None and index.chunks else "lesson"
+        update["output_folder"] = str(unique_output_folder(first_file))
+    return update
+
+
+# ---- stage 3: review -----------------------------------------------------------------------------
+def _checker_call(config: RunnableConfig, state: AgentState, review: dict):
+    """A model call for the checkers: checker models of another family than the writers that
+    actually wrote the lesson. If none is listed, or none of them answers, the same-family
+    checkers are used, with an [INFO] line and a note for report.md."""
+    from agent.checkers import checker_models, family
+    from agent.errors import AllModelsFailedError
+    from agent.llm import load_models
+
+    writers = list(dict.fromkeys(state.get("writer_models") or []))
+    all_checkers = load_models("checker")
+    preferred, fallback = checker_models(writers, all_checkers) if writers else (all_checkers, [])
+    lock = threading.Lock()
+
+    def note_same_family(models: list[str]) -> None:
+        with lock:
+            if review.get("same_family"):
+                return
+            review["same_family"] = sorted({family(m) for m in writers})
+            log(msg("evaluator.same_family", writer_families=", ".join(review["same_family"]),
+                    models=", ".join(models)))
+
+    if not preferred:
+        preferred, fallback = fallback, []
+        note_same_family(preferred)
+
+    def call(messages, timeout=None, role="checker"):
+        try:
+            return _call("evaluator", messages, config, timeout=timeout, role="checker", models=preferred)
+        except NodeError as e:
+            if fallback and isinstance(e.cause, AllModelsFailedError):
+                note_same_family(fallback)
+                return _call("evaluator", messages, config, timeout=timeout, role="checker", models=fallback)
+            raise
+
+    return call
+
+
+def evaluator(state: AgentState, config: RunnableConfig) -> dict:
+    """Run the checkers. First time: everything on the whole lesson. After a fix: code checks
+    on the whole lesson, and one verification call per rewritten group of screens."""
+    from agent.evaluation import actionable, first_evaluation, verify_fixes
+
     index = _index(config)
-    first_file = index.chunks[0]["locator"]["file"] if index is not None and index.chunks else "lesson"
-    return {"lesson": lesson, "output_folder": str(unique_output_folder(first_file))}
+    chunks = index.chunks if index is not None else []
+    review = dict(state.get("review") or {})
+    call = _checker_call(config, state, review)
+    if state.get("findings") is None:
+        findings, failed, _ = first_evaluation(state["lesson"], chunks, call)
+        screens = sorted({f["screen"] for f in actionable(findings)})
+        log(msg("evaluator.found", count=len(findings), screens=len(screens)))
+    else:
+        findings, failed, _ = verify_fixes(list(state["findings"]), state["lesson"], chunks,
+                                           state.get("fixed_screens") or [], state.get("review_round") or 0, call)
+        log(msg("evaluator.verified", fixed=sum(f["status"] == "fixed" for f in findings),
+                open=sum(f["status"] == "open" for f in findings)))
+    for check, error in failed.items():
+        log(msg("evaluator.failed_check", check=check, error=str(error)[:160]))
+    review["failed"] = {**(review.get("failed") or {}), **failed}
+    return {"findings": findings, "review": review, "fixed_screens": []}
 
 
-def gate_save(state: AgentState, config: RunnableConfig) -> dict:
-    """[Y/N] before writing files: Y exports the lesson folder (the CLI then opens it)."""
+def route_after_evaluator(state: AgentState) -> str:
+    from agent.evaluation import MAX_FIX_ROUNDS, actionable
+
+    if state.get("owner_request"):
+        return "gate_review"
+    if actionable(state.get("findings") or []) and (state.get("review_round") or 0) < MAX_FIX_ROUNDS:
+        return "fix_screens"
+    return "gate_review"
+
+
+def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
+    """Rewrite only the screens with open findings (or the screens the owner's request names),
+    a few screens per writer call."""
+    from agent.evaluation import MAX_FIX_ROUNDS, actionable, fix_groups, owner_findings
+    from agent.writer import build_revision_messages
+
+    index = _index(config)
+    if index is None:
+        raise NodeError("fix_screens", ValueError("no source files in the session"))
+    findings = list(state.get("findings") or [])
+    owner = state.get("feedback") is not None
+    round_ = state.get("review_round") or 0
+    if owner:
+        findings = owner_findings(state["feedback"] or "", len(state["lesson"]["screens"]), findings, round_)
+    else:
+        round_ += 1
+    todo = actionable(findings)
+    numbers = sorted({f["screen"] for f in todo})
+    if not owner:
+        log(msg("evaluator.fixing", round=round_, max=MAX_FIX_ROUNDS, screens=_screens_text(numbers)))
+    plan_by_number = {s["number"]: s for s in state["structure"]["screens"]}
+    written = {int(s["id"][1:]): s for s in state["written_screens"]}
+    lesson_type = _lesson_type(state)
+    models: list[str] = []
+    for group in fix_groups(numbers):
+        plan = [plan_by_number[n] for n in group if n in plan_by_number]
+        if not plan:
+            continue
+        excerpts = group_excerpts(plan, index.chunks)
+        current = [written[n] for n in group if n in written]
+        (_, system), (_, user) = build_revision_messages(
+            plan, excerpts, lesson_type, current, [f for f in todo if f["screen"] in group])
+        result, model = _write_group(
+            [SystemMessage(system), HumanMessage(user)], config,
+            lambda text, plan=plan, excerpts=excerpts: parse_group(text, plan, excerpts, lesson_type, False, False),
+            node="fix_screens",
+        )
+        models.append(model)
+        for screen in result["screens"]:
+            written[int(screen["id"][1:])] = screen
+    return {
+        "written_screens": [written[n] for n in sorted(written)],
+        "findings": findings,
+        "review_round": round_,
+        "fixed_screens": numbers,
+        "owner_request": owner,
+        "feedback": None,
+        "writer_models": (state.get("writer_models") or []) + models,
+    }
+
+
+def review_summary(state: AgentState) -> dict:
+    """What gate 3 shows besides the preview."""
+    from agent.evaluation import coverage
+
+    findings = state.get("findings") or []
+    covered, total = coverage(state["structure"], state["lesson"]) if state.get("structure") else (0, 0)
+    return {
+        "title": state["lesson"]["title"],
+        "lesson_type": state["lesson"]["lesson_type"],
+        "screens": len(state["lesson"]["screens"]),
+        "rounds": state.get("review_round") or 0,
+        "found": len(findings),
+        "fixed": sum(f["status"] == "fixed" for f in findings),
+        "open": [{"screen": f.get("screen"), "problem": f.get("problem", "")}
+                 for f in findings if f["status"] == "open"],
+        "covered": covered,
+        "total": total,
+    }
+
+
+def gate_review(state: AgentState, config: RunnableConfig) -> dict:
+    """Gate 3: the content owner sees a summary and a preview in the browser (opened by the
+    CLI), then approves (-> write_files), asks for a change (-> fix_screens) or asks a question."""
+    update = _review_gate("review", state, config, extra={"summary": review_summary(state)})
+    update["owner_request"] = None
+    if update.get("approved"):
+        say(msg("gate.review.approved"))  # after interrupt: printed once
+        update["approved"] = None  # write_files decides the end of this stage
+    return update
+
+
+def route_after_gate_review(state: AgentState) -> str:
+    return _route_after_review(state, "gate_review", "fix_screens", "write_files")
+
+
+def write_files(state: AgentState, config: RunnableConfig) -> dict:
+    """[Y/N] before writing the lesson folder: index.html, lesson.js, lesson.json, assets, report.md."""
+    import json as _json
     from pathlib import Path
 
-    from agent.lesson_export import export_lesson
+    from agent.lesson_export import export_lesson, planned_files
+    from agent.report import REPORT_FILE, build_report
 
     folder = Path(state["output_folder"])
-    reply = interrupt({"gate": "save", "folder": str(folder)})
+    files = planned_files(state["lesson"]) + ["lesson.json", REPORT_FILE]
+    reply = interrupt({"gate": "write_files", "folder": str(folder), "files": files, "exists": folder.exists()})
     if not (isinstance(reply, dict) and reply.get("confirm")):
         return {"approved": True, "saved_path": None, "answer": msg("lesson.not_saved")}
     try:
         index_html = export_lesson(state["lesson"], folder, placeholders=True)
+        (folder / "lesson.json").write_text(_json.dumps(state["lesson"], ensure_ascii=False, indent=1),
+                                            encoding="utf-8")
+        usage_records = _configurable(config).get("usage_records")
+        usage = usage_records() if usage_records else []
+        started = state.get("lesson_started")
+        minutes = round((time.time() - started) / 60) if started else None
+        report = build_report(dict(state), usage, source_label, minutes)
+        report_path = folder / REPORT_FILE
+        report_path.write_text(report, encoding="utf-8")
     except Exception as e:
-        raise NodeError("gate_save", e) from e
-    return {"approved": True, "saved_path": str(index_html), "answer": msg("lesson.saved")}
+        raise NodeError("write_files", e) from e
+    return {"approved": True, "saved_path": str(index_html), "report_path": str(report_path),
+            "answer": msg("lesson.files_saved")}
 
 
 def route_after_scope_check(state: AgentState) -> str:

@@ -192,7 +192,7 @@ def test_parsed_questions_are_shuffled_with_their_index(plan):
         mc = next(b for b in screen["blocks"] if b["type"] == "multiple_choice")
         n = screen["id"][1:]
         assert mc["options"][mc["correct_index"]] == f"act {n} b"  # the fake's right answer
-        assert mc["alternate"]["options"][mc["alternate"]["correct_index"]] == "do x"
+        assert mc["alternate"]["options"][mc["alternate"]["correct_index"]] == f"do x{n}"
 
 
 # ---- retry and model fallback ----------------------------------------------------------------
@@ -228,14 +228,14 @@ def _parse_ok(text):
 def test_invalid_reply_is_returned_to_the_same_model_once(monkeypatch, two_writers, output):
     writer = ScriptedWriter({"w1:free": ["bad", "GOOD"]})
     monkeypatch.setattr(nodes, "call_llm", writer)
-    assert nodes._write_group([], {}, _parse_ok) == {"ok": True}
+    assert nodes._write_group([], {}, _parse_ok)[0] == {"ok": True}
     assert writer.calls == ["w1:free", "w1:free"]
 
 
 def test_still_invalid_after_the_retry_moves_to_the_next_model(monkeypatch, two_writers, output):
     writer = ScriptedWriter({"w1:free": ["bad", "bad again"], "w2:free": ["GOOD"]})
     monkeypatch.setattr(nodes, "call_llm", writer)
-    assert nodes._write_group([], {}, _parse_ok) == {"ok": True}
+    assert nodes._write_group([], {}, _parse_ok)[0] == {"ok": True}
     assert writer.calls == ["w1:free", "w1:free", "w2:free"]
     assert msg("llm.invalid_output", model="w1:free", next_model="w2:free") in output()
 
@@ -243,7 +243,7 @@ def test_still_invalid_after_the_retry_moves_to_the_next_model(monkeypatch, two_
 def test_a_failing_model_is_skipped(monkeypatch, two_writers, output):
     writer = ScriptedWriter({"w1:free": [AllModelsFailedError([("w1:free", TimeoutError())])], "w2:free": ["GOOD"]})
     monkeypatch.setattr(nodes, "call_llm", writer)
-    assert nodes._write_group([], {}, _parse_ok) == {"ok": True}
+    assert nodes._write_group([], {}, _parse_ok)[0] == {"ok": True}
     assert writer.calls == ["w1:free", "w2:free"]
 
 
@@ -310,7 +310,7 @@ def test_lesson_is_written_in_groups_assembled_and_saved(monkeypatch, deck_sessi
     assert model.kinds.count("write") == 2  # 8 screens, one call per group
     assert "[INFO] Entering Node: write_lesson (screens 1-4)" in out
     assert "[INFO] Entering Node: write_lesson (screens 5-8)" in out
-    assert "[INFO] Entering Node: assemble_lesson" in out and "[INFO] Entering Node: gate_save" in out
+    assert "[INFO] Entering Node: assemble_lesson" in out and "[INFO] Entering Node: write_files" in out
     assert len(model.kinds) < 30
     saved = Path(no_browser[0])
     assert saved == tmp_path / "output" / "deck" / "index.html" and saved.is_file()
@@ -319,7 +319,12 @@ def test_lesson_is_written_in_groups_assembled_and_saved(monkeypatch, deck_sessi
     assert validate_lesson(lesson) == [] and len(lesson["screens"]) == 8
     placeholder = saved.parent / "assets" / "illustrations" / "s3.html"
     assert placeholder.is_file() and "Illustration 3" in placeholder.read_text(encoding="utf-8")
-    assert msg("lesson.saved") in out
+    assert msg("lesson.files_saved") in out
+    assert (saved.parent / "lesson.json").is_file()
+    report = (saved.parent / "report.md").read_text(encoding="utf-8")
+    assert lesson["title"] in report and msg("report.open_title") in report
+    for node in ("evaluator", "gate_review"):
+        assert f"[INFO] Entering Node: {node}" in out
 
 
 def test_n_at_the_save_gate_writes_nothing(monkeypatch, deck_session, output, no_browser, tmp_path):

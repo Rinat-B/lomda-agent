@@ -62,6 +62,7 @@ class Session:
     topic_map: list[dict] | None = None  # the approved topic map
     lesson_type: str | None = None  # training | compliance, once confirmed
     structure: dict | None = None  # the approved lesson structure
+    run_start: int = 0  # index in usage where the current run began (report.md counts from here)
 
     def reset(self) -> None:
         self.files.clear()
@@ -72,6 +73,7 @@ class Session:
         self.topic_map = None
         self.lesson_type = None
         self.structure = None
+        self.run_start = 0
 
     def all_chunks(self) -> list[dict]:
         return [chunk for source in self.sources.values() for chunk in source.chunks]

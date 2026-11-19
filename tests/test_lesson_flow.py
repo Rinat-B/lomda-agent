@@ -175,7 +175,25 @@ def prompt_kind(system: str) -> str:
         return "answer"
     if system.startswith("You write the screens"):
         return "write"
+    if system.startswith("You check whether multiple-choice"):
+        return "single_answer"
+    if system.startswith("You review a Hebrew e-learning lesson"):
+        return "verify" if "were rewritten to fix review findings" in system else "check"
     return "other"
+
+
+def checker_reply(kind: str, user: str) -> str:
+    """A valid, empty-handed reply for every checker prompt (no findings)."""
+    import re
+
+    if kind == "single_answer":
+        ids = re.findall(r"### Question (\S+)", user)
+        return json.dumps({"questions": [{"id": i, "options": []} for i in ids]})
+    if kind == "verify":
+        return json.dumps({"resolved": [], "new_findings": []})
+    count = user.count("multiple_choice] question") + user.count("multiple_choice] alternate question")
+    return json.dumps({"findings": [], "questions": [{"screen": 1, "kind": "decision"}] * count,
+                       "illustrations": [{"adds_value": True}] * user.count(", illustration] Title")})
 
 
 def writer_reply(system: str, user: str) -> str:
@@ -193,7 +211,8 @@ def writer_reply(system: str, user: str) -> str:
             {"type": "multiple_choice", "question": f"Situation {n}: what do you do?",
              "options": [f"act {n} a", f"act {n} b", f"act {n} c"], "correct_index": 1,
              "feedback_correct": "Right, because of the rule.", "feedback_incorrect": "Think about the rule again.",
-             "alternate": {"question": f"Other situation {n}: what now?", "options": ["do x", "do y", "do z"],
+             "alternate": {"question": f"Other situation {n}: what now?",
+                           "options": [f"do x{n}", f"do y{n}", f"do z{n}"],
                            "correct_index": 0, "feedback_correct": "Yes.", "feedback_incorrect": "Not quite."},
              "sources": [eid]},
         ]
@@ -215,14 +234,16 @@ def writer_reply(system: str, user: str) -> str:
     return json.dumps(reply)
 
 
-def scripted(answers, save: str = "N"):
-    """ask_fn for tests: answers the gates in order; the save gate gets `save` (default N)."""
+def scripted(answers, save: str = "N", review: str = "Y"):
+    """ask_fn for tests: answers the gates in order; gate 3 gets `review` (default Y) and
+    the write_files [Y/N] gets `save` (default N)."""
     asked = iter(answers)
-    save_prefix = msg("gate.save.ask").split("{")[0]
 
     def ask(prompt: str) -> str:
-        if prompt.startswith(save_prefix):
+        if prompt == msg("gate.write_files.ask"):
             return save
+        if prompt == msg("gate.review.ask"):
+            return review
         return next(asked)
 
     return ask
@@ -265,6 +286,8 @@ class FakeModel:
             return make_result(text=topics_json(4, extra_name="TIRES" if revising else None))
         if kind == "write":
             return make_result(text=writer_reply(system, first_user))
+        if kind in ("check", "single_answer", "verify"):
+            return make_result(text=checker_reply(kind, first_user))
         raise AssertionError(f"unexpected prompt: {system[:70]}")
 
     def prompts_of(self, kind: str) -> list[str]:
@@ -368,8 +391,11 @@ def test_no_edge_bypasses_a_gate():
     assert successors("gate_topics") == {"topic_map", "gate_topics", "plan_structure"}
     assert successors("gate_structure") == {"plan_structure", "gate_structure", "write_lesson"}
     assert successors("write_lesson") == {"write_lesson", "assemble_lesson"}
-    assert successors("assemble_lesson") == {"gate_save"}
-    assert successors("gate_save") == {"__end__"}
+    assert successors("assemble_lesson") == {"evaluator"}
+    assert successors("evaluator") == {"fix_screens", "gate_review"}
+    assert successors("fix_screens") == {"assemble_lesson"}
+    assert successors("gate_review") == {"gate_review", "fix_screens", "write_files"}
+    assert successors("write_files") == {"__end__"}
 
 
 def test_format_topic_map_shows_topic_objective_sources():

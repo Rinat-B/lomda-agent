@@ -2,6 +2,7 @@
 retries and batching with a fake model, and the matching used by the acceptance eval."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -170,6 +171,9 @@ def test_a_failing_model_check_is_recorded_and_the_rest_still_run():
         system = messages[0].content
         if "proofread" in system:
             raise RuntimeError("down")
+        if "defensible answer" in system:  # single answer: every option judged; only the marked one holds
+            ids = re.findall(r"### Question (\S+)", messages[1].content)
+            return make_result(text=json.dumps({"questions": [{"id": i, "options": []} for i in ids]}))
         if '"questions"' in system:
             batch = messages[1].content.rsplit("screens ", 1)[1]
             first = int(batch.split()[0])
@@ -182,8 +186,52 @@ def test_a_failing_model_check_is_recorded_and_the_rest_still_run():
 
     report = run_checkers(BAD, [], call=call)
     assert set(report.failed) == {"language"}
-    assert len(report.calls) == 6  # grounding, 3 question batches, illustrations, pedagogy
+    assert len(report.calls) == 10  # grounding, 3 + 4 question batches, illustrations, pedagogy
     assert {f.check for f in report.findings} == set(CODE_CHECKS)
+
+
+# ---- single answer -------------------------------------------------------------------------------
+def test_single_answer_items_carry_only_the_questions_excerpts():
+    chunks = [{"text": "fog rule", "locator": {"file": "short_winter.pptx", "slide": 4, "paragraph": 2}},
+              {"text": "tyres", "locator": {"file": "short_winter.pptx", "slide": 2, "paragraph": 3}}]
+    items = checkers.single_answer_items(BAD, chunks, (6, 6))
+    assert [i["id"] for i in items] == ["q6", "q6-alternate"]
+    assert [c["text"] for c in items[0]["excerpts"]] == ["fog rule"]
+    text = checkers.build_single_answer_messages(items)[1].content
+    assert "fog rule" in text and "tyres" not in text
+    assert "marked" not in text  # the checker is not told which option is correct
+
+
+def _single_reply(qid, justified):
+    return {"id": qid, "options": [{"letter": chr(65 + k), "justified": ok, "reason": f"r{k}"}
+                                   for k, ok in enumerate(justified)]}
+
+
+def test_single_answer_reports_a_second_justified_option_and_an_unjustified_answer():
+    items = checkers.single_answer_items(BAD, [], (6, 6))
+    main, alt = items
+    just_main = [True] * len(main["options"])  # every option holds: more than one correct
+    just_alt = [False] * len(alt["options"])  # the marked answer does not hold
+    reply = json.dumps({"questions": [_single_reply("q6", just_main), _single_reply("q6-alternate", just_alt)]})
+    found = checkers.parse_single_answer(reply, items)
+    assert [(f.category, f.where) for f in found] == [
+        ("multiple_correct", "block 4 (multiple_choice), main"),
+        ("wrong_answer", "block 4 (multiple_choice), alternate")]
+    assert found[0].problem.count(";") == len(main["options"]) - 2  # reasons of the other options
+
+
+def test_single_answer_needs_every_question():
+    items = checkers.single_answer_items(BAD, [], (1, 3))
+    with pytest.raises(ValueError, match="missing"):
+        checkers.parse_single_answer('{"questions": []}', items)
+
+
+def test_checker_family_differs_from_the_writer():
+    checkers_list = ["google/gemma-4-31b-it:free", "nvidia/nemotron-3.5-super-vl:free"]
+    other, same = checkers.checker_models(["nvidia/nemotron-3.5-super-vl:free"], checkers_list)
+    assert other == ["google/gemma-4-31b-it:free"] and same == ["nvidia/nemotron-3.5-super-vl:free"]
+    other, same = checkers.checker_models(["baidu/ernie-5.5-flash-preview:free"], checkers_list)
+    assert other == checkers_list and same == []
 
 
 def test_source_for_the_checkers_is_the_cited_chunks():

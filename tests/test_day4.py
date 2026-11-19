@@ -161,7 +161,7 @@ def test_unclear_type_reply_falls_back_to_training(monkeypatch):
 
     index = ChunkIndex()
     index.rebuild(deck_chunks(2))
-    assert nodes.classify_type({"question": "q"}, {"configurable": {"index": index}}) == {"lesson_type": TRAINING}
+    assert nodes.classify_type({"question": "q"}, {"configurable": {"index": index}}) ["lesson_type"] == TRAINING
 
 
 # ---- plan_structure: parsing and rules ---------------------------------------------------------

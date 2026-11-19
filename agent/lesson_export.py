@@ -45,6 +45,11 @@ def illustration_files(lesson: dict) -> list[str]:
     ]
 
 
+def planned_files(lesson: dict) -> list[str]:
+    """The files export_lesson writes, relative to the lesson folder."""
+    return ["index.html", "lesson.js", *(f"assets/{name}" for name in PLAYER_ASSETS), *illustration_files(lesson)]
+
+
 PLACEHOLDER_TEMPLATE = PLAYER_DIR / "illustration_placeholder.html"
 
 

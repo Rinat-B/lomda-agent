@@ -1,0 +1,43 @@
+profile balanced: caught 18/19 (95%) in 81 s, 11 model calls, cost $0.3123
+CAUGHT I01 התשובה הנכונה ארוכה בהרבה מהמסיחים (יחס אורך)  [by: answer_length]
+CAUGHT I02 מסיחים חלשים במסך 2: להאיץ, לצפצף, לעבור לנתיב הנגדי  [by: questions]
+CAUGHT I03 מסיחים חלשים במסכים 6-8: להאיץ, לצאת בכל זאת, לוותר על בדיקה, אין צורך באורות  [by: questions]
+CAUGHT I04 עובדה לא מבוססת במסך 2: 'יותר מפי 2 ... בכביש יבש' למשאית  [by: grounding]
+MISSED I05 עובדה לא מבוססת במסך 1: 'ההדרכה קצרה במתכוון'
+CAUGHT I06 פנייה לא אחידה: 'אתה' בשאלות ו'קחו/חשבו/שאלו' במשוב  [by: address]
+CAUGHT I07 שגיאת שפה במסך 3: 'אבלע' במקום 'אבלום'  [by: language]
+CAUGHT I08 מילה שגויה בכותרת האיור במסך 3: 'כמה נשאר מהבולם' במקום הצמיג  [by: language]
+CAUGHT I09 משפט כפול בפסקה הראשונה במסך 1 (שלוש שאלות קצרות)  [by: language, repetition]
+CAUGHT I10 שאלה 6: עמוד אחד ≈ 50 מ׳, לכן גם 'לעצור בצד' סביר (יותר מתשובה נכונה אחת)  [by: questions, single_answer]
+CAUGHT I11 שאלה 7: 'אחרי העקומה' מול 'מיד אחרי העקומה' – תרחיש לא חד  [by: single_answer]
+CAUGHT I12 שאלה 1: התרחיש סותר את הכלל (משובץ אחרי 1 בדצמבר) ו'פנה לממונה' לא במקור  [by: questions]
+CAUGHT I13 תרשים במסך 4: 'צריך לבלום' מקביל לסוגי ההחלקה, וענפים לא מגיעים לסוף  [by: diagrams, pedagogy]
+CAUGHT I14 תרשימים במסכים 6 ו-7: לשאלה הראשונה רק ענף 'כן'  [by: diagrams, pedagogy]
+CAUGHT I15 מסך 5 חוזר על הרשימה של מסך 4  [by: pedagogy, repetition]
+CAUGHT I16 השאלה החלופית במסך 5 בודקת את אותה החלטה כמו שאלת מסך 4  [by: pedagogy, question_overlap]
+CAUGHT I17 'הידעת' במסך 4 (דיווח תוך שעתיים) הוא כלל ליבה ולא העשרה  [by: pedagogy]
+CAUGHT I18 שאלות שינון: החלופית של שאלה 6 (אורות גבוהים) והחלופית של שאלה 7 (אילו אורות)  [by: questions]
+CAUGHT I19 איורים שלא מוסיפים: מסכים 1, 5, 8  [by: illustrations]
+
+findings not in the list (10):
+- [language/language] screen 4 block 6 (multiple_choice): צירוף שגוי ('בנגד'). | בנגד כיוון ההחלקה
+- [language/language] screen 6 block 4 (multiple_choice): ניסוח משובש, שיבוש במקום הפועל 'כשרואים'. | כשראות פחות משני עמודי תאורה
+- [questions/distractors] screen 1 block 6 (multiple_choice), alternate: מסיח המציג רשלנות מובהקת מול משימת חובה בעבודה, וכל לומד יפסול אותו ללא צורך בידע מקצועי. | אשלים את ההדרכה רק אם יישאר לי זמן פנוי בסוף החודש.
+- [questions/distractors] screen 3 block 5 (multiple_choice): צמצום מרחק ל-2 שניות בכביש חלקלק עם צמיגים שחוקים הוא פעולה מסוכנת בעליל שנפסלת מיידית. | לצמצם ל-2 שניות, כי ברכב קל אין בעיה לעצור.
+- [questions/distractors] screen 3 block 5 (multiple_choice), alternate: האצה במשאית עמוסה בכביש רטוב כאשר המרחק קצר מדי היא פעולה מסוכנת בעליל ואבסורדית. | אאיץ כדי להשלים את המרחק מהר יותר.
+- [questions/distractors] screen 4 block 6 (multiple_choice), alternate: לחיצה חזקה על הגז כשההגה אינו מגיב בכביש רטוב היא פעולה מופרכת ומסוכנת בעליל שכל נהג יפסול מיידית ללא צורך בידע מהחומר. | להמשיך להחזיק את ההגה בכיוון הפנייה וללחוץ חזק על הגז
+- [questions/recall_question] screen 5 block 6 (multiple_choice): השאלה בוחנת זכירה ישירה של כלל החברה לגבי מסגרת הזמן לדיווח על החלקה (תוך שעתיים, גם ללא נזק). | אתה נוהג בכביש רטוב והרכב מחליק קלות. אין נזק לרכב, ואתה חושב שאפשר לדווח רק בסוף היום. מה עליך לעשו
+- [questions/distractors] screen 5 block 6 (multiple_choice), alternate: בדיקת עומק חריץ הצמיגים בזמן שהרכב מחליק בעיצומה של נסיעה היא פעולה אבסורדית לחלוטין. | לבדוק את עומק החריץ בצמיגים
+- [questions/recall_question] screen 8 block 5 (multiple_choice), alternate: למרות עטיפת התרחיש, התשובה הנכונה אינה דורשת חישוב או יישום אלא רק חזרה מילה במילה על שני הכללים מתוך 'חמשת כללי החורף'. | אתה יוצא לנסיעה בכביש רטוב. המהירות המותרת היא 90 קמ״ש. מה עליך לעשות?
+- [illustrations/illustration_value] screen 4 block 7 (illustration): הלומד רק בוחר תרחיש וצופה בהדגמת הפעולה הנכונה, ללא צורך להחליט בעצמו על אופן התגובה ולשפוט את תוצאותיה. | סימולטור החלקה
+call: google/gemini-3.8-flash in 10158 / out 3961 tokens, $0.0225
+call: google/gemini-3.8-flash in 11345 / out 3794 tokens, $0.0227
+call: google/gemini-3.8-flash in 11612 / out 12155 tokens, $0.0543
+call: google/gemini-3.8-flash in 11612 / out 5935 tokens, $0.0310
+call: google/gemini-3.8-flash in 11612 / out 4658 tokens, $0.0262
+call: google/gemini-3.8-flash in 10164 / out 7878 tokens, $0.0372
+call: google/gemini-3.8-flash in 11381 / out 6228 tokens, $0.0319
+call: google/gemini-3.8-flash in 2179 / out 3989 tokens, $0.0166
+call: google/gemini-3.8-flash in 2327 / out 4730 tokens, $0.0195
+call: google/gemini-3.8-flash in 2047 / out 5283 tokens, $0.0213
+call: google/gemini-3.8-flash in 1913 / out 7390 tokens, $0.0291
