@@ -95,3 +95,19 @@ def test_run_agent_uses_the_scripted_answers(monkeypatch, tmp_path):
     summary = run_agent.run_agent(answers=["Y", "N add a topic on tires", "Y", "Y", "Y"], out_dir=None)
     assert summary["gate_answers"][:2] == ["Y", "N add a topic on tires"]
     assert len(model.topic_map_prompts()) == 2
+
+
+# ---- costs ---------------------------------------------------------------------------------------
+def test_theoretical_cost_uses_the_paid_model_of_the_same_role():
+    from evals import costs
+
+    sonnet, flash = costs.equivalent_model("writer"), costs.equivalent_model("checker")
+    prices = {sonnet: {"prompt": 2e-6, "completion": 1e-5}, flash: {"prompt": 1e-6, "completion": 4e-6}}
+    writer_call = {"node": "write_lesson", "model": "x/free-writer:free", "prompt_tokens": 1000,
+                   "completion_tokens": 100, "cost": 0}
+    checker_call = {**writer_call, "node": "evaluator"}
+    paid_call = {**writer_call, "model": sonnet, "cost": 0.5}
+    assert costs.record_costs(writer_call, prices) == (0.0, 1000 * 2e-6 + 100 * 1e-5)
+    assert costs.record_costs(checker_call, prices) == (0.0, 1000 * 1e-6 + 100 * 4e-6)
+    assert costs.record_costs(paid_call, prices) == (0.5, 0.5)  # a paid model: theoretical = actual
+    assert costs.total_costs([writer_call, paid_call], prices) == (0.5, round(0.5 + 0.003, 6))
