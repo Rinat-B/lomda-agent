@@ -146,7 +146,7 @@ def test_message_with_missing_path_warns_and_continues(handler, session, tmp_pat
 
 
 def test_bare_filename_that_does_not_exist_is_just_text(handler, session, output):
-    result = handler.handle("what should README.md contain?")
+    result = handler.handle("what should NO_SUCH_FILE_42.md contain?")
     assert session.files == [] and result.question
     assert output() == ""
 
