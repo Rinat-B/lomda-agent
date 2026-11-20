@@ -79,6 +79,21 @@ first lesson. Files: `checker_acceptance_<profile>_<lesson>.txt`.
 | balanced, 3 screens per call | 18/19 (95%), question 7 missed: strict test fails | 6/7 (86%) |
 | balanced, 2 screens per call (current) | 17/19 (89%), questions 1 and 7 missed: strict test fails | 6/7 (86%) |
 
+**Known limitation: question 7 of the first lesson.** Its correct option and a distractor differ
+only in a limiting word of the rule ("after" versus "right after"), so a learner who read the rule
+carefully can still take the wrong one for the right one. No checker catches this in either
+profile: the models read the scenario literally and accept the marked answer. Two attempts did not
+help, and the first lesson's strict balanced test (questions 6 and 7 must be caught) still fails:
+
+- 2 screens per single-answer call instead of 3 in balanced: 17/19, question 7 missed (kept,
+  because it costs little);
+- a principle in the single-answer prompt (when two options differ only in a limiting word such as
+  only, at least, before, after, within or until, ask whether a learner who read the rule could
+  take either as correct): 16/19, question 7 still missed and one Hebrew error lost, so it was
+  reverted.
+
+Such questions are left to the content owner's review at gate 3.
+
 ## Other files
 
 - `day6_real_run_report.md`: report.md of a real free-profile run (day 6)
