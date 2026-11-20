@@ -1,0 +1,84 @@
+[INFO] ניטור LangSmith פעיל (פרויקט: lomda-agent)
+סוג הלומדה: הכשרה.
+מפת הנושאים אושרה. ממשיכים לתכנון מבנה הלומדה.
+מבנה הלומדה אושר. כותבים את המסכים...
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] הבודקים מצאו 44 ממצאים (9 מסכים לתיקון).
+[INFO] סבב תיקון 1 מתוך 2: מתקנים את המסכים 1, 2, 3, 4, 5, 6, 7, 8, 9.
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] אחרי התיקון: 36 ממצאים תוקנו, 14 פתוחים.
+[INFO] סבב תיקון 2 מתוך 2: מתקנים את המסכים 2, 3, 4, 5, 6, 7, 8, 9.
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] אחרי התיקון: 41 ממצאים תוקנו, 12 פתוחים.
+[INFO] הבודק single_answer 2, 3, 4 לא הצליח לרוץ: NodeError: evaluator: 
+AllModelsFailedError("all models failed; last error: 
+OpenAIRateLimitError('Error code: 429 - Provider returned error')")
+הלומדה אושרה.
+{"experiment": "compare-claude-sonnet-5.5-2", "error": null, "duration_sec": 1476.0, "screens": 9, "calls": 28, "cost_usd": 0.97596, "review_round": 2, "findings_total": 53, "findings_fixed": 41, "open_findings": 12, "coverage": 100}

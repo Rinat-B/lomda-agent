@@ -1,0 +1,421 @@
+{
+ "experiment": "compare-ernie-5.5-flash-preview-free-1",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "baidu/ernie-5.5-flash-preview:free"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": "NodeError: fix_screens: ValueError(\"no writer model produced valid screens: baidu/ernie-5.5-flash-preview:free: all models failed; last error: OpenAIConnectionError('Connection error.')\")",
+ "flagged_chunks": 0,
+ "duration_sec": 1291.6,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 6,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 0,
+ "findings_total": 14,
+ "findings_fixed": 0,
+ "open_findings": [
+  {
+   "check": "answer_length",
+   "category": "answer_length",
+   "screen": 3,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "להוריד רגל מהגז, לסובב את ההגה בעדינות לכיוון ההחלקה וללחוץ חזק ורציף על הבלם גם כשהדוושה רוטטת",
+   "problem": "התשובה הנכונה ארוכה בהרבה מהמסיחים (95 תווים מול 41–52), ואפשר לנחש אותה לפי האורך.",
+   "suggestion": "",
+   "id": "F1",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 4,
+   "where": "block 3 (stop_and_think)",
+   "evidence": "הדיווח נקבע לשעתיים מהרגע שהרכב החליק, ולא לסוף המשמרת.",
+   "problem": "העובדה כבר נלמדת במסך 4, בלוק 2. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F2",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "enrichment_misuse",
+   "screen": 4,
+   "where": "block 4 (did_you_know)",
+   "evidence": "כל רכבי הצי משנת 2019 ואילך מצוידים ב-ABS.",
+   "problem": "\"הידעת?\" חוזר על עובדה שמופיעה גם במסך 3, בלוק 3. \"הידעת?\" הוא רק לעובדה שלא מופיעה בשום מקום אחר בלומדה.",
+   "suggestion": "",
+   "id": "F3",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 6,
+   "where": "block 2 (list)",
+   "evidence": "מדווחים על כל החלקה תוך שעתיים",
+   "problem": "העובדה כבר נלמדת במסך 3, בלוק 2. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F4",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "question_overlap",
+   "category": "question_overlap",
+   "screen": 6,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "אותה החלטה כמו במסך 2, בלוק 4",
+   "problem": "שתי שאלות במסכים שונים בודקות את אותה החלטה, עם כמעט אותה תשובה נכונה.",
+   "suggestion": "",
+   "id": "F5",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 1,
+   "where": "block 3 (multiple_choice)[אפשרות C]",
+   "evidence": "לבקש להישבות למשמרת חלוקה בלי לוודא שההדרכה הושלמה",
+   "problem": "מילה שגויה: הישבות אינה מילת שיבוץ למשמרת ומשמעותה שונה לחלוטין.",
+   "suggestion": "לתקן ל\"לבקש להשתבץ למשמרת חלוקה\" או \"לבקש שישובצו למשמרת חלוקה\", בהתאם לניסוח בשאר הבלוק.",
+   "id": "F6",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "grounding",
+   "category": "ungrounded",
+   "screen": 1,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "להשלים את ההדרכה לפני 1 בדצמבר",
+   "problem": "המקור קובע מועד אחרון \"עד 1 בדצמבר\", אך השיעור דורש \"לפני 1 בדצמבר\" — מועד קשוח יותר ללא בסיס.",
+   "suggestion": "לתקן את הטקסט ל\"עד 1 בדצמבר\" בשאלה, בשאלה החלופית ובמשוב.",
+   "id": "F7",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "grounding",
+   "category": "ungrounded",
+   "screen": 5,
+   "where": "block 5 (stop_and_think)",
+   "evidence": "כי את טווח הראות משלימים בזמן",
+   "problem": "ההסבר מציג נימוק שלפיו משלימים את טווח הראות בזמן, אך הנימוק הזה אינו מופיע במקור.",
+   "suggestion": "להסיר את הנימוק או להסתפק במופיע במקור: אורות גבוהים בערפל מחמירים סינוור ואינם משפרים ראות.",
+   "id": "F8",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 1,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "לבקש להישבות למשמרת חלוקה בלי לוודא שההדרכה הושלמה",
+   "problem": "פעולה רשלנית שמוצגת במפורש כמנוגדת להנחיה.",
+   "suggestion": "",
+   "id": "F9",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 1,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "לבקש שישובצו רק למשמרות של רכבים קלים; להניח שאפשר לצאת בלי לוודא את מצב ההדרכה",
+   "problem": "אין בסיס בתקנון להבחנה בין סוגי רכב לצורך ההדרכה.; הנחה רשלנית שמתנגדת ישירות להוראה.",
+   "suggestion": "",
+   "id": "F10",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "לצמצם את המרחק כדי לעבור לפני שהכביש נרטב יותר; להאיץ מעט כדי להקדים את הרכב שלפניכם",
+   "problem": "פעולה מסוכנת באופן ברור ומנוגדת לנהיגה בטוחה.; פעולה מסוכנת ובלתי קשורה לשמירת מרחק בטוח.",
+   "suggestion": "",
+   "id": "F11",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "להאיץ כדי לעבור את הקטע הרטוב מהר יותר; להתקרב לרכב שלפניכם כי המהירות נמוכה",
+   "problem": "פעולה מסוכנת ומנוגדת לעקרון הנהיגה הבטוחה ברטוב.; פעולה חסרת אחריות שמפחיתה את הבטיחות.",
+   "suggestion": "",
+   "id": "F12",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "ליישר את ההגה בחוזקה ולשחרר את הבלם לגמרי; ללחוץ על הבלם בלחיצות קצרות ולהאיץ כדי לייצב את הרכב; לשמור על הגז ולהמשיך לבלום רק כשהאחור מפסיק להחליק",
+   "problem": "פעולה מסוכנת שסותרת ישירות את הוראות ההתמודדות עם החלקה.; משלבת פעולות שגויות לרכב עם ABS ולהחלקה אחורית.; מתעלמת מההוראה הבסיסית להוריד רגל מהגז בהחלקה אחורית.",
+   "suggestion": "",
+   "id": "F13",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "להאיץ ולסובב את ההגה בחדות לכיוון ההחלקה",
+   "problem": "פעולה מסוכנת באופן ברור וחסרת בסיס בחומר.",
+   "suggestion": "",
+   "id": "F14",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 26,
+  "total": 28,
+  "missing": [
+   "נהג שלא השלים אותה עד 1 בדצמבר לא ישובץ למשמרות חלוקה.",
+   "בודקים צמיגים לפני כל יציאה: עומק חריץ של 3 מ״מ לפחות"
+  ],
+  "percent": 93
+ },
+ "review": {
+  "failed": {
+   "illustrations": "NodeError: evaluator: AllModelsFailedError(\"all models failed; last error: OpenAIRateLimitError('Error code: 429 - Provider returned error')\")",
+   "pedagogy": "NodeError: evaluator: AllModelsFailedError(\"all models failed; last error: OpenAIRateLimitError('Error code: 429 - Provider returned error')\")",
+   "single_answer 4, 5, 6": "NodeError: evaluator: AllModelsFailedError(\"all models failed; last error: OpenAIRateLimitError('Error code: 429 - Provider returned error')\")"
+  }
+ },
+ "writer_models": [
+  "baidu/ernie-5.5-flash-preview:free",
+  "baidu/ernie-5.5-flash-preview:free"
+ ],
+ "calls": 12,
+ "cost_usd": 0.0,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 341,
+   "completion_tokens": 348,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 824,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1296,
+   "completion_tokens": 1706,
+   "cost_usd": 0.0
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 2014,
+   "completion_tokens": 22594,
+   "cost_usd": 0.0
+  },
+  "write_lesson": {
+   "calls": 2,
+   "prompt_tokens": 5840,
+   "completion_tokens": 63155,
+   "cost_usd": 0.0
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 11903,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 4,
+   "prompt_tokens": 24256,
+   "completion_tokens": 47401,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 1,
+   "prompt_tokens": 9324,
+   "completion_tokens": 24045,
+   "cost_usd": 0.0
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 3,
+   "prompt_tokens": 2737,
+   "completion_tokens": 13075,
+   "cost_usd": 0.0
+  },
+  "baidu/ernie-5.5-flash-preview:free": {
+   "calls": 5,
+   "prompt_tokens": 18474,
+   "completion_tokens": 111500,
+   "cost_usd": 0.0
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 4,
+   "prompt_tokens": 24256,
+   "completion_tokens": 47401,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 2.6,
+  "classify_type": 7.5,
+  "gate_type": 0.0,
+  "topic_map": 8.6,
+  "gate_topics": 0.0,
+  "plan_structure": 101.8,
+  "gate_structure": 0.0,
+  "write_lesson": 273.7,
+  "assemble_lesson": 0.1,
+  "evaluator": 314.6,
+  "fix_screens": 582.5
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 2,
+  "assemble_lesson": 1,
+  "evaluator": 1,
+  "fix_screens": 1
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 341,
+   "completion_tokens": 348,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 824,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1296,
+   "completion_tokens": 1706,
+   "cost": 0.0
+  },
+  {
+   "node": "plan_structure",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 2014,
+   "completion_tokens": 22594,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 3029,
+   "completion_tokens": 30888,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 2811,
+   "completion_tokens": 32267,
+   "cost": 0.0
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 11903,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 6634,
+   "completion_tokens": 11269,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 6819,
+   "completion_tokens": 1577,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7800,
+   "completion_tokens": 15359,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3003,
+   "completion_tokens": 19196,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 9324,
+   "completion_tokens": 24045,
+   "cost": 0.0
+  }
+ ]
+}

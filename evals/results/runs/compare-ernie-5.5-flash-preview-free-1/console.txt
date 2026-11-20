@@ -1,0 +1,50 @@
+[INFO] ניטור LangSmith פעיל (פרויקט: lomda-agent)
+סוג הלומדה: הכשרה.
+מפת הנושאים אושרה. ממשיכים לתכנון מבנה הלומדה.
+מבנה הלומדה אושר. כותבים את המסכים...
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-26b-a4b-it:free נכשל (429). עוברים למודל הבא: 
+nvidia/nemotron-3.5-super-vl:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] המודל google/gemma-4-31b-it:free נכשל (429). עוברים למודל הבא: 
+google/gemma-4-26b-a4b-it:free
+[INFO] הבודקים מצאו 14 ממצאים (6 מסכים לתיקון).
+[INFO] הבודק illustrations לא הצליח לרוץ: NodeError: evaluator: 
+AllModelsFailedError("all models failed; last error: 
+OpenAIRateLimitError('Error code: 429 - Provider returned error')")
+[INFO] הבודק pedagogy לא הצליח לרוץ: NodeError: evaluator: 
+AllModelsFailedError("all models failed; last error: 
+OpenAIRateLimitError('Error code: 429 - Provider returned error')")
+[INFO] הבודק single_answer 4, 5, 6 לא הצליח לרוץ: NodeError: evaluator: 
+AllModelsFailedError("all models failed; last error: 
+OpenAIRateLimitError('Error code: 429 - Provider returned error')")
+[INFO] סבב תיקון 1 מתוך 2: מתקנים את המסכים 1, 2, 3, 4, 5, 6.
+{"experiment": "compare-ernie-5.5-flash-preview-free-1", "error": "NodeError: fix_screens: ValueError(\"no writer model produced valid screens: baidu/ernie-5.5-flash-preview:free: all models failed; last error: OpenAIConnectionError('Connection error.')\")", "duration_sec": 1291.6, "screens": 6, "calls": 12, "cost_usd": 0.0, "review_round": 0, "findings_total": 14, "findings_fixed": 0, "open_findings": 14, "coverage": 93}

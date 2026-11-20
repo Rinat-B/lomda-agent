@@ -1,0 +1,38 @@
+{
+ "fetched": "2026-11-20 00:49",
+ "source": "https://openrouter.ai/api/v1/models",
+ "usd_per_token": {
+  "anthropic/claude-sonnet-5.5": {
+   "prompt": 2e-06,
+   "completion": 1e-05
+  },
+  "baidu/ernie-5.5-flash-preview:free": {
+   "prompt": 0.0,
+   "completion": 0.0
+  },
+  "google/gemini-3.1-flash-lite": {
+   "prompt": 2.5e-07,
+   "completion": 1.5e-06
+  },
+  "google/gemini-3.8-flash": {
+   "prompt": 7.5e-07,
+   "completion": 3.75e-06
+  },
+  "google/gemma-4-26b-a4b-it:free": {
+   "prompt": 0.0,
+   "completion": 0.0
+  },
+  "google/gemma-4-31b-it:free": {
+   "prompt": 0.0,
+   "completion": 0.0
+  },
+  "nvidia/nemotron-3.5-lightning:free": {
+   "prompt": 0.0,
+   "completion": 0.0
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "prompt": 0.0,
+   "completion": 0.0
+  }
+ }
+}

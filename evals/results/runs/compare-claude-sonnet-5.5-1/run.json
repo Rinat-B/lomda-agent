@@ -1,0 +1,359 @@
+{
+ "experiment": "compare-claude-sonnet-5.5-1",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "anthropic/claude-sonnet-5.5"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 1091.4,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 8,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 2,
+ "findings_total": 40,
+ "findings_fixed": 39,
+ "open_findings": [
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 4,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "אתם נוסעים בעקומה רטובה בדרך ללקוח ופתאום מרגישים שהחלק האחורי של הרכב מחליק ימינה. מה תעשו עם הגז ועם ההגה?",
+   "problem": "הגזע קובע את התנאי המדויק מכללי ההחלקה — החלק האחורי של הרכב מחליק ימינה — ושואל מה לעשות עם הגז ועם ההגה, כלומר הפעולה נקראת ישירות מהכלל הכתוב ('אם האחור מחליק: מורידים רגל מהגז ומסובבים את ההגה בעדינות לכיוון ההחלקה') ולא נדרשת פרשנות של פרטים מעורפלים או חישוב של סף מספרי כלשהו.",
+   "suggestion": "",
+   "id": "F40",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 23,
+  "total": 23,
+  "missing": [],
+  "percent": 100
+ },
+ "review": {
+  "failed": {}
+ },
+ "writer_models": [
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5"
+ ],
+ "calls": 27,
+ "cost_usd": 0.798472,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 366,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 605,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1751,
+   "completion_tokens": 635,
+   "cost_usd": 0.009852
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 2894,
+   "completion_tokens": 5069,
+   "cost_usd": 0.056478
+  },
+  "write_lesson": {
+   "calls": 3,
+   "prompt_tokens": 20370,
+   "completion_tokens": 26258,
+   "cost_usd": 0.30332
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 20957,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 15,
+   "prompt_tokens": 90819,
+   "completion_tokens": 207079,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 4,
+   "prompt_tokens": 48166,
+   "completion_tokens": 33249,
+   "cost_usd": 0.428822
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 3,
+   "prompt_tokens": 2842,
+   "completion_tokens": 21928,
+   "cost_usd": 0.0
+  },
+  "anthropic/claude-sonnet-5.5": {
+   "calls": 9,
+   "prompt_tokens": 73181,
+   "completion_tokens": 65211,
+   "cost_usd": 0.798472
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 15,
+   "prompt_tokens": 90819,
+   "completion_tokens": 207079,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 3.4,
+  "classify_type": 13.6,
+  "gate_type": 0.0,
+  "topic_map": 5.6,
+  "gate_topics": 0.0,
+  "plan_structure": 40.5,
+  "gate_structure": 0.0,
+  "write_lesson": 177.8,
+  "assemble_lesson": 0.2,
+  "evaluator": 632.9,
+  "fix_screens": 216.9,
+  "gate_review": 0.0,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 2,
+  "assemble_lesson": 3,
+  "evaluator": 3,
+  "fix_screens": 2,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 366,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 605,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 1751,
+   "completion_tokens": 635,
+   "cost": 0.009852
+  },
+  {
+   "node": "plan_structure",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 2894,
+   "completion_tokens": 5069,
+   "cost": 0.056478
+  },
+  {
+   "node": "write_lesson",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 5106,
+   "completion_tokens": 9322,
+   "cost": 0.103432
+  },
+  {
+   "node": "write_lesson",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 4554,
+   "completion_tokens": 10454,
+   "cost": 0.113648
+  },
+  {
+   "node": "write_lesson",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 10710,
+   "completion_tokens": 6482,
+   "cost": 0.08624
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 20957,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7800,
+   "completion_tokens": 4516,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8970,
+   "completion_tokens": 8998,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2744,
+   "completion_tokens": 14305,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7804,
+   "completion_tokens": 15118,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3614,
+   "completion_tokens": 20652,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3331,
+   "completion_tokens": 18777,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9061,
+   "completion_tokens": 19644,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 14635,
+   "completion_tokens": 10317,
+   "cost": 0.13244
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 15289,
+   "completion_tokens": 13069,
+   "cost": 0.161268
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9129,
+   "completion_tokens": 9173,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7960,
+   "completion_tokens": 9799,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9226,
+   "completion_tokens": 8456,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3691,
+   "completion_tokens": 18913,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2865,
+   "completion_tokens": 21897,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3495,
+   "completion_tokens": 18103,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 13509,
+   "completion_tokens": 8068,
+   "cost": 0.107698
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 4733,
+   "completion_tokens": 1795,
+   "cost": 0.027416
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9114,
+   "completion_tokens": 7604,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2015,
+   "completion_tokens": 11124,
+   "cost": 0.0
+  }
+ ]
+}

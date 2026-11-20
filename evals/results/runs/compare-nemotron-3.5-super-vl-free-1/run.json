@@ -1,0 +1,111 @@
+{
+ "experiment": "compare-nemotron-3.5-super-vl-free-1",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": "NodeError: plan_structure: AllModelsFailedError(\"all models failed; last error: OpenAITimeoutError('Request timed out.')\")",
+ "flagged_chunks": 0,
+ "duration_sec": 155.9,
+ "gate_answers": [
+  "Y",
+  "Y"
+ ],
+ "screens": 0,
+ "lesson_title": null,
+ "review_round": 0,
+ "findings_total": 0,
+ "findings_fixed": 0,
+ "open_findings": [],
+ "coverage": null,
+ "review": null,
+ "writer_models": null,
+ "calls": 3,
+ "cost_usd": 0.0,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 420,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 986,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1231,
+   "completion_tokens": 3061,
+   "cost_usd": 0.0
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 2,
+   "prompt_tokens": 1567,
+   "completion_tokens": 1406,
+   "cost_usd": 0.0
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 1,
+   "prompt_tokens": 1231,
+   "completion_tokens": 3061,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 3.5,
+  "classify_type": 6.3,
+  "gate_type": 0.0,
+  "topic_map": 25.6,
+  "gate_topics": 0.0,
+  "plan_structure": 120.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 420,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 986,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 1231,
+   "completion_tokens": 3061,
+   "cost": 0.0
+  }
+ ]
+}

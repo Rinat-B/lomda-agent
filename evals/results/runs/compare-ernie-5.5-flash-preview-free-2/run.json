@@ -1,0 +1,833 @@
+{
+ "experiment": "compare-ernie-5.5-flash-preview-free-2",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "baidu/ernie-5.5-flash-preview:free"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 1464.8,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 8,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 1,
+ "findings_total": 61,
+ "findings_fixed": 23,
+ "open_findings": [
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 8,
+   "where": "block 2 (list)",
+   "evidence": "בודקים צמיגים לפני כל יציאה: עומק חריץ של 3 מ״מ לפחות.",
+   "problem": "העובדה כבר נלמדת במסך 3, בלוק 1. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F12",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 3,
+   "where": "block 3 (paragraph)",
+   "evidence": "צמיג שקוע מוציא את הרכב מהכביש",
+   "problem": "צמיג שקוע אינו המונח הנכון לצמיג שחוק או בעל עומק חריץ נמוך מהנדרש",
+   "suggestion": "לכתוב צמיג שחוק או לפרט צמיג שחרציו מתחת ל-3 מ״מ",
+   "id": "F17",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 3,
+   "where": "block 4 (multiple_choice alternate), feedback when correct",
+   "evidence": "כי הצד השני אינו עומד בדרישת היציאה",
+   "problem": "הביטוי דרישת היציאה אינו ברור ואינו מתאים להקשר של בדיקת צמיגים",
+   "suggestion": "לכתוב דרישת עומק החריץ או הדרישה ליציאה לדרך",
+   "id": "F18",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 8,
+   "where": "block 2 (list)",
+   "evidence": "מסובבarlos את ההגה בעדינות",
+   "problem": "המילה מסובבarlos אינה מילה בעברית וכוללת אותיות לטיניות",
+   "suggestion": "לכתוב מסובבים",
+   "id": "F19",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 7,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "החלקתם ברכב, לא נגרם נזק, ולא עברו שעתיים. מה תעשו?",
+   "problem": "השאלה מציינת את התנאי המפעיל (החלקה ללא נזק, פחות משעתיים עברו) והמקור קובע בדיוק מה לעשות (לדווח למוקד הצי תוך שעתיים); אין צורך בפרשנות של פרטי מצב לא ברורים.",
+   "suggestion": "",
+   "id": "F21",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 7,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "להימנע מדיווח; לדווח רק אם נגרם נזק",
+   "problem": "אפשרות סותרת את הנחיית המקור ואין כלל שמצדיק אותה.; סותר את המפורש במקור ('גם בלי נזק') ואין כלל התומך בו.",
+   "suggestion": "",
+   "id": "F22",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 7,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "לאחר החלקה בלי נזק, למי מדווחים?",
+   "problem": "המצב כבר קובע החלקה ללא נזק, והמקור קובע במפורש את כתובת הדיווח (מוקד הצי); אין צורך בפרשנות של פרטי מצב.",
+   "suggestion": "",
+   "id": "F23",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 7,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "להשאיר בלי דיווח",
+   "problem": "אפשרות בלתי סבירה וסותרת את המקור במפורש.",
+   "suggestion": "",
+   "id": "F24",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 8,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "אתם לפני יציאה מהחנייה בנסיעת חורף. מה הסדר הנכון של חמשת כללי החורף?",
+   "problem": "המצב מציין יציאה בנסיעת חורף, המתאים לכלל 'לפני כל יציאה', והתשובה הנכונה היא שחזור ישיר של סדר הכללים כפי שמופיעים במקור; אין צורך בפרשנות מורכבת של פרטי המצב.",
+   "suggestion": "",
+   "id": "F25",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 8,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "להוריד 20 קמ״ש רק לאחר החלקה; לבדוק צמיגים רק אחרי היציאה",
+   "problem": "אפשרות הגיונית במבט ראשון אך סותרת את סדר הכללים ואת כלל הכביש הרטוב.; אפשרות בלתי סבירה שנפסלת מיד משום שהיא סותרת את הביטוי 'לפני כל יציאה'.",
+   "suggestion": "",
+   "id": "F26",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 8,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "בכביש רטוב, מה חל עליכם לפי חמשת כללי החורף?",
+   "problem": "המצב קובע את התנאי המפתח (כביש רטוב) והמקור קובע בדיוק מה חל במצב זה (הורדת 20 קמ״ש ומרחק 4-6 שניות); אין צורך בפרשנות של פרטי מצב לא ברורים.",
+   "suggestion": "",
+   "id": "F27",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 8,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "לדווח רק אם נגרם נזק; להעלות 20 קמ״ש; לשמור מרחק של שנייה אחת",
+   "problem": "אפשרות בלתי סבירה וסותרת את המקור במפורש.; אפשרות מסוכנת באופן ברור שנפסלת ללא ידיעת החומר.; אפשרות מסוכנת ומובנת כשגויה גם בלי להכיר את החומר.",
+   "suggestion": "",
+   "id": "F28",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 4,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "יוצאים מפנייה בכביש רטוב והאחור פתאום מתחיל לזלול שמאלה. הרגל כבר על הרצפה וההגה בידיים. לאיזה כיוון תסובבו את ההגה, ובמה תיגעו ברגל?",
+   "problem": "המצב קובע במפורש שהאחור מחליק שמאלה, והתשובה הנכונה משחזרת את הכלל להחלקה אחורית כולל כיוון הסיבוב והורדת הרגל מהגז.",
+   "suggestion": "",
+   "id": "F29",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "לשחרר את ההגה ולהשאיר את הרגל על הגז; להאיץ ולסובב את ההגה ימינה",
+   "problem": "סותר את הכלל באופן ברור ומסוכן, אפשר לפסול גם בלי ידיעת החומר.; הפוך מהכלל ומסוכן, אפשר לפסול בלי ידיעת החומר.",
+   "suggestion": "",
+   "id": "F30",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 4,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "אתם בכביש רטוב ומסובבים את ההגה, אבל הרכב לא מגיב. מה תעשו?",
+   "problem": "המצב קובע במפורש שהקדמי לא מגיב להגה, והתשובה משחזרת את הכלל ללא צורך בפרשנות מורכבת.",
+   "suggestion": "",
+   "id": "F31",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "לסובב את ההגה חזק לכיוון ההפך; להאיץ כדי למשוך את הרכב לכיוון הנכון",
+   "problem": "הפוך מההוראה ליישר מעט, ומסוכן.; ברור שהיא שגויה ומסוכנת גם בלי הכרת החומר.",
+   "suggestion": "",
+   "id": "F32",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 5,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "ללחוץ חזק ורציף ברכב בלי ABS, ולשחרר את הבלם ברכב משנת 2021",
+   "problem": "ברורה כשגויה ומסוכנת בשני חלקיה.",
+   "suggestion": "",
+   "id": "F33",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 5,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "אתם נוהגים ברכב עם ABS והדוושה מתחילה לרטוט בזמן בלימה. מה תעשו?",
+   "problem": "המצב קובע במפורש רכב עם ABS ודוושה רוטטת, והתשובה משחזרת את הכלל בדיוק.",
+   "suggestion": "",
+   "id": "F34",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 5,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "לסובב את ההגה בעדינות לכיוון ההחלקה",
+   "problem": "לא קשורה למצב המתואר, אפשר לפסול בלי ידיעת החומר.",
+   "suggestion": "",
+   "id": "F35",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "להאיץ כדי לצאת מהערפל, ולהדליק אורות גבוהים",
+   "problem": "ברורה כמסוכנת ושגויה גם בלי ידיעת החומר.",
+   "suggestion": "",
+   "id": "F36",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "בערפל כבד הראות מתחת ל-50 מ׳. איפה עוצרים?",
+   "problem": "המצב קובע במפורש ראות מתחת ל-50 מ׳ והשאלה משחזרת את הכלל היכן מותר ואסור לעצור.",
+   "suggestion": "",
+   "id": "F37",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "לעצור בנתיב הנסיעה, ולהדליק אורות גבוהים; לעצור מיד אחרי העקומה, בלי אורות חירום; לעצור על השול בעקומה, ולהדליק אורות חירום",
+   "problem": "ברורה כמסוכנת ושגויה גם בלי ידיעת החומר.; מפירה איסור מפורש בברור, אפשר לפסול בלי ידיעת החומר.; מיקום האסור במפורש, אפשר לפסול גם בלי הכרת החומר.",
+   "suggestion": "",
+   "id": "F38",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "pedagogy",
+   "category": "repetition",
+   "screen": 5,
+   "where": "block 2 (list)",
+   "evidence": "אם האחורי מחליק: מורידים רגל מהגז ומסובבים את ההגה בעדינות לכיוון ההחלקה. | אם הקדמי לא מגיב להגה: משחררים גז ומיישרים מעט את ההגה עד שחוזרת אחיזה. | כל רכבי הצי משנת 2019 ואילך מצוידים ב-ABS.",
+   "problem": "הרשימה חוזרת על תגובות להחלקה ועל עובדת ABS שכבר נלמדו במסך 4, ללא תוספת.",
+   "suggestion": "למחוק את הרשימה החוזרת ולהשאיר במסך 5 רק הוראות בלימה.",
+   "id": "F44",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 1,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "לשובץ אותו למשמרת חלוקה ולהשאיר את ההדרכה לאחרי החגים",
+   "problem": "אורי משובץ כבר למחר בבוקר למשאית חלוקה ומתכוון לעשות את ההדרכה רק אחרי החגים; המצגת לא קובעת מתי החגים ביחס ל־1 בדצמבר, כך שלא ברור אם הדחייה תחלוף את המועד האחרון. שיבוץ לחלוקה לפני סיום ההדרכה מסכן את הכלל של המועד האחרון (1 בדצמבר), במיוחד אם “אחרי החגים” חל אחרי התאריך הזה.",
+   "suggestion": "",
+   "id": "F46",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 1,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "לקצר את ההדרכה כדי שיסיים מהר",
+   "problem": "אין סמכות לקצר הדרכה חובה, ואין בכך מענה לדרישה להשלמה במלואה עד 1 בדצמבר.",
+   "suggestion": "",
+   "id": "F47",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 1,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "לשובץ אותה למשמרת חלוקה ולהשאיר את ההדרכה לאחרי החגים",
+   "problem": "נועה משובצת למחר ודוחה את ההדרכה; תזמון החגים ביחס ל־1 בדצמבר לא מפורט, כך שלא ברור אם “אחרי החגים” יחלוף את המועד האחרון. שיבוץ לחלוקה לפני סיום ההדרכה מסכן את כלל המועד האחרון, במיוחד אם “אחרי החגים” חל אחרי 1 בדצמבר.",
+   "suggestion": "",
+   "id": "F48",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 1,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "לבטל את ההדרכה כי היא כבר הייתה בחופשה; להפנות אותה רק לשאלות בלבד",
+   "problem": "חזרה מחופשה אינה פטור מהדרכה, והכלל חל על כל נהגי החברה.; השאלות הן סוף ההדרכה ולא תחליף לה; אין כלל התומך באפשרות זו.",
+   "suggestion": "",
+   "id": "F49",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "לשמור על המרחק כמו בקיץ ולהאיץ; להאיץ ולעקוף את הרכב שלפניכם",
+   "problem": "הפער הקצר (כ־1.6 שניות) רחוק מהנדרש למשאית בגשם (6 שניות), והאצה מנוגדת להוראת ההאטה ב־20 קמ״ש.; עקיפה דורשת מרחק גדול יותר מזה הקיים ומפירה את חובת שמירת מרחק הבטיחות במשאית בגשם.",
+   "suggestion": "",
+   "id": "F50",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "לעצור בצד כי אי אפשר לנסוע ברכב קל בגשם; להאיץ ולשמור על מרחק של 3 שניות",
+   "problem": "הכלל אינו אוסר נסיעה בגשם אלא קובע מהירות ומרחק; עצירה מוחלטת מיותרת.; הפער 3 שניות מתחת ל־4 שניות הנדרשות לרכב קל בכביש רטוב, והאצה מנוגדת להוראת ההאטה.",
+   "suggestion": "",
+   "id": "F51",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "להוריד את לחץ האוויר בצמיגים כדי לשפר אחיזה",
+   "problem": "אין בסיס בהוראות להורדת לחץ אוויר, והיא אינה מטפלת בעומק החריץ החסר ב־2.4 מ״מ.",
+   "suggestion": "",
+   "id": "F52",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "להוסיף עומס למשאית כדי לשפר את האחיזה",
+   "problem": "הוספת עומס אינה תחליף לעומק חריץ תקין, והצד ב־2.8 מ״מ מתחת לדרישת המינימום.",
+   "suggestion": "",
+   "id": "F53",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "answer_length",
+   "category": "answer_length",
+   "screen": 1,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "להסביר לאורי שההדרכה נמשכת כ-10 דקות ושהוא צריך להשלים אותה לפני השיבוץ, אחרת הוא לא ישובץ למשמרות חלוקה",
+   "problem": "התשובה הנכונה ארוכה בהרבה מהמסיחים (104 תווים מול 48–67), ואפשר לנחש אותה לפי האורך.",
+   "suggestion": "",
+   "id": "F55",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 5,
+   "where": "block 1 (paragraph)",
+   "evidence": "ברכב עם ABS לוחצים חזק ורציף על הבלם, וגם כשהדוושה רוטטת תחת הרגל ממשיכים ללחוץ.",
+   "problem": "העובדה כבר נלמדת במסך 4, בלוק 1. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F56",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 5,
+   "where": "block 2 (stop_and_think)",
+   "evidence": "כדאי לדעת מראש באיזה רכב אתם יושבים.",
+   "problem": "העובדה כבר נלמדת במסך 5, בלוק 1. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F57",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 7,
+   "where": "block 2 (multiple_choice), main",
+   "evidence": "לסיים את שתי השליחות שנותרו, ולדווח רק כשמתפנים בסוף המשמרת",
+   "problem": "ההחלקה אירעה לפני כמה דקות ועוד נותרו שתי שליחות; אפשרות B דוחה את הדיווח לסוף המשמרת, שהוא מאוחר יותר מהמיידי ואינו מבטיח עמידה בחלון שתי השעות. דחיית הדיווח לסוף המשמרת מסתכנת באיחור מעבר למועד של שתי שעות שנקבע בכל הכלל, אף שהכיוון (לדווח למוקד) נכון.",
+   "suggestion": "",
+   "id": "F58",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 8,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "לדווח על ההחלקה למוקד הצי רק בסוף המשמרת, ולשאול את רכז הבטיחות על ההדרכה",
+   "problem": "החלקה אירעה קלות בחזרה מהשליחה הראשונה (לאחרונה, בתוך שתי שעות), ורצון לשאול על ההדרכה. האפשרות מציעה דיווח רק בסוף המשמרת (מועד מאוחר שעלול לחרוג משתי שעות) ופנייה לרכז הבטיחות בעניין ההדרכה (הכוונה נכונה). החלקה בשאלה על ההדרכה מכוונת נכון, אך דחיית דיווח ההחלקה לסוף המשמרת מסתכנת באיחור מעבר לחלון שתי השעות.",
+   "suggestion": "",
+   "id": "F59",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "pedagogy",
+   "category": "question_overlap",
+   "screen": 5,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "אתם נוהגים ברכב מהצי משנת 2020, והרכב שלפניכם נעצר בפתאומיות. אתם לוחצים על הבלם והדוושה מתחילה לרטוט תחת הרגל. מה תעשו?",
+   "problem": "השאלה החלופית בודקת רק רכב עם ABS בעת רטיטת דוושה, בעוד הראשית בודקת גם רכב ללא ABS וגם רכב עם ABS — מטרה שונה.",
+   "suggestion": "לשכתב את החלופית כך שתכלול השוואה בין רכב עם ABS וללא ABS במצב חדש.",
+   "id": "F60",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "pedagogy",
+   "category": "question_overlap",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "ערפל בכביש בין-עירוני. אתם רואים עמוד תאורה אחד, והעמוד שאחריו כבר נעלם. לפניכם עקומה. מה תעשו מיד עם המהירות ועם התאורה?",
+   "problem": "השאלה החלופית בודקת רק מצב של עמודה אחת, בעוד הראשית בודקת גם שני עמודים וגם שינוי לעמודה אחת — מטרה שונה.",
+   "suggestion": "לשכתב את החלופית כך שתכלול את שני התנאים במצב חדש.",
+   "id": "F61",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 29,
+  "total": 30,
+  "missing": [
+   "בהחלקה: רגל מהגז והיגוי עדין"
+  ],
+  "percent": 97
+ },
+ "review": {
+  "failed": {
+   "single_answer 4, 5, 6": "NodeError: evaluator: AllModelsFailedError(\"all models failed; last error: OpenAIRateLimitError('Error code: 429 - Provider returned error')\")"
+  },
+  "budget_stop": {
+   "used": 25,
+   "needed": 7,
+   "budget": 29
+  }
+ },
+ "writer_models": [
+  "baidu/ernie-5.5-flash-preview:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "baidu/ernie-5.5-flash-preview:free"
+ ],
+ "calls": 25,
+ "cost_usd": 0.0,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 535,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 1192,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1296,
+   "completion_tokens": 1004,
+   "cost_usd": 0.0
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 2086,
+   "completion_tokens": 17431,
+   "cost_usd": 0.0
+  },
+  "write_lesson": {
+   "calls": 2,
+   "prompt_tokens": 7686,
+   "completion_tokens": 82017,
+   "cost_usd": 0.0
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 14468,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 16,
+   "prompt_tokens": 113709,
+   "completion_tokens": 201092,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 2,
+   "prompt_tokens": 23062,
+   "completion_tokens": 82051,
+   "cost_usd": 0.0
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 3,
+   "prompt_tokens": 2842,
+   "completion_tokens": 16195,
+   "cost_usd": 0.0
+  },
+  "baidu/ernie-5.5-flash-preview:free": {
+   "calls": 6,
+   "prompt_tokens": 34130,
+   "completion_tokens": 182503,
+   "cost_usd": 0.0
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 16,
+   "prompt_tokens": 113709,
+   "completion_tokens": 201092,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 3.4,
+  "classify_type": 7.8,
+  "gate_type": 0.0,
+  "topic_map": 6.4,
+  "gate_topics": 0.0,
+  "plan_structure": 79.4,
+  "gate_structure": 0.0,
+  "write_lesson": 342.6,
+  "assemble_lesson": 0.1,
+  "evaluator": 675.7,
+  "fix_screens": 348.9,
+  "gate_review": 0.0,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 2,
+  "assemble_lesson": 2,
+  "evaluator": 2,
+  "fix_screens": 1,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 535,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 1192,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1296,
+   "completion_tokens": 1004,
+   "cost": 0.0
+  },
+  {
+   "node": "plan_structure",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 2086,
+   "completion_tokens": 17431,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 4147,
+   "completion_tokens": 37747,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 3539,
+   "completion_tokens": 44270,
+   "cost": 0.0
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 14468,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7056,
+   "completion_tokens": 4836,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7060,
+   "completion_tokens": 14720,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2540,
+   "completion_tokens": 9829,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3307,
+   "completion_tokens": 16889,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8226,
+   "completion_tokens": 13576,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8466,
+   "completion_tokens": 2009,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3922,
+   "completion_tokens": 16536,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8317,
+   "completion_tokens": 15065,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9860,
+   "completion_tokens": 11088,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8226,
+   "completion_tokens": 7537,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 11640,
+   "completion_tokens": 29900,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 11422,
+   "completion_tokens": 52151,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9922,
+   "completion_tokens": 4146,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8768,
+   "completion_tokens": 11784,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3055,
+   "completion_tokens": 16201,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10025,
+   "completion_tokens": 19561,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 4038,
+   "completion_tokens": 22916,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10921,
+   "completion_tokens": 14399,
+   "cost": 0.0
+  }
+ ]
+}

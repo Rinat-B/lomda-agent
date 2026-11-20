@@ -1,0 +1,4 @@
+[INFO] ניטור LangSmith פעיל (פרויקט: lomda-agent)
+סוג הלומדה: הכשרה.
+מפת הנושאים אושרה. ממשיכים לתכנון מבנה הלומדה.
+{"experiment": "compare-nemotron-3.5-super-vl-free-1", "error": "NodeError: plan_structure: AllModelsFailedError(\"all models failed; last error: OpenAITimeoutError('Request timed out.')\")", "duration_sec": 155.9, "screens": 0, "calls": 3, "cost_usd": 0.0, "review_round": 0, "findings_total": 0, "findings_fixed": 0, "open_findings": 0, "coverage": null}

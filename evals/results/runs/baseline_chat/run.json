@@ -1,0 +1,15 @@
+{
+ "error": null,
+ "usage_records": [
+  {
+   "node": "baseline",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 5728,
+   "completion_tokens": 7791,
+   "cost": 0.089366
+  }
+ ],
+ "calls": 1,
+ "duration_sec": 46.89100000000326,
+ "screens": 6
+}

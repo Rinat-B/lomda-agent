@@ -1,0 +1,5 @@
+[INFO] ניטור LangSmith פעיל (פרויקט: lomda-agent)
+סוג הלומדה: הכשרה.
+מפת הנושאים אושרה. ממשיכים לתכנון מבנה הלומדה.
+מבנה הלומדה אושר. כותבים את המסכים...
+{"experiment": "compare-nemotron-3.5-super-vl-free-2", "error": "NodeError: write_lesson: ValueError('no writer model produced valid screens: nvidia/nemotron-3.5-super-vl:free: screen 5: the plan has decision diagram; add the decision_diagram block; screen 6: the plan has illustration; add the illustration block | nvidia/nemotron-3.5-super-vl:free: screens [None] were not requested; write exactly screens [4, 5, 6]; screen 5: the plan has decision diagram; add the decision_diagram block; screen 6: the plan has illustration; add the illustration block; summary is missing: give 3-6 short points')", "duration_sec": 483.9, "screens": 0, "calls": 7, "cost_usd": 0.0, "review_round": 0, "findings_total": 0, "findings_fixed": 0, "open_findings": 0, "coverage": null}

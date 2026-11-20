@@ -1,0 +1,513 @@
+{
+ "experiment": "compare-claude-sonnet-5.5-2",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "anthropic/claude-sonnet-5.5"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 1476.0,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 9,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 2,
+ "findings_total": 53,
+ "findings_fixed": 41,
+ "open_findings": [
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "להקטין את הפער ל-2 שניות, כדי שנהגים אחרים לא ייכנסו ביניהם; להשאיר את הפער כ-3 שניות, כי הטנדר קטן והמשאית יכולה לעצור מהר ממנו",
+   "problem": "הקטנת מרחק בעקיבה בכביש רטוב היא מסוכנת ברורה גם ללא הכרת החומר.; הנחה שמשאית עמוסה עוצרת מהר מטנדר היא רשלנית ומסוכנת גם ללא ידיעת החומר.",
+   "suggestion": "",
+   "id": "F30",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "להקטין את הפער, כי בכביש רטוב ההתקדמות איטית ממילא",
+   "problem": "הקטנת מרחק בעקיבה בכביש רטוב היא רשלנות ברורה גם ללא ידיעת החומר.",
+   "suggestion": "",
+   "id": "F31",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "לצאת, ולבדוק את הצמיגים שוב רק בסוף היום; לצאת, כי צמיג קדמי אחד לא משפיע על מרחק הבלימה",
+   "problem": "יציאה עם צמיג פגום ודחיית הטיפול לסוף היום היא רשלנות ברורה גם ללא ידיעת החומר.; הטענה כי צמיג אחד אינו משפיע על בלימה היא רשלנית ומסוכנת גם ללא ידיעת החומר.",
+   "suggestion": "",
+   "id": "F32",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "הצמיג תקין, כי בגשם אין חשיבות לעומק החריץ",
+   "problem": "אמירה כי בגשם אין חשיבות לעומק חריץ היא מסוכנת ברורה.",
+   "suggestion": "",
+   "id": "F33",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "להמשיך ללחוץ על הגז ולסובב את ההגה שמאלה",
+   "problem": "סותר את הכלל (יש להוריד רגל מהגז) וברור כרשלני ומסוכן גם בלי להכיר את החומר.",
+   "suggestion": "",
+   "id": "F34",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "להוסיף גז ולסובב את ההגה עוד יותר; להחזיק את ההגה במצבו ולהמשיך ללחוץ על הגז",
+   "problem": "הפוך מהכלל ומסוכן וברור כמוטעה גם ללא הכרת החומר.; סותר את הכלל בשני מישורים וברור כטיפול לא תקין בלא ידיעת הכלל.",
+   "suggestion": "",
+   "id": "F35",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 8,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "אתם נוסעים בכביש רטוב שהמהירות המותרת בו 90 קמ״ש. באיזו מהירות תיסעו לפי כללי החורף?",
+   "problem": "השאלה מציגה את התנאי המרכזי (כביש רטוב, מהירות מותרת 90 קמ״ש) ומבקשת ליישם את הכלל המפורש להפחית 20 קמ״ש; אין צורך בפרשנות של פרטי מצב מעורפלים.",
+   "suggestion": "",
+   "id": "F42",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "question_overlap",
+   "category": "question_overlap",
+   "screen": 7,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "אותה החלטה כמו במסך 6, בלוק 5",
+   "problem": "שתי שאלות במסכים שונים בודקות את אותה החלטה, עם כמעט אותה תשובה נכונה.",
+   "suggestion": "",
+   "id": "F49",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "אתם נוסעים בכביש בין-עירוני בערפל כבד, ומבינים שהראות ירדה מתחת ל-50 מ׳. מה עליכם להחליט?",
+   "problem": "המצב קובע במפורש את התנאי המכריע (ראות ירדה מתחת ל-50 מ׳) והלומד רק משחזר את הכלל: מה לעשות כשהראות מתחת ל-50 מ׳ ואילו אורות להדליק.",
+   "suggestion": "",
+   "id": "F50",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 8,
+   "where": "block 2 (list)",
+   "evidence": "בהחלקה: רגל מהגז והיגוי עדין.",
+   "problem": "העובדה כבר נלמדת במסך 4, בלוק 3. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F51",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "pedagogy",
+   "category": "question_overlap",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "שאלה ראשית: אתם נוסעים בכביש בין-עירוני בערפל במהירות 80 קמ״ש, ורואים לפניכם רק עמוד תאורה אחד. מה עליכם להחליט לעשות עכשיו? שאלה חלופית: אתם נוסעים בכביש בין-עירוני בערפל סמיך, כבר האטתם ל-50 קמ״ש והדלקתם אורות ערפל. עמוד התאורה שחלפתם נעלם מאחוריכם, ולפניכם אינכם רואים אף עמוד, אף שהמרחק בין עמודים בכביש הזה כ-50 מ׳. מה תחליטו?",
+   "problem": "השאלה החלופית בודקת החלטה שונה מהשאלה הראשית: עצירה בצד והדלקת אורות חירום בראות מתחת ל-50 מ׳, במקום האטה ל-50 קמ״ש והדלקת אורות ערפל בראות מתחת ל-100 מ׳. מכיוון שהיא מוצגת בניסיון חוזר, עליה לבחון את אותה מטרה במצב חדש.",
+   "suggestion": "לשנות את השאלה החלופית כך שתבדוק את אותה החלטה (האטה ל-50 קמ״ש עם אורות ערפל בראות מתחת ל-100 מ׳) במצב חדש, למשל ראות של עמוד אחד בתנאי ערפל אחרים.",
+   "id": "F52",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "לעצור מיד על השול ולהדליק אורות חירום",
+   "problem": "רואים רק עמוד אחד קדימה. הכלל קובע: רואים פחות משני עמודים → ראות מתחת ל-100 מ׳. עמוד אחד הוא פחות משניים, כך שהוכחה ראות מתחת ל-100 מ׳ בלבד; הכלל לא קובע כי עמוד אחד פירושו ראות מתחת ל-50 מ׳ (העמודים במרחק כ-50 מ׳ זה מזה ועדיין רואים אחד), ולכן התנאי לעצירה (מתחת ל-50 מ׳) לא מבוסס על הנתונים ונשאר פתוח. הכלל המחייב עצירה דורש ראות מתחת ל-50 מ׳ ומקום בטוח; עמודה אחד נראה רק מוכיח ראות מתחת ל-100 מ׳, לכן חובת הכלל היא האטה ל-50 ואורות ערפל (תשובה B), בעוד עצירה מידית בשול אינה מבוססת ועלולה להיות אסורה או מסוכנת אם היא בעקומה או מיד אחריה.",
+   "suggestion": "",
+   "id": "F53",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 29,
+  "total": 29,
+  "missing": [],
+  "percent": 100
+ },
+ "review": {
+  "failed": {
+   "single_answer 2, 3, 4": "NodeError: evaluator: AllModelsFailedError(\"all models failed; last error: OpenAIRateLimitError('Error code: 429 - Provider returned error')\")"
+  }
+ },
+ "writer_models": [
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5",
+  "anthropic/claude-sonnet-5.5"
+ ],
+ "calls": 28,
+ "cost_usd": 0.97596,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 771,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 1115,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1751,
+   "completion_tokens": 752,
+   "cost_usd": 0.011022
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 3011,
+   "completion_tokens": 5978,
+   "cost_usd": 0.065802
+  },
+  "write_lesson": {
+   "calls": 3,
+   "prompt_tokens": 12550,
+   "completion_tokens": 21786,
+   "cost_usd": 0.24296
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 13807,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 15,
+   "prompt_tokens": 100640,
+   "completion_tokens": 237489,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 5,
+   "prompt_tokens": 61398,
+   "completion_tokens": 53338,
+   "cost_usd": 0.656176
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 3,
+   "prompt_tokens": 2842,
+   "completion_tokens": 15693,
+   "cost_usd": 0.0
+  },
+  "anthropic/claude-sonnet-5.5": {
+   "calls": 10,
+   "prompt_tokens": 78710,
+   "completion_tokens": 81854,
+   "cost_usd": 0.97596
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 15,
+   "prompt_tokens": 100640,
+   "completion_tokens": 237489,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 9.4,
+  "classify_type": 7.5,
+  "gate_type": 0.0,
+  "topic_map": 8.0,
+  "gate_topics": 0.0,
+  "plan_structure": 48.4,
+  "gate_structure": 0.0,
+  "write_lesson": 167.9,
+  "assemble_lesson": 0.5,
+  "evaluator": 877.0,
+  "fix_screens": 356.8,
+  "gate_review": 0.1,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 3,
+  "assemble_lesson": 3,
+  "evaluator": 3,
+  "fix_screens": 2,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 771,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 1115,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 1751,
+   "completion_tokens": 752,
+   "cost": 0.011022
+  },
+  {
+   "node": "plan_structure",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 3011,
+   "completion_tokens": 5978,
+   "cost": 0.065802
+  },
+  {
+   "node": "write_lesson",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 4274,
+   "completion_tokens": 6541,
+   "cost": 0.073958
+  },
+  {
+   "node": "write_lesson",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 4274,
+   "completion_tokens": 6985,
+   "cost": 0.078398
+  },
+  {
+   "node": "write_lesson",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 4002,
+   "completion_tokens": 8260,
+   "cost": 0.090604
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 13807,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8850,
+   "completion_tokens": 2622,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10020,
+   "completion_tokens": 9592,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10111,
+   "completion_tokens": 12280,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8854,
+   "completion_tokens": 14026,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3616,
+   "completion_tokens": 20323,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3638,
+   "completion_tokens": 23781,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3444,
+   "completion_tokens": 20596,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 16050,
+   "completion_tokens": 10684,
+   "cost": 0.13894
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 15715,
+   "completion_tokens": 16100,
+   "cost": 0.19243
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 4356,
+   "completion_tokens": 3529,
+   "cost": 0.044002
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10089,
+   "completion_tokens": 5906,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8920,
+   "completion_tokens": 13359,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2865,
+   "completion_tokens": 13713,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 4117,
+   "completion_tokens": 19749,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3332,
+   "completion_tokens": 18090,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10189,
+   "completion_tokens": 22894,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 12474,
+   "completion_tokens": 11480,
+   "cost": 0.139748
+  },
+  {
+   "node": "fix_screens",
+   "model": "anthropic/claude-sonnet-5.5",
+   "prompt_tokens": 12803,
+   "completion_tokens": 11545,
+   "cost": 0.141056
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10239,
+   "completion_tokens": 14294,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2356,
+   "completion_tokens": 26264,
+   "cost": 0.0
+  }
+ ]
+}
