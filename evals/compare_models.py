@@ -146,7 +146,7 @@ def row_for(model: str, run: int, summary: dict, scores: dict | None, valid: boo
         "calls": summary.get("calls"), "screens": summary.get("screens"),
         **{c: (s.get(c) or {}).get("score") for c in ("relevance", "accuracy", "completeness", "format")},
         "judge_avg": s.get("average"), "schema_valid": valid, "coverage_pct": coverage,
-        "open_findings": len(summary.get("open_findings") or []) if "open_findings" in summary else "",
+        "open_findings": len(summary.get("open_findings") or []) if summary.get("screens") else "",
         "cost_usd": actual, "theoretical_cost_usd": theoretical, "notes": "; ".join(n for n in notes if n),
     }
 
@@ -244,6 +244,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--writers", default=",".join(DEFAULT_WRITERS))
     parser.add_argument("--no-baseline", action="store_true")
     parser.add_argument("--baseline-only", action="store_true")
+    parser.add_argument("--first-run", type=int, default=1, help="number of the first run (for extra runs)")
+    parser.add_argument("--note", default="", help="added to the notes of every row, e.g. extra")
+    parser.add_argument("--paid-estimate", type=float, default=PAID_RUN_ESTIMATE_USD,
+                        help="USD a paid run is assumed to cost before the budget check")
     args = parser.parse_args(argv)
     configure_stdio()
     load_dotenv(ROOT / ".env")
@@ -254,11 +258,11 @@ def main(argv: list[str] | None = None) -> int:
     chunks = source_chunks()
     points = fixed_key_points(chunks)
     log(f"key points: {len(points)}; judge: {default_judge_model()}; checkers: {checker}; small: {small}")
-    paid_estimate = PAID_RUN_ESTIMATE_USD
+    paid_estimate = args.paid_estimate
     if not args.baseline_only:
-        for run in range(1, args.runs + 1):
+        for run in range(args.first_run, args.first_run + args.runs):
             for writer in writers:
-                notes = []
+                notes = [args.note]
                 paid = not writer.endswith(":free")
                 if paid and not can_spend(paid_estimate + JUDGE_ESTIMATE_USD):
                     log(f"skip {writer} run {run}: budget {status()}")

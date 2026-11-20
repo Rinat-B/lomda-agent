@@ -245,7 +245,7 @@ Nov 15, 2026 · @רינת וייס
 
 | תפקיד (`models.yaml`) | פרופיל `free` (ברירת מחדל) | פרופיל `balanced` | מחיר ב-balanced למיליון טוקנים (קלט / פלט) |
 | --- | --- | --- | --- |
-| `writer`: כתיבה, מפת נושאים, תשובות, המחשות | `nvidia/nemotron-3.5-super-vl:free`, ואחריו nemotron-3-ultra ו-gemma-4-31b | `anthropic/claude-sonnet-5.5` (חלופה: `anthropic/claude-sonnet-5`) | $2.00 / $10.00 |
+| `writer`: כתיבה, מפת נושאים, תשובות, המחשות | `baidu/ernie-5.5-flash-preview:free`, ואחריו nemotron-3.5-super-vl ו-nemotron-3-ultra (סדר לפי המדידה ביום 5) | `anthropic/claude-sonnet-5.5` (חלופה: `anthropic/claude-sonnet-5`) | $2.00 / $10.00 |
 | `checker`: בודקים, עברית, שופט ה-evals | `google/gemma-4-31b-it:free` (משפחה אחרת מהכותב) | `google/gemini-3.8-flash` (חלופה: `google/gemini-3.7-flash`) | $0.83 / $4.12 |
 | `small`: סיווג, חילוץ, guardrails, תשובות לשערים | `nvidia/nemotron-3.5-lightning:free` | `google/gemini-3.1-flash-lite` (חלופות: `google/gemini-3.5-flash-lite`, מודל `:free`) | $0.25 / $1.50 |
 | מוטיב | שני מודלי `:free` במקביל | Sonnet + Flash במקביל | — |
@@ -438,8 +438,8 @@ lomda-agent/
 | 4 | 19.11 | injection_guard, classify_type (הכשרה/ציות), plan_structure ושער 2 | הושלם |
 | 5 | 20.11 | lesson.schema.json, נגן HTML, צומת הכותב | הושלם |
 | 6 | 22.11 | בודקים ו-evaluator, שער 3, write_files עם `[Y/N]`, פרסום, report.md: לומדה מקצה לקצה | הושלם |
-| 7 | 23.11 | שלושת ה-evals, rubric.md, מצב `--auto`, CSV | |
-| 8 | 24.11 | README, manifest.json, Release ראשון: גרסה שאפשר להגיש | |
+| 7 | 23.11 | שלושת ה-evals, rubric.md, מצב `--auto`, CSV | הושלם (20.11) |
+| 8 | 24.11 | README, manifest.json, Release ראשון: גרסה שאפשר להגיש | README, manifest ו-workflow מוכנים; ה-Release עוד לא פורסם |
 | 9 | 25.11 | research עם אימות מקורות; המחשות אינטראקטיביות ובדיקת דפדפן עם `[Y/N]` | |
 | 10 | 26–27.11 | תרשימי החלטה, מוטיב וניקוי SVG, /summary, MAX_COST_USD | |
 | 11 | 29.11 | evals סופיים, תיקונים, 2 לומדות דמו, exe סופי, Release v1.0, מעבר על המטריצה | |
@@ -473,7 +473,9 @@ lomda-agent/
 - **מסכים לנושא:** כל נושא מקבל מסך אחד; מסך שני רק כשהנושא מלמד יותר מהחלטה נפרדת אחת (בהרצה שבה הותרו 1–3 מסכים לנושא יצאו 13 מסכים מ-5 שקופיות, עם חזרות). עיקרון לכותב, עם הסבר: כל עובדה נלמדת פעם אחת, כי חזרה מאריכה ומסתירה את החדש. רשימה מחליפה פסקה ולא חוזרת עליה; ההסבר של "עצרו וחשבו" נותן את הנימוק ולא את משפט הכלל שוב; "הידעת?" רק לעובדה שלא מופיעה בשום מקום אחר; השאלה החלופית בודקת את אותה מטרה כמו המקורית.
 - **הרצות אמיתיות מקצה לקצה (free, short_winter.pptx):** 19.11 (אימות בקריאה מסכמת): 8 מסכים, 28 קריאות, 26 דקות, 46 מתוך 56 "תוקנו", אבל בדיקה ידנית הראתה שהאימות מקל. 20.11 (אימות על ידי אותו בודק, כיסוי מול נקודות המקור): 7 מסכים, 23 קריאות (5 עד הכתיבה כולל חילוץ הנקודות, 3 כתיבה, 11 בדיקות, 4 תיקונים), 28 דקות, $0; כיסוי 25/25; 26 ממצאים: 17 תוקנו, 9 פתוחים; עובדות שחוזרות (בדיקת הקוד) ירדו מ-21 בלוקים ל-2, ו"הידעת?" שחוזר מ-4 ל-0. שש בדיקות חוזרות נכשלו ב-429 מהספק, והממצאים שלהן נשארו פתוחים. מספרים במילים ("פי שניים") נקראים כספרות (`number_words` ב-checker_words_he.json).
 - **מדיה ב-plan_structure:** המחשה מתוכננת רק כשהלומד משנה משהו ושופט את התוצאה (תרגול החלטה או קשר בין כמויות), לא לסימון תיבה, חשיפת כלל, כרטיס, ציר זמן או רשימה; רוב המסכים בלי. תרשים החלטה רק כשלכל שאלה לפחות שתי תוצאות; מקרים מקבילים של כלל אחד הם רשימה.
+- **Evals (יום 7):** `evals/run_agent.py` מריץ את כל הגרף בלי מקלדת (תשובות שערים מתסריט, ברירת מחדל Y; ל-`write_files` תמיד N, והריצה שומרת בעצמה ל-`evals/results/runs/`), עם פרופיל ומודלים לכל תפקיד מבחוץ (`set_role_models` ב-`agent/llm.py`) ותיוג ב-LangSmith לפי שם הניסוי; זה ה"מצב --auto" (לא נוסף דגל ל-CLI). שופט קבוע: `google/gemini-3.8-flash` (ה-checker הראשון של balanced), `evals/judge.py`, לפי `evals/rubric.md` (4 קריטריונים, 1–5). eval 1 (`compare_models.py`): לומדה מלאה, רק הכותב משתנה; הבודקים והמודל הקטן הם הרשימות של free (קבועים, בגלל התקציב), כל ריצה בתהליך נפרד עם תקרה של 45 דקות, כיסוי מול רשימת נקודות קבועה, ושורת baseline_chat (פרומפט אחד ל-Sonnet). eval 2 (`cost_eval.py`): משתמש בריצות של eval 1 ומוסיף בדיקת עברית; עלות תיאורטית = טוקנים × מחיר מודל ה-balanced של אותו תפקיד (`evals/costs.py`, `prices.json`). eval 3 (`scope_eval.py`): דרך `scope_check` ו-`/add`, בשני הפרופילים. בדיקת עלות לפני שלב בתשלום: `evals/budget.py` (GET /api/v1/key). התוצאות ב-`evals/results/README.md`.
 - **ה-exe:** `scripts/build.ps1`; שרת ה-MCP רץ כ-`agent.exe --mcp source-reader`. אם `dist\agent.exe` נעול (חלון או טרמינל של VS Code עדיין מריצים אותו), הסקריפט בונה ל-`dist-new` ומבקש לסגור את החלון; ה-build הבא שמוצא את הקובץ פנוי בונה שוב ל-`dist` ומוחק את `dist-new` (`dist-new/` ב-`.gitignore`).
+- **Release:** `.github/workflows/release.yml` בונה את agent.exe על windows-latest כשנדחף תג `v*`, מריץ את בדיקות היחידה ובדיקת עשן, ומצרף את הקובץ ל-Release. `manifest.json` מצביע על `releases/latest/download/agent.exe`.
 
 ## מקורות
 

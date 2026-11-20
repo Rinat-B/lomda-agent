@@ -1,8 +1,9 @@
 model,run,is_free,duration_sec,calls,screens,relevance,accuracy,completeness,format,judge_avg,schema_valid,coverage_pct,open_findings,cost_usd,theoretical_cost_usd,notes
 baidu/ernie-5.5-flash-preview:free,1,True,1292,12,6,5,5,5,4,4.75,True,93.5,14,0.0,1.368191,"error: NodeError: fix_screens: ValueError(""no writer model produced valid screens: baidu/ernie-5.5-flash-preview:free: all mode; 3 checks failed (429)"
-nvidia/nemotron-3.5-super-vl:free,1,True,156,3,0,,,,,,False,,0,0.0,0.035573,"error: NodeError: plan_structure: AllModelsFailedError(""all models failed; last error: OpenAITimeoutError('Request timed out.'); no lesson to judge"
+nvidia/nemotron-3.5-super-vl:free,1,True,156,3,0,,,,,,False,,,0.0,0.035573,"error: NodeError: plan_structure: AllModelsFailedError(""all models failed; last error: OpenAITimeoutError('Request timed out.'); no lesson to judge"
 anthropic/claude-sonnet-5.5,1,False,1091,27,8,5,5,5,5,5.0,True,100.0,1,0.798472,1.676735,
 baidu/ernie-5.5-flash-preview:free,2,True,1465,25,8,5,5,5,3,4.5,True,96.8,38,0.0,2.75767,1 checks failed (429)
-nvidia/nemotron-3.5-super-vl:free,2,True,484,7,0,,,,,,False,,0,0.0,0.671772,error: NodeError: write_lesson: ValueError('no writer model produced valid screens: nvidia/nemotron-3.5-super-vl:free: screen 5; no lesson to judge
+nvidia/nemotron-3.5-super-vl:free,2,True,484,7,0,,,,,,False,,,0.0,0.671772,error: NodeError: write_lesson: ValueError('no writer model produced valid screens: nvidia/nemotron-3.5-super-vl:free: screen 5; no lesson to judge
 anthropic/claude-sonnet-5.5,2,False,1476,28,9,5,5,5,5,5.0,True,96.8,12,0.97596,1.966274,1 checks failed (429)
 baseline_chat,1,False,47,1,6,4,5,5,2,4.0,False,100.0,,0.089366,0.089366,"one prompt to anthropic/claude-sonnet-5.5, no agent"
+google/gemini-3.8-flash,1,False,778,23,5,5,5,4,5,4.75,True,93.5,12,0.260935,1.076566,one run: night budget
