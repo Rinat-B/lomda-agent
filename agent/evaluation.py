@@ -16,7 +16,7 @@ import json
 import re
 
 from agent.checkers import (
-    BATCH_SCREENS,
+    batch_screens,
     CODE_CHECKS,
     MODEL_CHECKS,
     Finding,
@@ -110,7 +110,7 @@ def recheck_jobs(findings: list[dict], screens: list[int]) -> list[tuple[str, tu
         if name not in per_check:
             continue
         numbers = sorted(per_check[name])
-        size = BATCH_SCREENS.get(MODEL_CHECKS[name]["format"])
+        size = batch_screens(MODEL_CHECKS[name]["format"])
         if size:
             jobs += [(name, tuple(numbers[i:i + size])) for i in range(0, len(numbers), size)]
         else:

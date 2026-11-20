@@ -1,4 +1,4 @@
-profile balanced: caught 18/19 (95%) in 146 s, 7 model calls, cost $0.2527
+profile balanced: caught 17/19 (89%) in 80 s, 8 model calls, cost $0.2166
 CAUGHT I01 התשובה הנכונה ארוכה בהרבה מהמסיחים (יחס אורך)  [by: answer_length]
 CAUGHT I02 מסיחים חלשים במסך 2: להאיץ, לצפצף, לעבור לנתיב הנגדי  [by: single_answer]
 CAUGHT I03 מסיחים חלשים במסכים 6-8: להאיץ, לצאת בכל זאת, לוותר על בדיקה, אין צורך באורות  [by: single_answer]
@@ -10,7 +10,7 @@ CAUGHT I08 מילה שגויה בכותרת האיור במסך 3: 'כמה נש�
 CAUGHT I09 משפט כפול בפסקה הראשונה במסך 1 (שלוש שאלות קצרות)  [by: language, repetition]
 CAUGHT I10 שאלה 6: עמוד אחד ≈ 50 מ׳, לכן גם 'לעצור בצד' סביר (יותר מתשובה נכונה אחת)  [by: single_answer]
 MISSED I11 שאלה 7: 'אחרי העקומה' מול 'מיד אחרי העקומה' – תרחיש לא חד
-CAUGHT I12 שאלה 1: התרחיש סותר את הכלל (משובץ אחרי 1 בדצמבר) ו'פנה לממונה' לא במקור  [by: grounding]
+MISSED I12 שאלה 1: התרחיש סותר את הכלל (משובץ אחרי 1 בדצמבר) ו'פנה לממונה' לא במקור
 CAUGHT I13 תרשים במסך 4: 'צריך לבלום' מקביל לסוגי ההחלקה, וענפים לא מגיעים לסוף  [by: diagrams, pedagogy]
 CAUGHT I14 תרשימים במסכים 6 ו-7: לשאלה הראשונה רק ענף 'כן'  [by: diagrams, pedagogy]
 CAUGHT I15 מסך 5 חוזר על הרשימה של מסך 4  [by: pedagogy, repetition]
@@ -19,7 +19,7 @@ CAUGHT I17 'הידעת' במסך 4 (דיווח תוך שעתיים) הוא כל�
 CAUGHT I18 שאלות שינון: החלופית של שאלה 6 (אורות גבוהים) והחלופית של שאלה 7 (אילו אורות)  [by: single_answer]
 CAUGHT I19 איורים שלא מוסיפים: מסכים 1, 5, 8  [by: illustrations]
 
-findings not in the list (27):
+findings not in the list (31):
 - [repetition/repetition] screen 1 block 2 (list): העובדה כבר נלמדת במסך 1, בלוק 1. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד. | ההדרכה מיועדת לכל נהגי החברה — גם לרכבים קלים וגם למשאיות חלוקה.
 - [repetition/repetition] screen 2 block 1 (paragraph): העובדה כבר נלמדת במסך 1, בלוק 5. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד. | בכביש רטוב מרחק העצירה גדל עד פי 2 לעומת כביש יבש.
 - [repetition/repetition] screen 2 block 2 (list): העובדה כבר נלמדת במסך 1, בלוק 5. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד. | בכביש רטוב מרחק העצירה גדל עד פי 2 לעומת כביש יבש.
@@ -34,23 +34,28 @@ findings not in the list (27):
 - [repetition/repetition] screen 8 block 2 (list): העובדה כבר נלמדת במסך 2, בלוק 2. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד. | שומרים מרחק של 4 עד 6 שניות.
 - [repetition/enrichment_misuse] screen 8 block 3 (did_you_know): "הידעת?" חוזר על עובדה שמופיעה גם במסך 5, בלוק 3. "הידעת?" הוא רק לעובדה שלא מופיעה בשום מקום אחר בלומדה. | חמשת הכללים מופיעים גם בכרטיס שבתא הנהג, ושאלות על ההדרכה מפנים לרכז הבטיחות של המרלו״ג.
 - [question_overlap/question_overlap] screen 3 block 5 (multiple_choice), alternate: שתי שאלות במסכים שונים בודקות את אותה החלטה, עם כמעט אותה תשובה נכונה. | אותה החלטה כמו במסך 2, בלוק 6
-- [language/language] screen 4 block 6 (multiple_choice): צירוף שגוי מבחינה דקדוקית ('בנגד'). | ולסובב את ההגה בנגד כיוון ההחלקה
-- [language/language] screen 6 block 4 (multiple_choice): ניסוח משובש ותחביר חסר. | כשראות פחות משני עמודי תאורה
-- [single_answer/distractors] screen 1 block 6 (multiple_choice), main: תגובה פסיבית ובלתי מקצועית שאינה מעוגנת במקורות. | לוותר על המשמרת, ולחכות שהממונה יבטל את השיבוץ בעצמו.
-- [single_answer/distractors] screen 3 block 5 (multiple_choice), main: מנוגד חמורות להנחיות הבטיחות ולכלל של 4 שניות.; פעולה בלתי מציאותית שאינה נדרשת במקורות. | לצמצם ל-2 שניות, כי ברכב קל אין בעיה לעצור.; לעצור בצד ולהחליף צמיגים.
-- [single_answer/distractors] screen 3 block 5 (multiple_choice), alternate: האצה בתנאים אלה מסוכנת ביותר וסותרת את הכללים. | אאיץ כדי להשלים את המרחק מהר יותר.
-- [pedagogy/enrichment_misuse] screen 2 block 5 (did_you_know): תיבת 'הידעת' מכילה כלל ליבה שכבר מופיע ברשימה שבאותו מסך ונבדק בשאלת התרגול. | מרחק העצירה של משאית חלוקה עמוסה בכביש רטוב ב-50 קמ״ש הוא 55 מ׳ — יותר מפי 2 מהמרחק של אותה משאית בכ
-- [illustrations/illustration_value] screen 4 block 7 (illustration): הלומד רק בוחר תרחיש וצופה בפעולה הנכונה המוצגת לו, מבלי לקבל החלטה פעילה או להתנסות בבחירת הפעולה הנכונה בעצמו. | סימולטור החלקה
-- [single_answer/recall_question] screen 8 block 5 (multiple_choice), alternate: השאלה מציגה את התנאי (כביש רטוב) והתשובה הנכונה משחזרת ומצטטת ישירות את הכלל של הורדת 20 קמ״ש ושמירת מרחק. | אתה יוצא לנסיעה בכביש רטוב. המהירות המותרת היא 90 קמ״ש. מה עליך לעשות?
-- [single_answer/distractors] screen 4 block 6 (multiple_choice), main: האצה בעת החלקה מנוגדת לכלל המורה להוריד רגל מהגז ומהווה פעולה מסוכנת באופן מובהק. | להאיץ כדי לייצב את הרכב.
-- [single_answer/distractors] screen 4 block 6 (multiple_choice), alternate: לחיצה חזקה על הגז כאשר ההגה אינו מגיב היא פעולה מסוכנת וחסרת היגיון. | להמשיך להחזיק את ההגה בכיוון הפנייה וללחוץ חזק על הגז.
-- [single_answer/recall_question] screen 5 block 6 (multiple_choice), main: השאלה מציגה מצב של החלקה ללא נזק ושואלת מתי יש לדווח; הלומד נדרש רק לשחזר את כלל הדיווח (תוך שעתיים למוקד הצי). | אתה נוהג בכביש רטוב והרכב מחליק קלות. אין נזק לרכב, ואתה חושב שאפשר לדווח רק בסוף היום. מה עליך לעשו
-- [single_answer/recall_question] screen 5 block 6 (multiple_choice), alternate: הסיטואציה מציינת ישירות שהחלק האחורי מחליק, והשאלה שואלת מה הפעולה הנדרשת; הלומד נדרש רק לשחזר את הכלל המתאים. | אתה נוסע ברכב הצי והאחור מחליק בכביש רטוב. מהי הפעולה הראשונה שעליך לבצע?
-- [single_answer/distractors] screen 5 block 6 (multiple_choice), alternate: פעולה בלתי אפשרית ומופרכת לביצוע תוך כדי החלקה של הרכב. | לבדוק את עומק החריץ בצמיגים
-call: google/gemini-3.8-flash in 10179 / out 4515 tokens, $0.0218
-call: google/gemini-3.8-flash in 3287 / out 4269 tokens, $0.0185
-call: google/gemini-3.8-flash in 11442 / out 6468 tokens, $0.0328
-call: google/gemini-3.8-flash in 10164 / out 6237 tokens, $0.0310
-call: google/gemini-3.8-flash in 11345 / out 9018 tokens, $0.0423
-call: google/gemini-3.8-flash in 2054 / out 5990 tokens, $0.0240
-call: google/gemini-3.8-flash in 3009 / out 21340 tokens, $0.0823
+- [pedagogy/enrichment_misuse] screen 2 block 5 (did_you_know): תיבת 'הידעת' חוזרת על נתונים וכללים שנלמדו במסך (בלוקים 2 ו-3) ואף נבדקים בשאלת התרגול. | מרחק העצירה של משאית חלוקה עמוסה בכביש רטוב ב-50 קמ״ש הוא 55 מ׳ — יותר מפי 2 מהמרחק של אותה משאית בכ
+- [pedagogy/enrichment_misuse] screen 5 block 5 (did_you_know): העובדה כבר נלמדה במסך הקודם (מסך 4, בלוק 3) ולכן אינה מהווה עובדה בלעדית לתיבת 'הידעת'. | כל רכבי הצי משנת 2019 ואילך מצוידים ב-ABS.
+- [single_answer/distractors] screen 1 block 6 (multiple_choice), main: התנהגות לא מקצועית וחסרת אחריות שאינה נתמכת בכלל כלשהו. | לוותר על המשמרת, ולחכות שהממונה יבטל את השיבוץ בעצמו.
+- [single_answer/distractors] screen 1 block 6 (multiple_choice), alternate: מבטא גישה פסיבית ומסוכנת שעלולה להביא לאי-עמידה בתאריך היעד 1 בדצמבר. | אשלים את ההדרכה רק אם יישאר לי זמן פנוי בסוף החודש.
+- [language/language] screen 4 block 6 (multiple_choice): צירוף מיליות לא תקין ("בנגד"). | בנגד כיוון ההחלקה
+- [language/language] screen 6 block 4 (multiple_choice): ניסוח משובש, חסרה מילה או שיש טעות בפועל. | כשראות פחות משני עמודי תאורה
+- [single_answer/distractors] screen 3 block 5 (multiple_choice), main: עומד בסתירה ישירה להנחיה לשמור 4 שניות ברכב קל בכביש רטוב, ומסוכן בעליל.; תגובה מופרכת ולא ריאלית לנהיגה שגרתית בכביש רטוב. | לצמצם ל-2 שניות, כי ברכב קל אין בעיה לעצור.; לעצור בצד ולהחליף צמיגים.
+- [single_answer/distractors] screen 3 block 5 (multiple_choice), alternate: פעולה מסוכנת וחסרת היגיון. | אאיץ כדי להשלים את המרחק מהר יותר.
+- [single_answer/recall_question] screen 4 block 6 (multiple_choice), main: השאלה מציגה את התנאי ישירות (האחור מתחיל להחליק) ודורשת לחזור על הפעולה המוגדרת בכלל. | אתה נוהג ברכב צי עם ABS, והאחור מתחיל להחליק בכביש רטוב. מה עליך לעשות?
+- [single_answer/distractors] screen 4 block 6 (multiple_choice), main: פעולה מסוכנת הנוגדת את ההנחיה להוריד רגל מהגז. | להאיץ כדי לייצב את הרכב.
+- [single_answer/distractors] screen 4 block 6 (multiple_choice), alternate: מנוגד לכל היגיון בטיחותי ולהנחיות הקטע. | להמשיך להחזיק את ההגה בכיוון הפנייה וללחוץ חזק על הגז.
+- [illustrations/illustration_value] screen 4 block 7 (illustration): הלומד רק בוחר תרחיש וצופה בהדגמת הפעולה הרצויה במקום לבחור בעצמו פעולת היגוי ובלימה ולראות את התוצאה. | סימולטור החלקה
+- [illustrations/illustration_value] screen 7 block 5 (illustration): האיור מסתכם בלחיצה על מפה לחשיפת כלל שכבר נלמד בטקסט (לעצור במקום בטוח ולהדליק אורות חירום), בלי שהלומד שופט תוצאה של בחירה. | מפת כביש ערפילי: איפה עוצרים
+- [single_answer/recall_question] screen 8 block 5 (multiple_choice), alternate: השאלה מציינת את התנאי (כביש רטוב) והאפשרות הנכונה רק מצטטת את הכללים הישירים מתוך המצגת ללא צורך בחישוב. | אתה יוצא לנסיעה בכביש רטוב. המהירות המותרת היא 90 קמ״ש. מה עליך לעשות?
+- [single_answer/recall_question] screen 5 block 6 (multiple_choice), main: השאלה בוחנת ידע ישיר לגבי פרק הזמן הנדרש לדיווח על החלקה (תוך שעתיים), גם בהיעדר נזק. | אתה נוהג בכביש רטוב והרכב מחליק קלות. אין נזק לרכב, ואתה חושב שאפשר לדווח רק בסוף היום. מה עליך לעשו
+- [single_answer/recall_question] screen 5 block 6 (multiple_choice), alternate: השאלה מציינת ישירות את תנאי הפתיחה (האחור מחליק) ומבקשת לחזור על הכלל המתאים לטיפול בהחלקה זו. | אתה נוסע ברכב הצי והאחור מחליק בכביש רטוב. מהי הפעולה הראשונה שעליך לבצע?
+- [single_answer/distractors] screen 5 block 6 (multiple_choice), alternate: הסחת דעת מופרכת ובלתי אפשרית בזמן שהרכב נמצא בהחלקה. | לבדוק את עומק החריץ בצמיגים
+call: google/gemini-3.8-flash in 11442 / out 2826 tokens, $0.0192
+call: google/gemini-3.8-flash in 2320 / out 3405 tokens, $0.0145
+call: google/gemini-3.8-flash in 10179 / out 3811 tokens, $0.0219
+call: google/gemini-3.8-flash in 2468 / out 4225 tokens, $0.0177
+call: google/gemini-3.8-flash in 11345 / out 6157 tokens, $0.0316
+call: google/gemini-3.8-flash in 10164 / out 10035 tokens, $0.0453
+call: google/gemini-3.8-flash in 2054 / out 7639 tokens, $0.0302
+call: google/gemini-3.8-flash in 2188 / out 9227 tokens, $0.0362

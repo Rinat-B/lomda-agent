@@ -261,3 +261,12 @@ def test_single_answer_also_reports_recall_questions_and_weak_options():
     assert kinds == ["recall_question", "distractors"]
     weak = [main["options"][k] for k in range(len(main["options"])) if k != correct and k % 2 == 0]
     assert found[1].evidence == "; ".join(weak)
+
+
+def test_single_answer_batches_are_smaller_in_balanced(monkeypatch):
+    monkeypatch.setenv("PROFILE", "balanced")
+    jobs = check_jobs(BAD, ("single_answer",))
+    assert jobs == [("single_answer", (1, 2)), ("single_answer", (3, 4)), ("single_answer", (5, 6)),
+                    ("single_answer", (7, 8))]
+    monkeypatch.setenv("PROFILE", "free")
+    assert len(check_jobs(BAD, ("single_answer",))) == 3

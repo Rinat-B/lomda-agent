@@ -762,8 +762,18 @@ def run_model_check(name: str, lesson: dict, lesson_text: str, source_text: str,
 
 
 # screens per call for the per-question check: shorter replies time out less and focus better
-SINGLE_ANSWER_BATCH = 3
-BATCH_SCREENS = {"single_answer": SINGLE_ANSWER_BATCH}
+# Smaller batches in balanced, where the extra calls are cheap: a balanced acceptance run with
+# 3 screens per call missed question 7 (20.11.2026).
+SINGLE_ANSWER_BATCH = {"free": 3, "balanced": 2}
+
+
+def batch_screens(fmt: str) -> int | None:
+    """Screens per call for a batched check format in the active profile (None = not batched)."""
+    from agent.llm import active_profile
+
+    if fmt != "single_answer":
+        return None
+    return SINGLE_ANSWER_BATCH.get(active_profile(), SINGLE_ANSWER_BATCH["free"])
 
 
 def check_jobs(lesson: dict, model_checks: tuple[str, ...], screens: Screens = None) -> list[tuple[str, Screens]]:
@@ -772,7 +782,7 @@ def check_jobs(lesson: dict, model_checks: tuple[str, ...], screens: Screens = N
     numbers = list(screens) if screens else list(range(1, len(lesson["screens"]) + 1))
     jobs: list[tuple[str, Screens]] = []
     for name in model_checks:
-        size = BATCH_SCREENS.get(MODEL_CHECKS[name]["format"])
+        size = batch_screens(MODEL_CHECKS[name]["format"])
         if size:
             jobs += [(name, tuple(numbers[i:i + size])) for i in range(0, len(numbers), size)]
         else:

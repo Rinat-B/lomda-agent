@@ -18,10 +18,12 @@ scores):
 
 ## Conclusion
 
-- **The judge barely separates the agent's lessons.** Every lesson the agent finished scored 4.5-5
-  on relevance, accuracy and completeness. With a 5-slide source the judge (one model, one call)
-  does not see the differences the checkers see; it should not be read as "the free writer is as
-  good as Sonnet".
+- **The judge barely separates the writers.** Every lesson the agent finished scored 4.5-5 on
+  relevance, accuracy and completeness: the scores sit at the ceiling of the rubric. With a 5-slide
+  source the judge (one model, one call) does not see the differences the checkers see, so the judge
+  average should not be read as "the free writer is as good as Sonnet".
+- **The significant differences are in open findings, format and reliability**, as the next points
+  show.
 - **Where the writers do differ:** format and the review loop. Sonnet's lessons scored 5 on format
   and ended with 1 and 12 open findings; ernie (free) scored 4 and 3 on format and ended with 14
   and 38 open findings (the checkers kept finding problems its rewrites did not fix). Gemini Flash

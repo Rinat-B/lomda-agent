@@ -76,7 +76,8 @@ first lesson. Files: `checker_acceptance_<profile>_<lesson>.txt`.
 | profile | known_bad_lesson (19 problems) | known_bad_lesson_2 (7 problems) |
 | --- | --- | --- |
 | free | 17/19 (89%) | 6/7 (86%) |
-| balanced | 18/19 (95%), question 7 missed: strict test fails | 6/7 (86%) |
+| balanced, 3 screens per call | 18/19 (95%), question 7 missed: strict test fails | 6/7 (86%) |
+| balanced, 2 screens per call (current) | 17/19 (89%), questions 1 and 7 missed: strict test fails | 6/7 (86%) |
 
 ## Other files
 
