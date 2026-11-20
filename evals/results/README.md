@@ -23,7 +23,7 @@ The same lesson by each writer; checkers, small model and judge fixed (free chec
 | writer | runs (ok) | judge avg | format | coverage | open findings | minutes | cost USD |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | baidu/ernie-5.5-flash-preview:free | 2 (2) | 4.62 | 3.5 | 95% | 26 | 23 | 0 |
-| nvidia/nemotron-3.5-super-vl:free | 2 (0) | - | - | - | - | - | 0 |
+| nvidia/nemotron-3.5-super-vl:free | 3 (1; the third was an extra run) | 4.50 | 3 | 97% | 13 | 29 | 0 |
 | anthropic/claude-sonnet-5.5 | 2 (2) | 5.00 | 5 | 98% | 6.5 | 21 | 0.89 |
 | google/gemini-3.8-flash | 1 (1) | 4.75 | 5 | 94% | 12 | 13 | 0.26 |
 | baseline_chat (one prompt to Sonnet) | 1 | 4.00 | 2 (schema invalid) | 100% | - | 0.8 | 0.09 |

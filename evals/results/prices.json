@@ -1,14 +1,10 @@
 {
- "fetched": "2026-11-20 00:49",
+ "fetched": "2026-11-20 02:52",
  "source": "https://openrouter.ai/api/v1/models",
  "usd_per_token": {
   "anthropic/claude-sonnet-5.5": {
    "prompt": 2e-06,
    "completion": 1e-05
-  },
-  "baidu/ernie-5.5-flash-preview:free": {
-   "prompt": 0.0,
-   "completion": 0.0
   },
   "google/gemini-3.1-flash-lite": {
    "prompt": 2.5e-07,

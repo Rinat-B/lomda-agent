@@ -1,0 +1,535 @@
+{
+ "experiment": "compare-nemotron-3.5-super-vl-free-3",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 1725.0,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 6,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 2,
+ "findings_total": 33,
+ "findings_fixed": 20,
+ "open_findings": [
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 6,
+   "where": "block 4 (did_you_know)",
+   "evidence": "שאלות על ההדרכה מפנים לרכז הבטיחות של המרלו״ג.",
+   "problem": "חסר וו במילה מופנים נכתב מפנים שאינה הצורה הנכונה במשפט זה",
+   "suggestion": "לכתוב מופנים או לכתוב יש להפנות שאלות על ההדרכה לרכז הבטיחות של המרלו״ג",
+   "id": "F13",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "להאיץ מעט כדי לעקוף את הרכב לפני שהוא נעצר",
+   "problem": "האצה לעבר רכב הבולם לפניך היא פעולה מסוכנת וחסרת אחריות שניתן לפסול גם בלי להכיר את החומר.",
+   "suggestion": "",
+   "id": "F17",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "לבלום בחוזקה במלוא העוצמה מיד מבלי להאט קודם לכן",
+   "problem": "בלימת פתע במלוא העוצמה במשאית עמוסה נראית מסוכנת וחסרת זהירות גם ללא הכרת הפרטים בדיוק.",
+   "suggestion": "",
+   "id": "F18",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "להאיץ כדי לייצב את הרכב ולהמשיך בנסיעה ישרה",
+   "problem": "האצה במכוון במהלך החלקה היא פעולה חסרת אחריות ומובנת כמוטעית גם בלי החומר.",
+   "suggestion": "",
+   "id": "F19",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 3,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "אתם נוהגים ברכב מהצי בכביש רטוב, והגלגלים הקדמיים אינם מגיבים לסיבוב ההגה. כיצד עליכם לפעול כדי להחזיר את האחיזה בכביש?",
+   "problem": "המצב מציין בדיוק את התנאי מהכלל (הגלגלים הקדמיים אינם מגיבים לסיבוב ההגה) והשאלה שואלת מה הכלל מורה לעשות במצב זה; אין צורך לפרש תאריכים, מרחקים או לחשב ערכים.",
+   "suggestion": "",
+   "id": "F20",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "להמשיך בנסיעה רגילה ולדלג על הדיווח למוקד הצי הפעם.",
+   "problem": "אופציה מסוכנת ושגויה שמתעלמת מחובת הדיווח המפורשת בחומר.",
+   "suggestion": "",
+   "id": "F21",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 5,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "להדליק אורות גבוהים כדי לראות רחוק יותר בערפל.",
+   "problem": "מנוגדת לכלל המפורש ומסוכנת בערפל.",
+   "suggestion": "",
+   "id": "F23",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 5,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "להדליק אורות גבוהים כדי לקבל טווח ראייה גדול יותר בערפל.; לעצור מיד על השול בעקודה הקרובה ולהדליק אורות חירום.",
+   "problem": "מנוגדת לכלל המפורש ומסוכנת בערפל.; עצירה בשול בעקומה אסורה במפורש בחומר, ורמת הראות אינה ידועה כמתחת ל-50 מ׳.",
+   "suggestion": "",
+   "id": "F25",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "להמשיך בנסיעה ולקוות שהצמיג יתמלא באוויר מעצמו במהלך הנסיעה.",
+   "problem": "אופציה חסרת היגיון ומסוכנת, אינה נתמכת בשום כלל.",
+   "suggestion": "",
+   "id": "F26",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "לנסוע במאה קמ״ש מכיוון שלרכב יש מערכת ABS.",
+   "problem": "מנוגדת למגבלת המהירות ולחובת ההפחתה בכביש רטוב, ומסוכנת.",
+   "suggestion": "",
+   "id": "F27",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 6,
+   "where": "block 1 (list)",
+   "evidence": "מדווחים על כל החלקה תוך שעתיים",
+   "problem": "העובדה כבר נלמדת במסך 3, בלוק 1. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F31",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "pedagogy",
+   "category": "repetition",
+   "screen": 4,
+   "where": "block 1 (stop_and_think)",
+   "evidence": "משאית משנת 2018 אינה נכללת ברכבים משנת 2019 ואילך, ולכן אין בה מערכת ABS. במצב כזה בלימת חירום נעשית בלחיצות קצרות לסירוגין, ובכל מקרה של החלקה – אפילו ללא נזק – מדווחים למוקד הצי תוך שעתיים כדי לסייע במניעת התאונה הבאה.",
+   "problem": "ההסבר חוזר על הכללים שנלמדו כבר במסך 3 (בלימה ברכב ללא ABS ודיווח על כל החלקה תוך שעתיים) כמעט במלואם, ללא תוספת מהותית.",
+   "suggestion": "לקצר את ההסבר ולהשאיר רק את המסקנה לגבי משאית משנת 2018, או להסיר את החזרה ולהפנות לתוכן במסך 3.",
+   "id": "F32",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 6,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "אתם עומדים לצאת עם רכב קל למשלוח בבוקר גשום. בבדיקה מהירה גיליתם שעומק חריץ באחד הצמיגים הוא 2.8 מ״מ. האם ניתן לצאת לנסיעה כרגע, או שעליכם לבצע פעולה אחרת קודם לכן?",
+   "problem": "המצב מציג מפתח מספרי ברור (עומק חריץ 2.8 מ״מ) והשאלה מתייחסת ישירות לכלל המוצג (מינימום 3 מ״מ), כך שהלומד רק משווה את הערך הנתון לכלל ומחליט האם לצאת.",
+   "suggestion": "",
+   "id": "F33",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 25,
+  "total": 26,
+  "missing": [
+   "טווח עצירה של רכב קל ב-50 קמ״ש בכביש יבש: 28 מ׳"
+  ],
+  "percent": 96
+ },
+ "review": {
+  "same_family": [
+   "nvidia"
+  ],
+  "failed": {}
+ },
+ "writer_models": [
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free"
+ ],
+ "calls": 30,
+ "cost_usd": 0.0,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 610,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 768,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1231,
+   "completion_tokens": 4096,
+   "cost_usd": 0.0
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 1973,
+   "completion_tokens": 13230,
+   "cost_usd": 0.0
+  },
+  "write_lesson": {
+   "calls": 2,
+   "prompt_tokens": 6072,
+   "completion_tokens": 54055,
+   "cost_usd": 0.0
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 11424,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 18,
+   "prompt_tokens": 120077,
+   "completion_tokens": 256475,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 5,
+   "prompt_tokens": 45073,
+   "completion_tokens": 93123,
+   "cost_usd": 0.0
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 3,
+   "prompt_tokens": 2842,
+   "completion_tokens": 12802,
+   "cost_usd": 0.0
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 27,
+   "prompt_tokens": 174426,
+   "completion_tokens": 420979,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 3.5,
+  "classify_type": 4.6,
+  "gate_type": 0.0,
+  "topic_map": 28.9,
+  "gate_topics": 0.0,
+  "plan_structure": 78.6,
+  "gate_structure": 0.0,
+  "write_lesson": 355.7,
+  "assemble_lesson": 0.2,
+  "evaluator": 617.6,
+  "fix_screens": 635.4,
+  "gate_review": 0.2,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 2,
+  "assemble_lesson": 3,
+  "evaluator": 3,
+  "fix_screens": 2,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 610,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 768,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 1231,
+   "completion_tokens": 4096,
+   "cost": 0.0
+  },
+  {
+   "node": "plan_structure",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 1973,
+   "completion_tokens": 13230,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2941,
+   "completion_tokens": 23678,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3131,
+   "completion_tokens": 30377,
+   "cost": 0.0
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 11424,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7677,
+   "completion_tokens": 4690,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8847,
+   "completion_tokens": 7387,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7681,
+   "completion_tokens": 16172,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8938,
+   "completion_tokens": 15341,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7976,
+   "completion_tokens": 1276,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3166,
+   "completion_tokens": 19044,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3442,
+   "completion_tokens": 21299,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10235,
+   "completion_tokens": 22548,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7624,
+   "completion_tokens": 16786,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10876,
+   "completion_tokens": 14103,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7547,
+   "completion_tokens": 3223,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8717,
+   "completion_tokens": 5173,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3474,
+   "completion_tokens": 14654,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8817,
+   "completion_tokens": 23939,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7554,
+   "completion_tokens": 25082,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3312,
+   "completion_tokens": 26800,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9745,
+   "completion_tokens": 28038,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 6593,
+   "completion_tokens": 11648,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7707,
+   "completion_tokens": 12544,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8964,
+   "completion_tokens": 13738,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3474,
+   "completion_tokens": 16693,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3335,
+   "completion_tokens": 16243,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9449,
+   "completion_tokens": 13177,
+   "cost": 0.0
+  }
+ ]
+}

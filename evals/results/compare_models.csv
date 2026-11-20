@@ -7,3 +7,4 @@ nvidia/nemotron-3.5-super-vl:free,2,True,484,7,0,,,,,,False,,,0.0,0.671772,error
 anthropic/claude-sonnet-5.5,2,False,1476,28,9,5,5,5,5,5.0,True,96.8,12,0.97596,1.966274,1 checks failed (429)
 baseline_chat,1,False,47,1,6,4,5,5,2,4.0,False,100.0,,0.089366,0.089366,"one prompt to anthropic/claude-sonnet-5.5, no agent"
 google/gemini-3.8-flash,1,False,778,23,5,5,5,4,5,4.75,True,93.5,12,0.260935,1.076566,one run: night budget
+nvidia/nemotron-3.5-super-vl:free,3,True,1725,30,6,5,5,5,3,4.5,True,96.8,13,0.0,2.82549,extra run: runs 1-2 failed; judged again after a failed judge call

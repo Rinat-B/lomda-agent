@@ -14,11 +14,6 @@ scores):
 <!-- table -->
 | model | runs | duration_sec | calls | screens | relevance | accuracy | completeness | format | judge_avg | coverage_pct | open_findings | cost_usd | theoretical_cost_usd | schema_valid |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| baidu/ernie-5.5-flash-preview:free | 2 | 1378.50 | 18.50 | 7.00 | 5.00 | 5.00 | 5.00 | 3.50 | 4.62 | 95.15 | 26.00 | 0.00 | 2.06 | 2/2 |
-| nvidia/nemotron-3.5-super-vl:free | 2 | 320.00 | 5.00 | 0.00 | - | - | - | - | - | - | - | 0.00 | 0.35 | 0/2 |
-| anthropic/claude-sonnet-5.5 | 2 | 1283.50 | 27.50 | 8.50 | 5.00 | 5.00 | 5.00 | 5.00 | 5.00 | 98.40 | 6.50 | 0.89 | 1.82 | 2/2 |
-| baseline_chat | 1 | 47.00 | 1.00 | 6.00 | 4.00 | 5.00 | 5.00 | 2.00 | 4.00 | 100.00 | - | 0.09 | 0.09 | 0/1 |
-| google/gemini-3.8-flash | 1 | 778.00 | 23.00 | 5.00 | 5.00 | 5.00 | 4.00 | 5.00 | 4.75 | 93.50 | 12.00 | 0.26 | 1.08 | 1/1 |
 <!-- /table -->
 
 ## Conclusion
@@ -34,7 +29,8 @@ scores):
 - **Reliability is the real cost of the free writers.** ernie finished both runs (one was cut short
   by a network error during fixing, before the fix-failure handling was added that night).
   nemotron-3.5-super-vl failed both regular runs: a 120 s timeout in planning, then screens that
-  ignored the planned diagram and illustration even after the error was sent back. With a single
+  ignored the planned diagram and illustration even after the error was sent back. An extra third
+  run finished (29 min, judge 4.5, format 3 for repeated facts, 13 open findings). With a single
   writer and no fallback, as here, one bad reply ends the lesson; in normal use the agent falls back
   to the next writer.
 - **Time and money:** Gemini Flash was the fastest full run (13 min, $0.26); Sonnet took 18-25 min
@@ -44,6 +40,6 @@ scores):
   content scored well, but its JSON is not valid against the player's schema (format 2) and nothing
   checked it. The agent's value is a lesson that is valid, reviewed, and approved at every gate, at
   10-20 times the time.
-- **Caveats:** two runs per writer (one for Gemini Flash, because of the night's budget); the free
+- **Caveats:** two runs per writer (one for Gemini Flash, because of the night's budget, and an extra third for super-vl); the free
   checkers hit 429s in some runs (noted per row), so open-finding counts are not fully comparable;
   the judge is a Google model, so the Gemini Flash writer row is judged by its own family.

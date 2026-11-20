@@ -1,0 +1,481 @@
+{
+ "experiment": "compare-gemini-3.8-flash-1",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "google/gemini-3.8-flash"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 777.7,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 5,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 1,
+ "findings_total": 32,
+ "findings_fixed": 20,
+ "open_findings": [
+  {
+   "check": "illustrations",
+   "category": "illustration_value",
+   "screen": 3,
+   "where": "block 4 (decision_diagram)",
+   "evidence": "תרשים קבלת החלטות: שליטה ברכב בהחלקה",
+   "problem": "התרשים חוזר על הכללים שכבר נכתבו בטקסט (החלקה אחורית/קדמית ובלימה עם או בלי ABS) ולא דורש מהלומד לקבל החלטה או לשפוט תוצאה של פעולה.",
+   "suggestion": "אפשר להמיר לתסריט קצר שבו הלומד מזהה את סוג ההחלקה ואם לרכב יש ABS ובוחר את פעולת השליטה הנכונה, עם משוב מיידי.",
+   "id": "F3",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "grounding",
+   "category": "ungrounded",
+   "screen": 4,
+   "where": "block 2 (list)",
+   "evidence": "ראות מתחת ל-100 מטרים: מאטים למהירות של 50 קמ״ש ומדליקים אורות ערפל כדי להבטיח שיראו אתכם היטב. ראות מתחת ל-50 מטרים: עוצרים בצד במקום בטוח ומדליקים אורות חירום, מכיוון שתנאי הדרך אינם מאפשרים המשך נסיעה בטוח. מיקום העצירה: לעולם אין לעצור על גבי השול בעקומה או מיד אחריה, שם שדה הראייה של שאר הנהגים חסום לחלוטין.",
+   "problem": "המקור מציג הוראות פעולה בלבד ואינו נותן טעמים כמו כדי להבטיח שיראו אתכם היטב, מכיוון שתנאי הדרך אינם מאפשרים המשך נסיעה בטוח או שדה הראייה של שאר הנהגים חסום לחלוטין.",
+   "suggestion": "להסיר את הנימוקים הנוספים מרשימת הכללים או לציין כי הם אינם חלק מהמקור.",
+   "id": "F9",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "להתקרב למרחק של 2 שניות כדי למנוע מרכבים אחרים להשתלב בנתיב; להאיץ ולעקוף מיד את הרכב שלפנים כדי להימנע מנסיעה בנתיב רטוב",
+   "problem": "קיצור המרווח ל-2 שניות מסכן את הבלימה במשאית כבדה על כביש רטוב ומנוגד לכלל 6 השניות.; פעולה מסוכנת מובנית וסותרת את עקרון הנהיגה הזהירה בתנאי רטיבות.",
+   "suggestion": "",
+   "id": "F11",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "להצמד לרכב שלפנים כדי להיעזר בקו הנסיעה שלו על הכביש הרטוב; לבלום בפתאומיות עד לעצירה מוחלטת בצד הדרך; להמשיך באותה מהירות, שכן 2 שניות הן מרווח מספק בכל תנאי מזג אוויר",
+   "problem": "הצמדות לרכב לפנים על כביש רטוב היא מסוכנת מובנית ומתחת לכלל 4 השניות.; בלימת פתאום מיותרת ומסוכנת בתנאי רטיבות, והאפשרות סותרת את הגיון הבטיחות גם ללא הכרת החומר.; המרווח חצי מהנדרש וההצהרה על התאמה לכל תנאי מזג אוויר מנוגדת להדרכה ומסוכנת.",
+   "suggestion": "",
+   "id": "F12",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "להאיץ קלות כדי למשוך את הרכב קדימה ולא לגעת כלל בהגה",
+   "problem": "האצה בעת החלקה אחורית היא מסוכנת מובנית וסותרת את עקרון השליטה ברכב בתנאי החלקה.",
+   "suggestion": "",
+   "id": "F13",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 5 (multiple_choice), alternate",
+   "evidence": "למשוך בלם יד מיד ולהחזיק את ההגה ישר לחלוטין; להאיץ כדי להחזיר את האחיזה לגלגלים הקדמיים ולהשאיר את ההגה מופנה; ללחוץ חזק ורציף על הבלם ולסובב את ההגה בחדות עד הסוף",
+   "problem": "שימוש בבלם יד במצב חירום הוא מסוכן מובנית ואינו מופיע בהנחיות ההחלקה.; האצה במצב של חוסר אחיזה קדמי היא מסוכנת מובנית ומנוגדת להנחיה לשחרר גז.; בלימה חזקה ורציפה ללא ABS עלולה לנעול גלגלים, וסיבוב חדות עד הסוף מסוכן ואינו נתמך במקור.",
+   "suggestion": "",
+   "id": "F14",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "להדליק אורות גבוהים כדי להגדיל את טווח הראייה ולהמשיך בנסיעה",
+   "problem": "פעולה מסוכנת שהוראה במפורש אוסרת אותה בערפל.",
+   "suggestion": "",
+   "id": "F15",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "להדליק אורות גבוהים ולהמשיך בנסיעה במהירות הרגילה",
+   "problem": "פעולה מסוכנת שהוראה אוסרת (אורות גבוהים בערפל) ומתעלמת מחובת ההאטה.",
+   "suggestion": "",
+   "id": "F16",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 5,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "לבלום בחוזקה, לסובב את ההגה במהירות, ולדווח לרכז הבטיחות רק בסוף יום העבודה; ללחוץ על דוושת הגז לייצוב הרכב, להמשיך בנסיעה כרגיל ואין צורך לדווח",
+   "problem": "פעולה מסוכנת בהחלקה ואיחור בדיווח מעבר לשעתיים.; פעולה מסוכנת בהחלקה שגם מתעלמת מחובת הדיווח.",
+   "suggestion": "",
+   "id": "F18",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "pedagogy",
+   "category": "diagram_logic",
+   "screen": 3,
+   "where": "block 4 (decision_diagram)",
+   "evidence": "node n4 (question): האם קיימת מערכת ABS (רכב מ-2019 ואילך)?; node n5 (action): בלימה חזקה ורציפה (גם כשהדוושה רוטטת); edge n4 -> n5 [כן]; edge n2 -> n4 [נדרשת בלימה]; node n3 (action): שחרור גז ויישור מעט של ההגה עד להחזרת אחיזה",
+   "problem": "תרשים הבלימה חסר ענף לרכב ללא ABS (תשובה ״לא״) ופעולת החלקת החלק הקדמי (n3) אינה מחוברת להמשך הזרם, בניגוד למקור המחייב בלימה בלחיצות קצרות לסירוגין ברכב ללא ABS.",
+   "suggestion": "להוסיף מעבר n4 [לא] לפעולת בלימה בלחיצות קצרות לסירוגין ולחבר את n3 להחלטת הבלימה או לתת לו פעולת סיום, כך שכל ענף יסתיים בפעולה.",
+   "id": "F19",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "answer_length",
+   "category": "answer_length",
+   "screen": 1,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "לסרב לצאת למשמרת עד להשלמת ההדרכה ושלוש השאלות במלואן, מכיוון שאי-השלמתן עד 1 בדצמבר מונעת שיבוץ למשמרות חלוקה",
+   "problem": "התשובה הנכונה ארוכה בהרבה מהמסיחים (110 תווים מול 56–62), ואפשר לנחש אותה לפי האורך.",
+   "suggestion": "",
+   "id": "F31",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "duplicate_text",
+   "screen": 2,
+   "where": "block 1 (paragraph)",
+   "evidence": "מטרים בכביש רטוב",
+   "problem": "אותו צירוף מופיע פעמיים באותה פסקה.",
+   "suggestion": "",
+   "id": "F32",
+   "status": "open",
+   "found_round": 1,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 28,
+  "total": 31,
+  "missing": [
+   "ההדרכה מיועדת לכל נהגי החברה",
+   "הנתונים כוללים שנייה אחת של זמן תגובה",
+   "שאלות על ההדרכה מפנות לרכז הבטיחות של המרלו״ג"
+  ],
+  "percent": 90
+ },
+ "review": {
+  "failed": {},
+  "budget_stop": {
+   "used": 23,
+   "needed": 7,
+   "budget": 29
+  }
+ },
+ "writer_models": [
+  "google/gemini-3.8-flash",
+  "google/gemini-3.8-flash",
+  "google/gemini-3.8-flash",
+  "google/gemini-3.8-flash"
+ ],
+ "calls": 23,
+ "cost_usd": 0.260935,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 653,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 1042,
+   "cost_usd": 0.0
+  },
+  "topic_map": {
+   "calls": 1,
+   "prompt_tokens": 1217,
+   "completion_tokens": 1548,
+   "cost_usd": 0.006718
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 1906,
+   "completion_tokens": 2259,
+   "cost_usd": 0.009901
+  },
+  "write_lesson": {
+   "calls": 3,
+   "prompt_tokens": 12890,
+   "completion_tokens": 18867,
+   "cost_usd": 0.080419
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 11478,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 13,
+   "prompt_tokens": 72299,
+   "completion_tokens": 197583,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 2,
+   "prompt_tokens": 17606,
+   "completion_tokens": 40185,
+   "cost_usd": 0.163898
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 3,
+   "prompt_tokens": 2842,
+   "completion_tokens": 13173,
+   "cost_usd": 0.0
+  },
+  "google/gemini-3.8-flash": {
+   "calls": 7,
+   "prompt_tokens": 33619,
+   "completion_tokens": 62859,
+   "cost_usd": 0.260936
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 13,
+   "prompt_tokens": 72299,
+   "completion_tokens": 197583,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 4.8,
+  "classify_type": 6.9,
+  "gate_type": 0.0,
+  "topic_map": 12.2,
+  "gate_topics": 0.0,
+  "plan_structure": 19.7,
+  "gate_structure": 0.0,
+  "write_lesson": 114.2,
+  "assemble_lesson": 0.1,
+  "evaluator": 409.3,
+  "fix_screens": 210.2,
+  "gate_review": 0.0,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 2,
+  "assemble_lesson": 2,
+  "evaluator": 2,
+  "fix_screens": 1,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 653,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 1042,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 1217,
+   "completion_tokens": 1548,
+   "cost": 0.00671775
+  },
+  {
+   "node": "plan_structure",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 1906,
+   "completion_tokens": 2259,
+   "cost": 0.00990075
+  },
+  {
+   "node": "write_lesson",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 3050,
+   "completion_tokens": 3975,
+   "cost": 0.01719375
+  },
+  {
+   "node": "write_lesson",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 7347,
+   "completion_tokens": 4229,
+   "cost": 0.021369
+  },
+  {
+   "node": "write_lesson",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 2493,
+   "completion_tokens": 10663,
+   "cost": 0.041856
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 11478,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5981,
+   "completion_tokens": 4177,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7151,
+   "completion_tokens": 12399,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3352,
+   "completion_tokens": 16134,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2484,
+   "completion_tokens": 17656,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7242,
+   "completion_tokens": 18344,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5985,
+   "completion_tokens": 20855,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 13958,
+   "completion_tokens": 28634,
+   "cost": 0.117846
+  },
+  {
+   "node": "fix_screens",
+   "model": "google/gemini-3.8-flash",
+   "prompt_tokens": 3648,
+   "completion_tokens": 11551,
+   "cost": 0.04605225
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 6107,
+   "completion_tokens": 5383,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7283,
+   "completion_tokens": 13383,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7371,
+   "completion_tokens": 16832,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2562,
+   "completion_tokens": 18599,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 6117,
+   "completion_tokens": 23533,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3428,
+   "completion_tokens": 25187,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7236,
+   "completion_tokens": 5101,
+   "cost": 0.0
+  }
+ ]
+}
