@@ -83,9 +83,13 @@ copy .env.example .env        # then put your OpenRouter key in .env
 
 ### From the exe
 
-Download `agent.exe` from the [latest release](https://github.com/Rinat-B/lomda-agent/releases/latest),
-put a `.env` next to it (or let it ask for the key in a hidden prompt) and run it in a
-terminal. `data/`, `logs/` and `output/` are created next to the exe. Build it yourself
+Download `agent.zip` from the [latest release](https://github.com/Rinat-B/lomda-agent/releases/latest)
+(direct link: `releases/latest/download/agent.zip`) and extract it. It holds `agent.exe`,
+`.env.example` and [QUICKSTART.txt](QUICKSTART.txt) (Hebrew and English): how to get past the
+Edge download warning ("Keep anyway") and Windows SmartScreen ("More info" -> "Run anyway"),
+where the key goes, and the free-profile limits. Copy `.env.example` to `.env` next to the exe
+(or let it ask for the key in a hidden prompt) and run it in a terminal. `agent.exe` alone is
+attached to the Release too. `data/`, `logs/` and `output/` are created next to the exe. Build it yourself
 with `powershell -ExecutionPolicy Bypass -File scripts\build.ps1`.
 
 ### Example
@@ -179,7 +183,8 @@ examples/sample_lesson/                        a small hand-made lesson for the 
 docs/SPEC.md                                   the specification (Hebrew)
 scripts/build.ps1                              PyInstaller build of agent.exe
 manifest.json                                  project manifest
-.github/workflows/release.yml                  builds agent.exe for a v* tag and attaches it to the Release
+.github/workflows/release.yml                  builds agent.exe for a v* tag; attaches it and agent.zip to the Release
+QUICKSTART.txt                                 download, first run, key and limits (Hebrew and English)
 ```
 
 ## Not built yet
@@ -189,4 +194,3 @@ manifest.json                                  project manifest
 - decision diagrams beyond the current SVG drawing, visual motif, `/summary`, `MAX_COST_USD`
   ceiling per run (day 10)
 - `/model` command; optional narration; the desktop app (bonus track)
-- the first GitHub Release (the workflow is ready; no tag has been pushed)

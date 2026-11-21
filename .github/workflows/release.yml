@@ -55,8 +55,20 @@ jobs:
           if (-not $p.WaitForExit(120000)) { $p.Kill(); throw "agent.exe did not exit within 120 s" }
           if (-not (Select-String -Path smoke_out.txt -Pattern "source-reader" -Quiet)) { Get-Content smoke_out.txt; throw "smoke test failed" }
 
-      - name: Attach agent.exe to the Release
+      - name: Pack agent.zip (agent.exe, .env.example, QUICKSTART.txt)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force package | Out-Null
+          Copy-Item dist\agent.exe, .env.example, QUICKSTART.txt package\
+          Compress-Archive -Path package\* -DestinationPath dist\agent.zip -Force
+          Expand-Archive -LiteralPath dist\agent.zip -DestinationPath zipcheck -Force
+          $names = Get-ChildItem -Force zipcheck -Name
+          foreach ($n in "agent.exe", ".env.example", "QUICKSTART.txt") { if ($names -notcontains $n) { throw "agent.zip is missing $n" } }
+
+      - name: Attach agent.exe and agent.zip to the Release
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/agent.exe
+          files: |
+            dist/agent.exe
+            dist/agent.zip
           generate_release_notes: true

@@ -1,0 +1,74 @@
+Lomda Builder Agent - Quick start / התחלה מהירה
+================================================
+
+---------------------------------------------------------------
+עברית
+---------------------------------------------------------------
+
+1. הורדה
+   - מורידים את agent.zip מדף ה-Release ופותחים אותו לתיקייה (למשל C:\lomda).
+   - אם Edge מציג אזהרה על ההורדה: לוחצים על "..." ליד הקובץ, ואז "Keep" / "שמור",
+     ואם צריך "Show more" ← "Keep anyway" / "שמור בכל זאת".
+   - בהפעלה הראשונה Windows עשוי להציג "Windows protected your PC":
+     לוחצים "More info" / "מידע נוסף" ואז "Run anyway" / "הפעל בכל זאת".
+     (הקובץ לא חתום דיגיטלית, ולכן Windows לא מכיר אותו. זה לא אומר שיש בו בעיה.)
+
+2. המפתח
+   - צריך מפתח OpenRouter (https://openrouter.ai/keys).
+   - מעתיקים את .env.example לקובץ בשם .env באותה תיקייה של agent.exe,
+     וכותבים בו: OPENROUTER_API_KEY=המפתח שלכם
+   - אם אין קובץ .env, הסוכן יבקש את המפתח בהפעלה, בקלט מוסתר.
+   - לא משתפים את קובץ ה-.env ולא מעלים אותו לשום מקום.
+
+3. הפעלה
+   - פותחים טרמינל (PowerShell) בתיקייה ומריצים: .\agent.exe
+   - כותבים help לרשימת הפקודות. דוגמה:
+       /add C:\docs\winter.pptx
+       תבנה לי לומדה מהמצגת
+   - הלומדה נשמרת בתיקייה output ליד agent.exe, ונפתחת בדפדפן.
+
+4. מגבלות הפרופיל החינמי (PROFILE=free, ברירת המחדל)
+   - בלי קרדיט ב-OpenRouter: עד 50 בקשות למודלים חינמיים ביום.
+     אחרי טעינה חד-פעמית של 10$: עד 1000 בקשות ביום.
+   - לומדה קצרה (כ-5 שקופיות) לוקחת בערך 25-45 קריאות ו-25-40 דקות במודלים החינמיים,
+     כך שבלי קרדיט אפשר לבנות בערך לומדה אחת ביום.
+   - מחקר ברשת (בלומדות הכשרה) עולה כסף גם במודל חינמי: כ-0.007$ לחיפוש, עד 12 חיפושים ללומדה.
+   - בשעות עומס מודלים חינמיים מחזירים 429; הסוכן ממתין ועובר למודל אחר.
+   - PROFILE=balanced משתמש במודלים בתשלום: מהיר ואמין יותר, כ-1.7$ ללומדה.
+
+---------------------------------------------------------------
+English
+---------------------------------------------------------------
+
+1. Download
+   - Download agent.zip from the Release page and extract it to a folder (e.g. C:\lomda).
+   - If Edge warns about the download: click "..." next to the file, then "Keep",
+     and if needed "Show more" -> "Keep anyway".
+   - On first run Windows may show "Windows protected your PC":
+     click "More info", then "Run anyway".
+     (The file is not code-signed, so Windows does not recognise it. That alone does not
+     mean anything is wrong with it.)
+
+2. The key
+   - You need an OpenRouter API key (https://openrouter.ai/keys).
+   - Copy .env.example to a file named .env in the same folder as agent.exe and set:
+     OPENROUTER_API_KEY=your key
+   - Without a .env file the agent asks for the key at startup, in a hidden prompt.
+   - Never share or upload your .env file.
+
+3. Run
+   - Open a terminal (PowerShell) in the folder and run: .\agent.exe
+   - Type help for the commands. Example (the agent speaks Hebrew):
+       /add C:\docs\winter.pptx
+       then ask it, in Hebrew, to build a lesson from the presentation
+   - The lesson is saved in the output folder next to agent.exe and opens in the browser.
+
+4. Free-profile limits (PROFILE=free, the default)
+   - Without credit on OpenRouter: 50 free-model requests a day.
+     After a one-time $10 credit purchase: 1000 a day.
+   - A short lesson (about 5 slides) takes roughly 25-45 model calls and 25-40 minutes on the
+     free models, so without credit you can build about one lesson a day.
+   - Web research (training lessons) costs money even on free models: about $0.007 per search,
+     at most 12 searches per lesson.
+   - At busy hours free models return 429; the agent waits and falls back to another model.
+   - PROFILE=balanced uses paid models: faster and more reliable, about $1.7 per lesson.
