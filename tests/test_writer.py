@@ -317,8 +317,8 @@ def test_lesson_is_written_in_groups_assembled_and_saved(monkeypatch, deck_sessi
     lesson_js = (saved.parent / "lesson.js").read_text(encoding="utf-8")
     lesson = json.loads(lesson_js[len("window.LESSON = "):].rstrip().rstrip(";"))
     assert validate_lesson(lesson) == [] and len(lesson["screens"]) == 8
-    placeholder = saved.parent / "assets" / "illustrations" / "s3.html"
-    assert placeholder.is_file() and "Illustration 3" in placeholder.read_text(encoding="utf-8")
+    built = saved.parent / "assets" / "illustrations" / "s3.html"
+    assert built.is_file() and "<button" in built.read_text(encoding="utf-8")  # the built illustration
     assert msg("lesson.files_saved") in out
     assert (saved.parent / "lesson.json").is_file()
     report = (saved.parent / "report.md").read_text(encoding="utf-8")

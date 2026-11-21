@@ -67,6 +67,8 @@ def answers(gates: list[str], reviews: list[str], save: str = "N"):
         if prompt == msg("gate.review.ask"):
             REVIEW_ASKED.append(prompt)
             return next(reviewed)
+        if prompt.startswith(msg("gate.browser_check.ask", count=0).split("0")[0]):
+            return "N"
         return next(asked)
 
     return ask

@@ -189,7 +189,7 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
             show(format_unverified(request["unverified"]))
     elif gate == "review":
         if preview is not None:
-            preview(request["lesson"])
+            preview(request["lesson"], request.get("illustrations"))
             say(msg("gate.review.preview"))
         show(format_review(request["summary"]))
     else:  # "topics"; older saved conversations used the key "topics"
@@ -244,6 +244,20 @@ def ask_write_files_gate(request: dict, ask: Callable[[str], str], say: Callable
         say(msg("gate.write_files.ask_again"), style="yellow")
 
 
+def ask_browser_check_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None],
+                           say_path: Callable[..., None] | None = None) -> dict:
+    """[Y/N] before running the generated illustrations in the browser (Code-Exec)."""
+    path_line = say_path or say
+    say(msg("gate.browser_check.title"))
+    for name in request.get("files", []):
+        path_line(msg("gate.browser_check.file", name=name))
+    while True:
+        decision = parse_decision(_read(ask, msg("gate.browser_check.ask", count=len(request.get("files", [])))))
+        if decision is not None and decision.explicit:
+            return {"confirm": decision.approved}
+        say(msg("gate.browser_check.ask_again"), style="yellow")
+
+
 def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
              say: Callable[..., None], preview: Callable[[dict], None] | None = None,
              say_path: Callable[..., None] | None = None) -> dict:
@@ -252,4 +266,6 @@ def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], Non
         return ask_type_gate(request, ask, say)
     if request.get("gate") in ("write_files", "save"):  # "save": conversations paused before day 6
         return ask_write_files_gate(request, ask, say, say_path)
+    if request.get("gate") == "browser_check":
+        return ask_browser_check_gate(request, ask, say, say_path)
     return ask_review_gate(request, ask, show, say, preview)

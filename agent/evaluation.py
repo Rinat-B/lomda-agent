@@ -34,7 +34,10 @@ from agent.guards import SOURCE_DATA_RULE, chunk_text_for_prompt, wrap_sources
 MAX_FIX_ROUNDS = 2
 FIX_GROUP_MAX = 4
 OWNER_CHECK = "owner"
-CALL_BUDGET = 29  # model calls for a whole lesson (fewer than 30)
+# Model calls for a whole lesson. 29 covered planning, writing and review; day 9 added research
+# (2 small-model calls + up to 12 searches, about 6 in practice) and illustrations (3 in free,
+# each one call plus at most one fix), so the ceiling for starting another fix round is 45.
+CALL_BUDGET = 45
 COVERAGE_THRESHOLD = 85
 POINT_MATCH = 0.7  # share of a key point's words found on one screen for it to count as taught
 

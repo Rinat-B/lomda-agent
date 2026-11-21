@@ -181,11 +181,24 @@ def prompt_kind(system: str) -> str:
         return "check"
     if system.startswith("You list the key points"):
         return "key_points"
+    if system.startswith("You build one interactive illustration"):
+        return "illustration"
+    if system.startswith("The interactive illustration you built failed"):
+        return "illustration_fix"
+    if system.startswith("You design an interactive illustration"):
+        return "illustration_design"
     if system.startswith("You plan web research"):
         return "research_ideas"
     if system.startswith("You compare web findings"):
         return "research_gaps"
     return "other"
+
+
+FAKE_ILLUSTRATION = (
+    '<!doctype html><html dir="rtl" lang="he"><body><button id="b">go</button><p id="out">0</p>'
+    '<script>document.getElementById("b").onclick = () => {document.getElementById("out").textContent = "1"};'
+    '</script></body></html>'
+)
 
 
 def checker_reply(kind: str, user: str) -> str:
@@ -251,6 +264,8 @@ def scripted(answers, save: str = "N", review: str = "Y"):
             return save
         if prompt == msg("gate.review.ask"):
             return review
+        if prompt.startswith(msg("gate.browser_check.ask", count=0).split("0")[0]):
+            return "N"  # unit tests do not start a browser
         return next(asked)
 
     return ask
@@ -295,6 +310,10 @@ class FakeModel:
             return make_result(text=writer_reply(system, first_user))
         if kind in ("check", "single_answer", "key_points"):
             return make_result(text=checker_reply(kind, first_user))
+        if kind in ("illustration", "illustration_fix"):
+            return make_result(text=FAKE_ILLUSTRATION)
+        if kind == "illustration_design":
+            return make_result(text='{"title": "New idea", "description": "The learner drags a marker and sees the distance."}')
         if kind == "research_ideas":
             return make_result(text='{"ideas": []}')
         if kind == "research_gaps":
@@ -401,7 +420,11 @@ def test_no_edge_bypasses_a_gate():
     # A gate goes back (change), to itself (question answered), or on (approved).
     assert successors("gate_topics") == {"topic_map", "gate_topics", "plan_structure"}
     assert successors("gate_structure") == {"plan_structure", "gate_structure", "write_lesson"}
-    assert successors("write_lesson") == {"write_lesson", "assemble_lesson"}
+    assert successors("gate_type") == {"research", "topic_map"}  # research: training only
+    assert successors("research") == {"topic_map"}
+    assert successors("write_lesson") == {"write_lesson", "build_illustrations"}
+    assert successors("build_illustrations") == {"browser_check"}
+    assert successors("browser_check") == {"assemble_lesson"}
     assert successors("assemble_lesson") == {"evaluator"}
     assert successors("evaluator") == {"fix_screens", "gate_review"}
     assert successors("fix_screens") == {"assemble_lesson"}

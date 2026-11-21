@@ -53,6 +53,8 @@ FRESH_RUN = {
     "web_facts": None,
     "research": None,
     "accepted_facts": None,
+    "illustrations": None,
+    "illustration_notes": None,
 }
 
 
@@ -64,8 +66,8 @@ def open_preview(index_html: str) -> None:
     webbrowser.open(Path(index_html).resolve().as_uri())
 
 
-def preview_lesson(lesson: dict) -> None:
-    """Gate 3: export the lesson to data/preview (placeholders for illustrations) and open it."""
+def preview_lesson(lesson: dict, illustrations: dict | None = None) -> None:
+    """Gate 3: export the lesson to data/preview (built illustrations, else placeholders) and open it."""
     import shutil
 
     from agent.lesson_export import export_lesson
@@ -73,7 +75,7 @@ def preview_lesson(lesson: dict) -> None:
 
     folder = data_dir() / "preview"
     shutil.rmtree(folder, ignore_errors=True)
-    open_preview(str(export_lesson(lesson, folder, placeholders=True)))
+    open_preview(str(export_lesson(lesson, folder, placeholders=True, illustrations=illustrations)))
 
 
 def graph_config(session: Session) -> dict:

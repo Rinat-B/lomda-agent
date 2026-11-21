@@ -65,6 +65,22 @@ def _finding_lines(f: dict) -> list[str]:
     return lines
 
 
+def illustration_lines(state: dict) -> list[str]:
+    """Every planned illustration: built, static or removed, and its browser check."""
+    notes = state.get("illustration_notes") or {}
+    if not notes:
+        return [msg("report.illustrations_none")]
+    lines = []
+    for file, n in sorted(notes.items(), key=lambda kv: (kv[1].get("screen") or 0)):
+        status = msg_or_none(f"report.illustration_status.{n.get('status')}") or n.get("status", "")
+        check = msg_or_none(f"report.illustration_check.{n.get('check')}") or ""
+        lines.append(msg("report.illustration_item", screen=n.get("screen") or "-", title=n.get("title") or file,
+                         status=status, check=check))
+        for reason in ([n["reason"]] if n.get("reason") and n.get("status") != "built" else []) + (n.get("problems") or [])[:3]:
+            lines.append(msg("report.illustration_reason", reason=_one_line(reason)[:200]))
+    return lines
+
+
 def web_lines(state: dict, lesson: dict) -> list[str]:
     """The research summary and the web sources the lesson cites, apart from the owner's files."""
     from agent.research import REJECTED, UNVERIFIED, VERIFIED
@@ -159,6 +175,7 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         lines.append(msg("report.source_item", number=int(s["id"][1:]), title=s["title"], sources=labels))
 
     lines += ["", msg("report.web_title"), ""] + web_lines(state, lesson)
+    lines += ["", msg("report.illustrations_title"), ""] + illustration_lines(state)
 
     calls = len(usage)
     tokens = sum(r.prompt_tokens + r.completion_tokens for r in usage)

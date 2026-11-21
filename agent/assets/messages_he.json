@@ -255,6 +255,12 @@
       "exists": "שימו לב: התיקייה כבר קיימת, והקבצים בה יידרסו.",
       "ask": "לכתוב את הקבצים ולפתוח את הלומדה? [Y/N]: ",
       "ask_again": "כתבו Y כדי לכתוב את הקבצים, או N כדי לא לכתוב."
+    },
+    "browser_check": {
+      "title": "הקבצים שירוצו בדפדפן Edge, בתיקייה זמנית ובלי רשת:",
+      "file": "- {name}",
+      "ask": "להריץ בדיקת דפדפן על {count} המחשות שנוצרו? [Y/N]: ",
+      "ask_again": "כתבו Y כדי להריץ את הבדיקה, או N כדי לדלג עליה."
     }
   },
   "lesson_types": {
@@ -405,7 +411,23 @@
     "web_used": "- {site}: {title} — {url}",
     "web_accepted": "- (לא אומת, אושר על ידי בעל התוכן) {site}: {fact} — {url}",
     "web_used_title": "מקורות מהרשת שהלומדה מצטטת:",
-    "web_unused": "אף עובדה מהרשת לא נכנסה ללומדה."
+    "web_unused": "אף עובדה מהרשת לא נכנסה ללומדה.",
+    "illustrations_title": "## המחשות",
+    "illustrations_none": "אין המחשות בלומדה.",
+    "illustration_item": "- **מסך {screen}**: {title} — {status}{check}",
+    "illustration_status": {
+      "built": "נבנתה",
+      "static": "מוצגת כתיאור סטטי",
+      "removed": "הוסרה"
+    },
+    "illustration_check": {
+      "passed": "; עברה בדיקת דפדפן",
+      "passed_after_fix": "; עברה בדיקת דפדפן אחרי תיקון",
+      "failed": "; נכשלה בבדיקת דפדפן",
+      "not_checked": "; לא נבדקה בדפדפן (בעל התוכן בחר N)",
+      "no_browser": "; לא נבדקה (אין Edge או Playwright)"
+    },
+    "illustration_reason": "  - {reason}"
   },
   "checks": {
     "answer_length": "התשובה הנכונה ארוכה בהרבה מהמסיחים ({correct} תווים מול {low}–{high}), ואפשר לנחש אותה לפי האורך.",
@@ -424,5 +446,12 @@
   },
   "research": {
     "done": "[INFO] מחקר ברשת: {searches} חיפושים, {verified} עובדות מאומתות, {unverified} לא מאומתות, {rejected} נפסלו (מקור לא מתאים)."
+  },
+  "illustrations": {
+    "built": "[INFO] המחשות: {built} נבנו, {removed} הוסרו, {static} יוצגו כתיאור סטטי.",
+    "no_browser": "[INFO] בדיקת הדפדפן דולגה: {reason}. ההמחשות לא נבדקו.",
+    "check_failed": "[INFO] ההמחשה {file} נכשלה בבדיקה גם אחרי תיקון ({problems}). תוצג כתיאור סטטי.",
+    "failed_open": "ההמחשה \"{title}\" נכשלה בבדיקת הדפדפן ומוצגת כתיאור סטטי ({problems}).",
+    "redesigned": "[INFO] רעיון חדש להמחשה במסכים: {screens}."
   }
 }

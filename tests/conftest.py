@@ -26,7 +26,7 @@ def no_browser_preview(monkeypatch):
     from agent import cli
 
     previews: list = []
-    monkeypatch.setattr(cli, "preview_lesson", previews.append)
+    monkeypatch.setattr(cli, "preview_lesson", lambda lesson, illustrations=None: previews.append(lesson))
     return previews
 
 

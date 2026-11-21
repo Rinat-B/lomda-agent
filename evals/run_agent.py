@@ -45,9 +45,13 @@ def _scripted(answers: list[str]):
     queue = list(answers)
     asked: list[str] = []
 
+    browser_prefix = msg("gate.browser_check.ask", count=0).split("0")[0]
+
     def ask(prompt: str) -> str:
         if prompt == msg("gate.write_files.ask"):
             return "N"
+        if prompt.startswith(browser_prefix):
+            return "Y"  # evals run the browser check
         answer = queue.pop(0) if queue else "Y"
         asked.append(answer)
         return answer

@@ -61,20 +61,26 @@ def placeholder_html(title: str, description: str) -> str:
     return page.replace("__TITLE__", escape(title)).replace("__DESCRIPTION__", escape(description))
 
 
-def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, placeholders: bool = False) -> Path:
+def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, placeholders: bool = False,
+                  illustrations: dict[str, str] | None = None) -> Path:
     """Write the lesson folder; returns the path of index.html.
-    `source_dir` holds the lesson's assets/illustrations/*.html (the illustration files).
-    With placeholders=True, an illustration with no file gets a placeholder page instead."""
+    `illustrations` maps an illustration file to its built HTML page; otherwise the file is copied
+    from `source_dir` (assets/illustrations/*.html), and with placeholders=True an illustration
+    with neither gets a page with its title and description instead."""
     errors = validate_lesson(lesson)
     if errors:
         raise LessonValidationError(errors)
 
     out_dir = Path(out_dir)
-    illustrations = []  # (source file or None, destination, block)
+    built = illustrations or {}
+    planned = []  # (built page or None, source file or None, destination, block)
     blocks = {
         b["file"]: b for s in lesson["screens"] for b in s["blocks"] if b.get("type") == "illustration"
     }
     for rel in illustration_files(lesson):
+        if rel in built:
+            planned.append((built[rel], None, out_dir / rel, blocks[rel]))
+            continue
         src = None
         if source_dir is not None:
             src = _inside(Path(source_dir) / rel, Path(source_dir))
@@ -84,7 +90,7 @@ def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, p
                     raise FileNotFoundError(f"illustration {rel} needs a source_dir to copy it from")
                 raise FileNotFoundError(f"illustration file not found: {src}")
             src = None
-        illustrations.append((src, out_dir / rel, blocks[rel]))
+        planned.append((None, src, out_dir / rel, blocks[rel]))
 
     out_dir.mkdir(parents=True, exist_ok=True)
     assets = out_dir / "assets"
@@ -92,10 +98,12 @@ def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, p
     shutil.copyfile(PLAYER_DIR / "index.html", out_dir / "index.html")
     for name in PLAYER_ASSETS:
         shutil.copyfile(PLAYER_DIR / name, assets / name)
-    for src, dest, block in illustrations:
+    for page, src, dest, block in planned:
         dest = _inside(dest, out_dir)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if src is None:
+        if page is not None:
+            dest.write_text(page, encoding="utf-8")
+        elif src is None:
             dest.write_text(placeholder_html(block["title"], block["description"]), encoding="utf-8")
         else:
             shutil.copyfile(src, dest)

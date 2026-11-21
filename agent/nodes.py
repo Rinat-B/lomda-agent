@@ -14,6 +14,7 @@ from langgraph.types import interrupt
 from agent.console import log, say
 from agent.errors import NodeError
 from agent.guards import SOURCE_DATA_RULE, chunk_text_for_prompt, wrap_sources
+from agent.lesson_schema import PALETTES
 from agent.llm import LONG_REQUEST_TIMEOUT_SECONDS, LLMResult, call_llm
 from agent.messages import msg
 from agent.structure import (
@@ -151,7 +152,7 @@ PLAN_STRUCTURE_PROMPT = (
     "null): plan one only when the learner changes something and judges the result, so that it "
     "practises a decision of the screen or shows one quantity changing another; never for "
     "ticking a box, clicking to reveal a rule the text already states, a card, a timeline or a "
-    "list. Most screens have none. decision_diagram (true only if the screen teaches an if/then "
+    "list. Most screens have none, and the whole lesson has at most {max_illustrations}. decision_diagram (true only if the screen teaches an if/then "
     "decision process that appears in the source, where every question has at least two "
     "outcomes, such as yes and no; parallel cases of one rule are a list, not a diagram). "
     "Also give 2-3 descriptions in "
@@ -213,6 +214,8 @@ class AgentState(TypedDict, total=False):
     web_facts: list[dict] | None  # research findings: fact, quote, url, site, status, reason
     research: dict | None  # {"searches", "ideas", "notes"} of the research run
     accepted_facts: list[str] | None  # ids of unverified web facts the owner accepted at gate 2
+    illustrations: dict | None  # illustration file -> its built, cleaned HTML page
+    illustration_notes: dict | None  # file -> {"screen", "title", "status", "reason", "check", "problems"}
     report_path: str | None
 
 
@@ -558,7 +561,7 @@ def plan_structure(state: AgentState, config: RunnableConfig) -> dict:
     lesson_type = _lesson_type(state)
     topics = state["topic_map"]
     system = PLAN_STRUCTURE_PROMPT.format(
-        type_name=TYPE_NAMES[lesson_type], type_rules=STRUCTURE_RULES[lesson_type], max_screens=MAX_SCREENS,
+        type_name=TYPE_NAMES[lesson_type], type_rules=STRUCTURE_RULES[lesson_type], max_screens=MAX_SCREENS, max_illustrations=illustration_cap(),
     )
     map_json = json.dumps(
         {"topics": [{"name": t["name"], "objective": t["objective"]} for t in topics]}, ensure_ascii=False
@@ -888,7 +891,7 @@ def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
 
 
 def route_after_write(state: AgentState) -> str:
-    return "write_lesson" if (state.get("written_groups") or 0) < len(_groups(state)) else "assemble_lesson"
+    return "write_lesson" if (state.get("written_groups") or 0) < len(_groups(state)) else "build_illustrations"
 
 
 def assemble_lesson_node(state: AgentState, config: RunnableConfig) -> dict:
@@ -908,6 +911,196 @@ def assemble_lesson_node(state: AgentState, config: RunnableConfig) -> dict:
         first_file = index.chunks[0]["locator"]["file"] if index is not None and index.chunks else "lesson"
         update["output_folder"] = str(unique_output_folder(first_file))
     return update
+
+
+# ---- stage 3: interactive illustrations ---------------------------------------------------------
+def illustration_cap() -> int:
+    from agent.llm import active_profile, load_config
+
+    caps = load_config().get("illustrations") or {}
+    return int(caps.get(active_profile(), caps.get("free", 3)))
+
+
+def _illustration_blocks(screens: list[dict]):
+    """(screen number, screen, block) for every illustration, in lesson order."""
+    for screen in sorted(screens, key=lambda s: int(s["id"][1:])):
+        for block in screen["blocks"]:
+            if block["type"] == "illustration":
+                yield int(screen["id"][1:]), screen, block
+
+
+def _ask_writer(node: str, messages: list, config: RunnableConfig) -> LLMResult:
+    from agent.illustrations import ILLUSTRATION_TIMEOUT_SECONDS
+
+    return _call(node, messages, config, timeout=ILLUSTRATION_TIMEOUT_SECONDS)
+
+
+def build_one_illustration(screen: dict, block: dict, palette: dict, config: RunnableConfig,
+                           node: str = "build_illustrations") -> tuple[str | None, str]:
+    """(clean HTML page or None, note). None with a reason starting "not_possible" means the
+    description cannot become a real interaction; other None = it could not be built cleanly."""
+    from agent.illustrations import FIX_PROMPT, build_messages, extract_html, not_possible_reason, sanitize
+
+    system, user = build_messages(screen, block, palette)
+    messages: list = [SystemMessage(system), HumanMessage(user)]
+    problems: list[str] = []
+    for attempt in range(2):  # the first try, then one try with the problems
+        try:
+            result = _ask_writer(node, messages, config)
+        except NodeError as e:
+            return None, f"no writer answered ({type(e.cause).__name__})"
+        reason = not_possible_reason(result.text)
+        if reason is not None:
+            return None, f"not_possible: {reason}"
+        page = extract_html(result.text)
+        if page is None:
+            problems = ["the reply is not an HTML page"]
+        else:
+            page, removed, problems = sanitize(page)
+            if not problems:
+                return page, ("removed: " + ", ".join(removed)) if removed else ""
+        messages += [AIMessage(result.text), HumanMessage(FIX_PROMPT.format(problems="\n".join(f"- {p}" for p in problems)))]
+    return None, "not clean after a retry: " + "; ".join(problems)
+
+
+def _drop_from_plan(structure: dict, numbers: set[int]) -> dict:
+    """The plan without the illustrations of these screens (so later rewrites do not add them back)."""
+    return {**structure, "screens": [{**s, "illustration": None} if s["number"] in numbers else s
+                                     for s in structure["screens"]]}
+
+
+def build_illustrations(state: AgentState, config: RunnableConfig) -> dict:
+    """One writer call per illustration builds its HTML page; beyond the profile's cap, and when a
+    description cannot become a real interaction, the block is removed (and noted)."""
+    pages = dict(state.get("illustrations") or {})
+    notes = dict(state.get("illustration_notes") or {})
+    screens = [dict(s, blocks=list(s["blocks"])) for s in state["written_screens"]]
+    palette = PALETTES[_lesson_type(state)]
+    cap = illustration_cap()
+    remove: dict[int, list[dict]] = {}
+    for n, (number, screen, block) in enumerate(list(_illustration_blocks(screens)), 1):
+        file = block["file"]
+        if n > cap:
+            remove.setdefault(number, []).append(block)
+            notes[file] = {"screen": number, "title": block["title"], "status": "removed", "reason": f"cap of {cap}"}
+            continue
+        if file in pages:
+            continue
+        page, note = build_one_illustration(screen, block, palette, config)
+        if page is None and note.startswith("not_possible"):
+            remove.setdefault(number, []).append(block)
+            notes[file] = {"screen": number, "title": block["title"], "status": "removed", "reason": note}
+        elif page is None:
+            notes[file] = {"screen": number, "title": block["title"], "status": "static", "reason": note}
+        else:
+            pages[file] = page
+            notes[file] = {"screen": number, "title": block["title"], "status": "built", "reason": note}
+    for screen in screens:
+        drop = remove.get(int(screen["id"][1:]), [])
+        screen["blocks"] = [b for b in screen["blocks"] if not any(b is d for d in drop)]
+    built = sum(1 for v in notes.values() if v["status"] == "built")
+    log(msg("illustrations.built", built=built, removed=sum(1 for v in notes.values() if v["status"] == "removed"),
+            static=sum(1 for v in notes.values() if v["status"] == "static")))
+    update: dict = {"illustrations": pages, "illustration_notes": notes, "written_screens": screens}
+    if remove:
+        update["structure"] = _drop_from_plan(state["structure"], set(remove))
+    return update
+
+
+def browser_check(state: AgentState, config: RunnableConfig) -> dict:
+    """Code-Exec after [Y/N]: every built illustration in the installed Edge, network blocked.
+    A failure gets one fix with the error log; still failing -> the static description."""
+    from agent.illustrations import FIX_PROMPT, NoBrowser, check_illustrations, extract_html, sanitize
+
+    pages = dict(state.get("illustrations") or {})
+    if not pages:
+        return {}
+    reply = interrupt({"gate": "browser_check", "files": sorted(pages)})
+    notes = {k: dict(v) for k, v in (state.get("illustration_notes") or {}).items()}
+    if not (isinstance(reply, dict) and reply.get("confirm")):
+        for file in pages:
+            notes.setdefault(file, {})["check"] = "not_checked"
+        return {"illustration_notes": notes}
+    heights = {b["file"]: b.get("height") or 320 for _, _, b in _illustration_blocks(state["written_screens"])}
+    try:
+        results = check_illustrations(pages, heights)
+    except NoBrowser as e:
+        log(msg("illustrations.no_browser", reason=str(e)))
+        for file in pages:
+            notes.setdefault(file, {})["check"] = "no_browser"
+        return {"illustration_notes": notes}
+    failed = {f: p for f, p in results.items() if p}
+    for file, problems in failed.items():  # one fix with the error log
+        messages = [SystemMessage(FIX_PROMPT.format(problems="\n".join(f"- {p}" for p in problems))),
+                    HumanMessage(pages[file])]
+        try:
+            fixed = extract_html(_ask_writer("browser_check", messages, config).text)
+        except NodeError:
+            fixed = None
+        if fixed:
+            fixed, _, clean_problems = sanitize(fixed)
+            if not clean_problems:
+                again = check_illustrations({file: fixed}, heights).get(file, ["not checked"])
+                if not again:
+                    pages[file] = fixed
+                    notes.setdefault(file, {})["check"] = "passed_after_fix"
+                    continue
+                problems = again
+        pages.pop(file)  # still failing: the player shows the static description
+        notes.setdefault(file, {}).update(check="failed", problems=problems[:6], status="static")
+        log(msg("illustrations.check_failed", file=file, problems="; ".join(problems[:2])))
+    for file in results:
+        if file not in failed:
+            notes.setdefault(file, {})["check"] = "passed"
+    return {"illustrations": pages, "illustration_notes": notes}
+
+
+def _redesign_illustrations(state: AgentState, config: RunnableConfig, numbers: list[int]) -> dict:
+    """The owner asked for another illustration idea (gate 3): a genuinely new design for each named
+    screen, built and cleaned; a design that repeats the rejected one gets one more try."""
+    from agent.illustrations import REDESIGN_PROMPT, is_same_idea, parse_design, screen_teaching_text
+
+    screens = [dict(s, blocks=[dict(b) for b in s["blocks"]]) for s in state["written_screens"]]
+    pages = dict(state.get("illustrations") or {})
+    notes = {k: dict(v) for k, v in (state.get("illustration_notes") or {}).items()}
+    palette = PALETTES[_lesson_type(state)]
+    redone: list[int] = []
+    for number, screen, block in _illustration_blocks(screens):
+        if number not in numbers:
+            continue
+        rejected = {"title": block["title"], "description": block["description"]}
+        user = (f"Screen title: {screen['title']}\nRejected idea: {json.dumps(rejected, ensure_ascii=False)}\n"
+                f"Owner's request: {state.get('feedback') or ''}\n\nScreen text:\n{screen_teaching_text(screen)}")
+        messages: list = [SystemMessage(REDESIGN_PROMPT), HumanMessage(user)]
+        design = None
+        for _ in range(2):
+            try:
+                result = _ask_writer("fix_screens", messages, config)
+                candidate = parse_design(result.text)
+            except (NodeError, ValueError):
+                break
+            if not is_same_idea(candidate, rejected):
+                design = candidate
+                break
+            messages += [AIMessage(result.text), HumanMessage(
+                "That is the rejected idea again. Propose a different interaction: what the learner does and "
+                "what they see must both change.")]
+        if design is None:
+            continue
+        block.update(design)
+        page, note = build_one_illustration(screen, block, palette, config, node="fix_screens")
+        if page:
+            pages[block["file"]] = page
+        else:
+            pages.pop(block["file"], None)
+        notes[block["file"]] = {"screen": number, "title": design["title"], "status": "built" if page else "static",
+                                "reason": note, "check": "not_checked", "redesigned": True}
+        redone.append(number)
+    return {"written_screens": screens, "illustrations": pages, "illustration_notes": notes, "redesigned": redone}
+
+
+def owner_asks_for_illustration(feedback: str) -> bool:
+    return msg("gate.glossary.review.illustration") in (feedback or "")
 
 
 # ---- stage 3: review -----------------------------------------------------------------------------
@@ -1034,6 +1227,12 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
     findings = list(state.get("findings") or [])
     owner = state.get("feedback") is not None
     round_ = state.get("review_round") or 0
+    if owner and owner_asks_for_illustration(state["feedback"]):
+        named = sorted({int(n) for n in re.findall(r"\d+", state["feedback"])})
+        numbers = named or [n for n, _, _ in _illustration_blocks(state["written_screens"])]
+        update = _redesign_illustrations(state, config, numbers)
+        log(msg("illustrations.redesigned", screens=_screens_text(update.pop("redesigned")) or "-"))
+        return {**update, "fixed_screens": [], "owner_request": True, "feedback": None}
     if owner:
         findings = owner_findings(state["feedback"] or "", len(state["lesson"]["screens"]), findings, round_)
     else:
@@ -1099,7 +1298,10 @@ def review_summary(state: AgentState) -> dict:
         "found": len(findings),
         "fixed": sum(f["status"] == "fixed" for f in findings),
         "open": [{"screen": f.get("screen"), "problem": f.get("problem", "")}
-                 for f in findings if f["status"] == "open"],
+                 for f in findings if f["status"] == "open"]
+        + [{"screen": n.get("screen"), "problem": msg("illustrations.failed_open", title=n.get("title", ""),
+                                                      problems="; ".join((n.get("problems") or [])[:2]))}
+           for n in (state.get("illustration_notes") or {}).values() if n.get("check") == "failed"],
         "coverage": coverage_summary(state.get("key_points"), state["lesson"]),
         "budget_stop": (state.get("review") or {}).get("budget_stop"),
     }
@@ -1108,7 +1310,8 @@ def review_summary(state: AgentState) -> dict:
 def gate_review(state: AgentState, config: RunnableConfig) -> dict:
     """Gate 3: the content owner sees a summary and a preview in the browser (opened by the
     CLI), then approves (-> write_files), asks for a change (-> fix_screens) or asks a question."""
-    update = _review_gate("review", state, config, extra={"summary": review_summary(state)})
+    update = _review_gate("review", state, config,
+                          extra={"summary": review_summary(state), "illustrations": state.get("illustrations") or {}})
     update["owner_request"] = None
     if update.get("approved"):
         say(msg("gate.review.approved"))  # after interrupt: printed once
@@ -1134,7 +1337,7 @@ def write_files(state: AgentState, config: RunnableConfig) -> dict:
     if not (isinstance(reply, dict) and reply.get("confirm")):
         return {"approved": True, "saved_path": None, "answer": msg("lesson.not_saved")}
     try:
-        index_html = export_lesson(state["lesson"], folder, placeholders=True)
+        index_html = export_lesson(state["lesson"], folder, placeholders=True, illustrations=state.get("illustrations"))
         (folder / "lesson.json").write_text(_json.dumps(state["lesson"], ensure_ascii=False, indent=1),
                                             encoding="utf-8")
         usage_records = _configurable(config).get("usage_records")

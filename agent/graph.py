@@ -12,6 +12,8 @@
                                                      v (approved)
                                write_lesson (one group of 3-4 screens per run; loops until done)
                                                      v
+                               build_illustrations -> browser_check [Y/N] (Code-Exec)
+                                                     v
                          +--------------------> assemble_lesson -> evaluator (all checkers / verify fixes)
                          |                                            |  open findings, round < 2
                     fix_screens <-------------------------------------+
@@ -30,6 +32,8 @@ from agent.nodes import (
     AgentState,
     answer,
     assemble_lesson_node,
+    browser_check,
+    build_illustrations,
     classify_type,
     evaluator,
     fix_screens,
@@ -67,6 +71,8 @@ def build_graph(checkpointer=None):
     graph.add_node("plan_structure", plan_structure)
     graph.add_node("gate_structure", gate_structure)
     graph.add_node("write_lesson", write_lesson)
+    graph.add_node("build_illustrations", build_illustrations)
+    graph.add_node("browser_check", browser_check)
     graph.add_node("assemble_lesson", assemble_lesson_node)
     graph.add_node("evaluator", evaluator)
     graph.add_node("fix_screens", fix_screens)
@@ -94,8 +100,10 @@ def build_graph(checkpointer=None):
     )
     graph.add_conditional_edges(
         "write_lesson", route_after_write,
-        {"write_lesson": "write_lesson", "assemble_lesson": "assemble_lesson"},
+        {"write_lesson": "write_lesson", "build_illustrations": "build_illustrations"},
     )
+    graph.add_edge("build_illustrations", "browser_check")
+    graph.add_edge("browser_check", "assemble_lesson")
     graph.add_edge("assemble_lesson", "evaluator")
     graph.add_conditional_edges(
         "evaluator", route_after_evaluator, {"fix_screens": "fix_screens", "gate_review": "gate_review"},
