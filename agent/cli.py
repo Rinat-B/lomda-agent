@@ -50,6 +50,9 @@ FRESH_RUN = {
     "review": None,
     "report_path": None,
     "key_points": None,
+    "web_facts": None,
+    "research": None,
+    "accepted_facts": None,
 }
 
 

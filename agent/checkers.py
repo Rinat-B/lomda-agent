@@ -399,7 +399,8 @@ def render_source(chunks: list[dict], budget: int = SOURCE_BUDGET_CHARS) -> str:
         text = chunk_text_for_prompt(c)
         if size + len(text) > budget:
             break
-        lines.append(f"({loc.get('file', '')}, {where}) {text}")
+        origin = f"web page {loc['url']}" if loc.get("url") else loc.get("file", "")
+        lines.append(f"({origin}, {where}) {text}")
         size += len(text)
     return wrap_sources("\n".join(lines))
 

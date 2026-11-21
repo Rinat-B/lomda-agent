@@ -1,0 +1,10 @@
+{
+  "_comment": "Source hierarchy for the research node (agent/research.py). A page's domain is matched by exact domain or by suffix (a subdomain counts). Tiers in order of trust; 'only_for' limits a tier to some kinds of facts (news: incidents and stories only). Blocked domains and every domain that matches no tier (commercial, unofficial) are rejected.",
+  "tiers": [
+    {"name": "government", "suffixes": ["gov.il", "muni.il", "knesset.gov.il", "gov", "gov.uk", "europa.eu", "who.int", "un.org", "oecd.org", "ilo.org"]},
+    {"name": "academic", "suffixes": ["ac.il", "edu", "ac.uk", "nih.gov", "ncbi.nlm.nih.gov"]},
+    {"name": "official_safety_health", "domains": ["or-yarok.org.il", "beterem.org.il", "mdais.org", "mda.org.il", "clalit.co.il", "maccabi4u.co.il", "etsc.eu", "rospa.com", "iihs.org", "nsc.org", "redcross.org"]},
+    {"name": "news", "only_for": ["incident"], "domains": ["ynet.co.il", "haaretz.co.il", "themarker.com", "walla.co.il", "maariv.co.il", "kan.org.il", "mako.co.il", "n12.co.il", "israelhayom.co.il", "calcalist.co.il", "globes.co.il", "timesofisrael.com", "jpost.com", "bbc.com", "bbc.co.uk", "reuters.com", "apnews.com"]}
+  ],
+  "blocked": ["facebook.com", "x.com", "twitter.com", "instagram.com", "tiktok.com", "youtube.com", "reddit.com", "quora.com", "linkedin.com", "medium.com", "pinterest.com", "tapuz.co.il", "fxp.co.il", "wikipedia.org", "wikihow.com"]
+}

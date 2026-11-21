@@ -16,3 +16,5 @@ rank-bm25
 langgraph-checkpoint-sqlite
 jsonschema
 playwright
+truststore
+httpx

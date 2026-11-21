@@ -111,7 +111,9 @@
     return el("aside", { class: "block dyk" }, [
       el("h3", {}, t("didYouKnow")),
       el("p", {}, b.text),
-      el("p", { class: "source" }, t("sourcePrefix") + b.source_line)
+      el("p", { class: "source" }, b.source_url
+        ? [t("sourcePrefix"), el("a", { href: b.source_url, target: "_blank", rel: "noopener noreferrer" }, b.source_line)]
+        : t("sourcePrefix") + b.source_line)
     ]);
   }
 

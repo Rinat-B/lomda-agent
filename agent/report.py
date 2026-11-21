@@ -65,6 +65,32 @@ def _finding_lines(f: dict) -> list[str]:
     return lines
 
 
+def web_lines(state: dict, lesson: dict) -> list[str]:
+    """The research summary and the web sources the lesson cites, apart from the owner's files."""
+    from agent.research import REJECTED, UNVERIFIED, VERIFIED
+
+    facts = state.get("web_facts") or []
+    research = state.get("research") or {}
+    if not facts and not research:
+        return [msg("report.web_none")]
+    lines = [msg("report.web_summary", searches=research.get("searches", 0),
+                 verified=sum(f["status"] == VERIFIED for f in facts),
+                 unverified=sum(f["status"] == UNVERIFIED for f in facts),
+                 rejected=sum(f["status"] == REJECTED for f in facts))]
+    cited = {loc["url"]: loc for s in lesson["screens"] for b in s["blocks"] for loc in b.get("sources", [])
+             if loc.get("url")}
+    accepted = set(state.get("accepted_facts") or [])
+    if cited:
+        lines += ["", msg("report.web_used_title")]
+        lines += [msg("report.web_used", site=loc["file"], title=loc.get("title") or loc["file"], url=url)
+                  for url, loc in cited.items()]
+    else:
+        lines.append(msg("report.web_unused"))
+    lines += [msg("report.web_accepted", site=f["site"], fact=_one_line(f["fact"]), url=f["url"])
+              for f in facts if f["id"] in accepted]
+    return lines
+
+
 def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | None = None) -> str:
     """The report text. `usage` is a list of UsageRecord; `source_label(locator)` names a source."""
     lesson = state["lesson"]
@@ -131,6 +157,8 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         locs = [loc for b in s["blocks"] for loc in b.get("sources", [])]
         labels = ", ".join(dict.fromkeys(source_label(loc).strip("()") for loc in locs)) or "-"
         lines.append(msg("report.source_item", number=int(s["id"][1:]), title=s["title"], sources=labels))
+
+    lines += ["", msg("report.web_title"), ""] + web_lines(state, lesson)
 
     calls = len(usage)
     tokens = sum(r.prompt_tokens + r.completion_tokens for r in usage)

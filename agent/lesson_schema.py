@@ -67,6 +67,8 @@ class Locator(_Strict):
     page: int | None = Field(default=None, ge=1)
     paragraph: int | None = Field(default=None, ge=1)
     paragraph_end: int | None = Field(default=None, ge=1)
+    url: str | None = Field(default=None, pattern=r"^https?://")
+    title: str | None = None
 
 
 Sources = Annotated[list[Locator], Field(min_length=1)]
@@ -108,6 +110,7 @@ class DidYouKnow(_Strict):
     type: Literal["did_you_know"]
     text: Text
     source_line: Text
+    source_url: str | None = Field(default=None, pattern=r"^https?://")
     sources: Sources
 
 

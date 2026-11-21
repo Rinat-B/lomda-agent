@@ -153,6 +153,26 @@ def format_review(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def format_unverified(facts: list[dict]) -> str:
+    """Gate 2: web facts without a verified source, numbered, with the warning."""
+    lines = [msg("gate.structure.unverified_title"), "", msg("gate.structure.unverified_note"), ""]
+    lines += [msg("gate.structure.unverified_item", number=i, fact=f["fact"], reason=f.get("reason") or "-")
+              for i, f in enumerate(facts, 1)]
+    return "\n".join(lines)
+
+
+def ask_accepted_facts(facts: list[dict], ask: Callable[[str], str], say: Callable[..., None]) -> list[str]:
+    """The unverified facts the owner marks to include: numbers, or Enter for none."""
+    while True:
+        text = _read(ask, msg("gate.structure.unverified_ask")).strip()
+        if not text:
+            return []
+        numbers = [n.strip() for n in re.split(r"[,\s]+", text) if n.strip()]
+        if all(n.isdigit() and 1 <= int(n) <= len(facts) for n in numbers):
+            return [facts[int(n) - 1]["id"] for n in dict.fromkeys(numbers)]
+        say(msg("gate.structure.unverified_again"), style="yellow")
+
+
 def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
                     say: Callable[..., None], preview: Callable[[dict], None] | None = None) -> dict:
     """Show the reviewed item (or the answer to the last question) and read the reply.
@@ -165,6 +185,8 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
         show(request["answer"])  # the item is unchanged; it is already on screen
     elif gate == "structure":
         show(format_structure(request["structure"]))
+        if request.get("unverified"):
+            show(format_unverified(request["unverified"]))
     elif gate == "review":
         if preview is not None:
             preview(request["lesson"])
@@ -181,7 +203,10 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
         if not decision.explicit:
             return {"text": text.strip()}
         if decision.approved:
-            return {"approved": True, "feedback": decision.feedback}
+            reply = {"approved": True, "feedback": decision.feedback}
+            if request.get("unverified") and not request.get("answer"):
+                reply["accepted_facts"] = ask_accepted_facts(request["unverified"], ask, say)
+            return reply
         feedback = decision.feedback
         while not feedback:
             feedback = _read(ask, msg(f"gate.{gate}.ask_feedback")).strip()

@@ -40,3 +40,18 @@ profiles:
       - google/gemini-3.1-flash-lite
       - google/gemini-3.5-flash-lite
       - google/gemma-4-26b-a4b-it:free
+
+# Web research (training lessons only, agent/research.py): OpenRouter's web plugin with Exa.
+# Every search costs money, also on free models (about $0.007 with max_results 3).
+research:
+  engine: exa
+  max_results: 3
+  max_searches: 12      # per lesson run
+  searches_per_idea: 2  # a second, reworded search only if the first found nothing usable
+  open_ideas: 3         # open research: current guidance, data, incidents
+  gap_ideas: 2          # after comparing the findings with the owner's material
+
+# Interactive illustrations per lesson (agent/illustrations.py), per profile.
+illustrations:
+  free: 3
+  balanced: 5

@@ -210,6 +210,9 @@ class AgentState(TypedDict, total=False):
     owner_request: bool | None  # the last fix came from the content owner at gate 3
     review: dict | None  # {"failed": {check: error}, "same_family": [families], "budget_stop": {...}}
     key_points: list[dict] | None  # the source's key points (extracted once), for coverage
+    web_facts: list[dict] | None  # research findings: fact, quote, url, site, status, reason
+    research: dict | None  # {"searches", "ideas", "notes"} of the research run
+    accepted_facts: list[str] | None  # ids of unverified web facts the owner accepted at gate 2
     report_path: str | None
 
 
@@ -313,7 +316,10 @@ def format_excerpts(hits: list[dict]) -> str:
 
 
 def source_label(locator: dict) -> str:
-    """Short Hebrew source label from messages_he.json, e.g. "(winter_driving.pptx, <slide> 4)"."""
+    """Short Hebrew source label from messages_he.json, e.g. "(winter_driving.pptx, <slide> 4)".
+    A web source is named by its site (and title)."""
+    if locator.get("url"):
+        return msg("rag.source.web", site=locator["file"], title=locator.get("title") or locator["file"])
     for key in ("slide", "page"):
         if key in locator:
             return msg(f"rag.source.{key}", file=locator["file"], number=locator[key])
@@ -375,7 +381,7 @@ def _units(config: RunnableConfig | None, node: str) -> list[Unit]:
     index = _index(config)
     if index is None:  # routing only gets here with files; keep a clear error just in case
         raise NodeError(node, ValueError("no source files in the session"))
-    return fit_to_budget(build_units(index.chunks))
+    return fit_to_budget(build_units(_owner_chunks(index.chunks)))
 
 
 def _lesson_type(state: AgentState) -> str:
@@ -436,6 +442,90 @@ def gate_type(state: AgentState, config: RunnableConfig) -> dict:
     lesson_type = proposed if confirmed else other_type(proposed)
     say(msg("gate.type.chosen", type=msg(f"lesson_types.{lesson_type}")))  # after interrupt: printed once
     return {"lesson_type": lesson_type}
+
+
+def route_after_gate_type(state: AgentState) -> str:
+    """Training lessons research the web first; compliance lessons use only the owner's document."""
+    return "research" if _lesson_type(state) == TRAINING else "topic_map"
+
+
+def _research_subject(state: AgentState, chunks: list[dict]) -> tuple[str, str]:
+    """(subject: the request and the files' headings, material: a sample of the owner's text)."""
+    files = list(dict.fromkeys(c["locator"]["file"] for c in chunks))
+    headings = [c["text"] for c in chunks if c.get("kind") in ("title", "heading")][:12]
+    subject = f"User request: {state.get('question', '')}\nFiles: {', '.join(files)}\nHeadings: {' | '.join(headings)}"
+    material = "\n".join(chunk_text_for_prompt(c) for c in chunks)
+    return subject, material
+
+
+def research(state: AgentState, config: RunnableConfig) -> dict:
+    """Training only: web research, verified against the downloaded pages (agent/research.py)."""
+    from agent.llm import load_models
+    from agent.research import VERIFIED, REJECTED, fact_chunk, openrouter_search, run_research
+
+    index = _index(config)
+    chunks = _owner_chunks(index.chunks if index is not None else [])
+    subject, material = _research_subject(state, chunks)
+    recorder: UsageRecorder | None = _configurable(config).get("usage_recorder")
+    writers = load_models("writer")
+
+    def small(messages):
+        return _call("research", messages, config, role="small")
+
+    def search(messages):
+        error: Exception | None = None
+        for model in writers:  # the writer models, in order: the first that answers
+            try:
+                result = openrouter_search(messages, model)
+            except Exception as e:  # noqa: BLE001 - try the next model
+                error = e
+                continue
+            if recorder:
+                recorder("research", LLMResult(result.text, result.model, result.prompt_tokens,
+                                               result.completion_tokens, result.cost))
+            return result
+        raise error or RuntimeError("no writer model")
+
+    run = run_research(subject, material, small, search)
+    verified = [f for f in run.facts if f["status"] == VERIFIED]
+    log(msg("research.done", searches=run.searches, verified=len(verified),
+            unverified=sum(f["status"] not in (VERIFIED, REJECTED) for f in run.facts),
+            rejected=sum(f["status"] == REJECTED for f in run.facts)))
+    if index is not None and verified:  # verified facts join the RAG index as web sources
+        known = {json.dumps(c["locator"], sort_keys=True) for c in index.chunks}
+        index.rebuild(index.chunks + [c for c in map(fact_chunk, verified)
+                                      if json.dumps(c["locator"], sort_keys=True) not in known])
+    return {"web_facts": run.facts, "research": {"searches": run.searches, "ideas": run.ideas, "notes": run.notes}}
+
+
+WEB_KINDS = ("web", "web_unverified")
+
+
+def _owner_chunks(chunks: list[dict]) -> list[dict]:
+    return [c for c in chunks if c.get("kind") not in WEB_KINDS]
+
+
+def _web_chunks(state: AgentState) -> list[dict]:
+    """Chunks of the verified facts and of the unverified ones the owner accepted at gate 2."""
+    from agent.research import fact_chunk, usable_facts
+
+    return [fact_chunk(f) for f in usable_facts(state.get("web_facts"), state.get("accepted_facts"))]
+
+
+def _all_chunks(state: AgentState, config: RunnableConfig | None) -> list[dict]:
+    """The owner's chunks and the usable web facts (each once)."""
+    index = _index(config)
+    owner = _owner_chunks(index.chunks if index is not None else [])
+    return owner + _web_chunks(state)
+
+
+def _with_web_excerpts(excerpts: list[tuple[str, dict]], state: AgentState) -> list[tuple[str, dict]]:
+    """Training lessons: the usable web facts join every group's excerpts, for enrichment."""
+    if _lesson_type(state) != TRAINING:
+        return excerpts
+    picked = {json.dumps(c["locator"], sort_keys=True) for _, c in excerpts}
+    extra = [c for c in _web_chunks(state) if json.dumps(c["locator"], sort_keys=True) not in picked]
+    return excerpts + [(f"E{len(excerpts) + i}", c) for i, c in enumerate(extra, 1)]
 
 
 def topic_map(state: AgentState, config: RunnableConfig) -> dict:
@@ -645,9 +735,10 @@ def _review_gate(gate: str, state: AgentState, config: RunnableConfig, extra: di
             return {"approved": None, "gate_answer": answer_gate_question(reply["text"], gate, item_text, config)}
         reply = {"approved": decision == "approve", "feedback": change}
 
+    extra_update = {"accepted_facts": reply["accepted_facts"]} if "accepted_facts" in reply else {}
     if reply.get("approved"):
-        return {"approved": True, "feedback": None, "gate_answer": None}
-    return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None}
+        return {"approved": True, "feedback": None, "gate_answer": None, **extra_update}
+    return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None, **extra_update}
 
 
 def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
@@ -661,7 +752,11 @@ def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
 
 def gate_structure(state: AgentState, config: RunnableConfig) -> dict:
     """Gate 2: approve the lesson structure (change -> plan_structure, approve -> write_lesson)."""
-    update = _review_gate("structure", state, config)
+    from agent.research import UNVERIFIED
+
+    unverified = [{"id": f["id"], "fact": f["fact"], "url": f["url"], "reason": f.get("reason", "")}
+                  for f in state.get("web_facts") or [] if f["status"] == UNVERIFIED]
+    update = _review_gate("structure", state, config, extra={"unverified": unverified} if unverified else None)
     if update.get("approved"):
         say(msg("gate.structure.approved"))  # after interrupt: printed once
         update["approved"] = None  # the save gate decides the end of this stage
@@ -772,7 +867,7 @@ def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
     done = state.get("written_groups") or 0
     first, last = groups[done]
     plan = structure["screens"][first - 1:last]
-    excerpts = group_excerpts(plan, index.chunks)
+    excerpts = _with_web_excerpts(group_excerpts(plan, _owner_chunks(index.chunks)), state)
     lesson_type = _lesson_type(state)
     is_first, is_last = done == 0, done == len(groups) - 1
     (_, system), (_, user) = build_messages(plan, excerpts, lesson_type, is_first, is_last)
@@ -887,14 +982,13 @@ def evaluator(state: AgentState, config: RunnableConfig) -> dict:
     checker that found it. Then decide whether another fix round fits the call budget."""
     from agent.evaluation import CALL_BUDGET, MAX_FIX_ROUNDS, actionable, first_evaluation, round_cost, verify_fixes
 
-    index = _index(config)
-    chunks = index.chunks if index is not None else []
+    chunks = _all_chunks(state, config)
     review = dict(state.get("review") or {})
     update: dict = {}
     call = _checker_call(config, state, review)
     if state.get("findings") is None:
         if state.get("key_points") is None and chunks:
-            update["key_points"] = extract_key_points(chunks, config) or []
+            update["key_points"] = extract_key_points(_owner_chunks(chunks), config) or []
         findings, failed, _ = first_evaluation(state["lesson"], chunks, call)
         screens = sorted({f["screen"] for f in actionable(findings)})
         log(msg("evaluator.found", count=len(findings), screens=len(screens)))
@@ -958,7 +1052,7 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
         plan = [plan_by_number[n] for n in group if n in plan_by_number]
         if not plan:
             continue
-        excerpts = group_excerpts(plan, index.chunks)
+        excerpts = _with_web_excerpts(group_excerpts(plan, _owner_chunks(index.chunks)), state)
         current = [written[n] for n in group if n in written]
         (_, system), (_, user) = build_revision_messages(
             plan, excerpts, lesson_type, current, [f for f in todo if f["screen"] in group])

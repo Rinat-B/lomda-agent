@@ -31,6 +31,21 @@ def no_browser_preview(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_web(monkeypatch):
+    """No real web search or page download in tests: searches find nothing, pages do not load."""
+    from agent import research
+
+    def no_search(messages, model, config=None):
+        return research.SearchResult('{"facts": []}', [], model)
+
+    def no_fetch(url):
+        raise research.FetchError("tests do not download pages")
+
+    monkeypatch.setattr(research, "openrouter_search", no_search)
+    monkeypatch.setattr(research, "fetch_page", no_fetch)
+
+
+@pytest.fixture(autouse=True)
 def fresh_model_availability():
     """Models marked unavailable in one test must not leak into the next."""
     from agent.llm import reset_model_state

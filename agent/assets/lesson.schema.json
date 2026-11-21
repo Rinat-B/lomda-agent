@@ -59,7 +59,7 @@
       }
     },
     "locator": {
-      "description": "Where a statement comes from in the owner's source files.",
+      "description": "Where a statement comes from: the owner's source files, or a verified web page (file = the site, with url and title).",
       "type": "object",
       "additionalProperties": false,
       "required": ["file"],
@@ -68,7 +68,9 @@
         "slide": {"type": "integer", "minimum": 1},
         "page": {"type": "integer", "minimum": 1},
         "paragraph": {"type": "integer", "minimum": 1},
-        "paragraph_end": {"type": "integer", "minimum": 1}
+        "paragraph_end": {"type": "integer", "minimum": 1},
+        "url": {"type": "string", "pattern": "^https?://"},
+        "title": {"type": "string"}
       }
     },
     "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/locator"}},
@@ -129,6 +131,7 @@
         "type": {"const": "did_you_know"},
         "text": {"$ref": "#/$defs/text"},
         "source_line": {"$ref": "#/$defs/text"},
+        "source_url": {"type": "string", "pattern": "^https?://", "description": "Link to the web source; opens in a new tab."},
         "sources": {"$ref": "#/$defs/sources"}
       }
     },

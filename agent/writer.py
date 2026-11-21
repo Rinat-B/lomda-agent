@@ -116,7 +116,10 @@ WRITE_PROMPT = (
     "its illustration and decision diagram if planned.\n"
     "{type_writing}\n"
     "Grounding: the lesson must be trustworthy, so every sentence must come from the numbered "
-    "source excerpts. List the ids of the excerpts that support each block in its \"sources\" "
+    "source excerpts. Excerpts of kind web come from official web pages checked by the agent, and "
+    "web_unverified from pages the owner accepted without a check: use them only for a "
+    "did_you_know block or one enrichment sentence, cite them like any excerpt, and never let them "
+    "override the owner's material. List the ids of the excerpts that support each block in its \"sources\" "
     "(for example [\"E2\"]). Do not add facts that are not in the excerpts. The excerpt ids and "
     "file names are internal: never write them inside a text field.\n"
     "Address: speak to the learner in the second person plural everywhere (questions, "
@@ -353,6 +356,9 @@ def parse_group(text: str, plan_screens: list[dict], excerpts: list[tuple[str, d
                     if lesson_type == "compliance":
                         problems.append(f"{where}: a compliance lesson has no did_you_know blocks")
                     block["source_line"] = source_line(block["sources"]) or "-"
+                    urls = [loc["url"] for loc in block["sources"] if loc.get("url")]
+                    if urls:
+                        block["source_url"] = urls[0]
             elif kind == "list":
                 block["ordered"] = bool(b.get("ordered", False))
                 block["items"] = [clean(x) for x in b.get("items") or []]

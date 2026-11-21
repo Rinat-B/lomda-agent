@@ -2,7 +2,7 @@
 
     START -> scope_check -+-> answer -> END                                  (question)
                           +-> END                                            (out of scope / no files)
-                          +-> classify_type -> gate_type -> topic_map -> gate_topics
+                          +-> classify_type -> gate_type -> [research, training only] -> topic_map -> gate_topics
                                                                 ^           |  ^  |
                                                      change ----+           |  +--+ question
                                                                             v (approved)
@@ -38,10 +38,12 @@ from agent.nodes import (
     gate_topics,
     gate_type,
     plan_structure,
+    research,
     route_after_gate_structure,
     route_after_evaluator,
     route_after_gate_review,
     route_after_gate_topics,
+    route_after_gate_type,
     route_after_scope_check,
     route_after_write,
     scope_check,
@@ -59,6 +61,7 @@ def build_graph(checkpointer=None):
     graph.add_node("answer", answer)
     graph.add_node("classify_type", classify_type)
     graph.add_node("gate_type", gate_type)
+    graph.add_node("research", research)
     graph.add_node("topic_map", topic_map)
     graph.add_node("gate_topics", gate_topics)
     graph.add_node("plan_structure", plan_structure)
@@ -77,7 +80,8 @@ def build_graph(checkpointer=None):
     )
     graph.add_edge("answer", END)
     graph.add_edge("classify_type", "gate_type")
-    graph.add_edge("gate_type", "topic_map")
+    graph.add_conditional_edges("gate_type", route_after_gate_type, {"research": "research", "topic_map": "topic_map"})
+    graph.add_edge("research", "topic_map")
     graph.add_edge("topic_map", "gate_topics")
     graph.add_conditional_edges(
         "gate_topics", route_after_gate_topics,

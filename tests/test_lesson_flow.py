@@ -181,6 +181,10 @@ def prompt_kind(system: str) -> str:
         return "check"
     if system.startswith("You list the key points"):
         return "key_points"
+    if system.startswith("You plan web research"):
+        return "research_ideas"
+    if system.startswith("You compare web findings"):
+        return "research_gaps"
     return "other"
 
 
@@ -291,6 +295,10 @@ class FakeModel:
             return make_result(text=writer_reply(system, first_user))
         if kind in ("check", "single_answer", "key_points"):
             return make_result(text=checker_reply(kind, first_user))
+        if kind == "research_ideas":
+            return make_result(text='{"ideas": []}')
+        if kind == "research_gaps":
+            return make_result(text='{"findings": [], "ideas": []}')
         raise AssertionError(f"unexpected prompt: {system[:70]}")
 
     def prompts_of(self, kind: str) -> list[str]:
