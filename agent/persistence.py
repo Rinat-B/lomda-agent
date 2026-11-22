@@ -78,6 +78,9 @@ class ConversationStore:
             " thread_id TEXT PRIMARY KEY, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,"
             " files TEXT NOT NULL, sources TEXT NOT NULL, usage TEXT NOT NULL)"
         )
+        columns = {row[1] for row in self.conn.execute("PRAGMA table_info(conversations)")}
+        if "history" not in columns:  # files saved before the history was kept
+            self.conn.execute("ALTER TABLE conversations ADD COLUMN history TEXT NOT NULL DEFAULT '[]'")
         self.conn.commit()
 
     def save(self, session: Session) -> None:
@@ -86,28 +89,30 @@ class ConversationStore:
         files = json.dumps([str(p) for p in session.files], ensure_ascii=False)
         sources = json.dumps({str(p): asdict(s) for p, s in session.sources.items()}, ensure_ascii=False)
         usage = json.dumps([asdict(u) for u in session.usage], ensure_ascii=False)
+        history = json.dumps(session.history, ensure_ascii=False)
         now = _now()
         self.conn.execute(
-            "INSERT INTO conversations (thread_id, created_at, updated_at, files, sources, usage)"
-            " VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT INTO conversations (thread_id, created_at, updated_at, files, sources, usage, history)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)"
             " ON CONFLICT(thread_id) DO UPDATE SET updated_at=excluded.updated_at,"
-            " files=excluded.files, sources=excluded.sources, usage=excluded.usage",
-            (session.thread_id, now, now, files, sources, usage),
+            " files=excluded.files, sources=excluded.sources, usage=excluded.usage, history=excluded.history",
+            (session.thread_id, now, now, files, sources, usage, history),
         )
         self.conn.commit()
 
     def load(self, thread_id: str) -> dict | None:
         row = self.conn.execute(
-            "SELECT files, sources, usage, updated_at FROM conversations WHERE thread_id = ?", (thread_id,)
+            "SELECT files, sources, usage, updated_at, history FROM conversations WHERE thread_id = ?", (thread_id,)
         ).fetchone()
         if row is None:
             return None
-        files, sources, usage, updated_at = row
+        files, sources, usage, updated_at, history = row
         return {
             "files": json.loads(files),
             "sources": json.loads(sources),
             "usage": json.loads(usage),
             "updated_at": updated_at,
+            "history": json.loads(history or "[]"),
         }
 
     def restore(self, thread_id: str, session: Session) -> bool:
@@ -120,6 +125,7 @@ class ConversationStore:
         session.files = [Path(f) for f in data["files"]]
         session.sources = {Path(p): SourceDoc(**s) for p, s in data["sources"].items()}
         session.usage = [UsageRecord(**u) for u in data["usage"]]
+        session.history = list(data.get("history") or [])  # /summary after /resume is complete
         session.index.rebuild(session.all_chunks())
         return True
 

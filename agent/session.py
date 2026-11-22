@@ -59,9 +59,9 @@ class Session:
     index: ChunkIndex = field(default_factory=ChunkIndex)
     # LangGraph checkpointer thread for this conversation; a new one per /new.
     thread_id: str = field(default_factory=lambda: uuid.uuid4().hex)
-    topic_map: list[dict] | None = None  # the approved topic map
-    lesson_type: str | None = None  # training | compliance, once confirmed
-    structure: dict | None = None  # the approved lesson structure
+    # the final state of the last lesson run (its type, map, structure, lesson, saved path): the next
+    # message can ask to change that lesson (edit_lesson)
+    last_run: dict | None = None
     run_start: int = 0  # index in usage where the current run began (report.md counts from here)
     # requests and their outcomes in this program run, for /summary: {"kind": question|answer|lesson|stopped, ...}
     history: list[dict] = field(default_factory=list)
@@ -72,9 +72,7 @@ class Session:
         self.usage.clear()
         self.index.reset()
         self.thread_id = uuid.uuid4().hex
-        self.topic_map = None
-        self.lesson_type = None
-        self.structure = None
+        self.last_run = None
         self.run_start = 0
         self.history.clear()
 

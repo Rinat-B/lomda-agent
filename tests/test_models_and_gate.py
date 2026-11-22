@@ -242,7 +242,7 @@ def test_y_and_n_need_no_model_call(gate_model, output, answer):
 def test_free_text_approval(gate_model, output):
     session = run_with(["Y", "looks great APPROVE_ME", "Y"])
     assert gate_model.kinds() == ["scope", "classify_type", "topic_map", "classify", "plan_structure", "write"]
-    assert msg("gate.topics.approved") in output() and session.topic_map is not None
+    assert msg("gate.topics.approved") in output() and session.last_run['topic_map'] is not None
 
 
 def test_free_text_change_uses_the_extracted_change(gate_model, output):
@@ -250,7 +250,7 @@ def test_free_text_change_uses_the_extracted_change(gate_model, output):
     topic_prompts = [u for k, _, u in gate_model.calls if k == "topic_map"]
     assert len(topic_prompts) == 2
     assert "apply this feedback: add a topic on tires" in topic_prompts[1]
-    assert session.topic_map[-1]["name"] == "TIRES"
+    assert session.last_run['topic_map'][-1]["name"] == "TIRES"
 
 
 def test_question_is_answered_and_the_gate_asks_again(gate_model, output):
@@ -261,7 +261,7 @@ def test_question_is_answered_and_the_gate_asks_again(gate_model, output):
     out = output()
     assert "ANSWER-FROM-MAP" in out
     assert out.count(rendered("gate.topics.title", count=4)) == 1  # the map is not reprinted
-    assert session.topic_map is not None and len(session.topic_map) == 4
+    assert session.last_run['topic_map'] is not None and len(session.last_run['topic_map']) == 4
     answer_prompt = next(u for k, _, u in gate_model.calls if k == "answer")
     assert "Topic map:" in answer_prompt and "Question: QUESTION_ME why is slide 2 here?" in answer_prompt
 
@@ -277,7 +277,7 @@ def test_unusable_classifier_reply_is_retried_then_treated_as_change(gate_model,
     assert gate_model.kinds().count("classify") == 2  # one retry
     topic_prompts = [u for k, _, u in gate_model.calls if k == "topic_map"]
     assert "apply this feedback: something unclear" in topic_prompts[1]
-    assert session.topic_map is not None
+    assert session.last_run['topic_map'] is not None
 
 
 # ---- OpenRouter's daily free-model quota ---------------------------------------------------------

@@ -337,8 +337,9 @@ class FakeModel:
         self.kinds.append(kind)
         first_user = messages[1].content
         revising = "reviewer asked" in first_user.lower()
-        if kind == "scope":
-            return make_result(text="BUILD_LESSON")
+        if kind == "scope":  # a change to the saved lesson when one exists and the message names a screen
+            edit = "EDIT_LESSON" in system and "במסך" in user
+            return make_result(text="EDIT_LESSON" if edit else "BUILD_LESSON")
         if kind == "classify_type":
             import re as _re
 
@@ -412,8 +413,8 @@ def test_approve_right_away(monkeypatch, session_with_deck, output):
     run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
     out = output()
     assert msg("gate.topics.approved") in out and msg("gate.structure.approved") in out
-    assert len(session_with_deck.topic_map) == 4
-    assert len(session_with_deck.structure["screens"]) == 4
+    assert len(session_with_deck.last_run['topic_map']) == 4
+    assert len(session_with_deck.last_run['structure']["screens"]) == 4
     for node in ("classify_type", "gate_type", "topic_map", "gate_topics", "plan_structure", "gate_structure"):
         assert f"[INFO] Entering Node: {node}" in out
     assert rendered("gate.topics.title", count=4) in out
@@ -426,7 +427,7 @@ def test_change_request_goes_back_to_topic_map_then_approve(monkeypatch, session
     assert len(prompts) == 2
     assert "apply this feedback: add a topic on tires" in prompts[1]
     assert "Your previous topic map" in prompts[1]
-    assert [t["name"] for t in session_with_deck.topic_map][-1] == "TIRES"
+    assert [t["name"] for t in session_with_deck.last_run['topic_map']][-1] == "TIRES"
     out = output()
     assert rendered("gate.topics.title", count=5) in out and msg("gate.topics.approved") in out
 
@@ -435,7 +436,7 @@ def test_hebrew_keyboard_letters(monkeypatch, session_with_deck, output):
     model = FakeModel()
     run_flow(monkeypatch, session_with_deck, [TET, f"{MEM} add a topic on tires", TET, TET], model)
     assert len(model.topic_map_prompts()) == 2
-    assert session_with_deck.topic_map is not None and len(session_with_deck.topic_map) == 5
+    assert session_with_deck.last_run['topic_map'] is not None and len(session_with_deck.last_run['topic_map']) == 5
 
 
 def test_n_without_comment_asks_what_to_change(monkeypatch, session_with_deck, output):
@@ -455,7 +456,7 @@ def test_invalid_model_json_is_retried(monkeypatch, session_with_deck, output):
     model = FakeModel(invalid_first=True)
     run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
     assert len(model.topic_map_prompts()) == 2  # retry inside topic_map
-    assert len(session_with_deck.topic_map) == 4
+    assert len(session_with_deck.last_run['topic_map']) == 4
 
 
 def test_a_new_question_after_the_gate_starts_fresh(monkeypatch, session_with_deck, output):

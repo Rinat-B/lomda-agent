@@ -124,7 +124,7 @@ def test_every_prompt_with_sources_carries_the_data_rule(monkeypatch, session_wi
 def test_type_is_proposed_and_confirmed(monkeypatch, session_with_deck, output):  # noqa: F811
     model = FakeModel(lesson_type=COMPLIANCE)
     run_flow(monkeypatch, session_with_deck, ["Y", "Y", "Y"], model)
-    assert session_with_deck.lesson_type == COMPLIANCE
+    assert session_with_deck.last_run['lesson_type'] == COMPLIANCE
     assert msg("gate.type.chosen", type=msg("lesson_types.compliance")) in output()
     prompt = model.prompts_of("classify_type")[0]
     assert "Files: deck.pptx" in prompt and "<source_material>" in prompt
@@ -133,7 +133,7 @@ def test_type_is_proposed_and_confirmed(monkeypatch, session_with_deck, output):
 def test_n_at_the_type_gate_switches_type(monkeypatch, session_with_deck, output):  # noqa: F811
     model = FakeModel(lesson_type=TRAINING)
     run_flow(monkeypatch, session_with_deck, ["N", "Y", "Y"], model)
-    assert session_with_deck.lesson_type == COMPLIANCE
+    assert session_with_deck.last_run['lesson_type'] == COMPLIANCE
 
 
 def test_free_text_at_the_type_gate_is_classified(monkeypatch, session_with_deck, output):  # noqa: F811
@@ -261,7 +261,7 @@ def test_structure_change_goes_back_to_plan_structure(monkeypatch, session_with_
     plans = model.prompts_of("plan_structure")
     assert len(plans) == 2 and "apply this feedback: add an extra screen" in plans[1]
     assert "Your previous structure" in plans[1]
-    assert session_with_deck.structure["screens"][-1]["title"] == "EXTRA"
+    assert session_with_deck.last_run['structure']["screens"][-1]["title"] == "EXTRA"
     assert msg("gate.structure.approved") in output()
 
 
@@ -281,7 +281,7 @@ def test_structure_gate_hebrew_keyboard(monkeypatch, session_with_deck, output):
     tet, mem = chr(0x05D8), chr(0x05DE)
     run_flow(monkeypatch, session_with_deck, [tet, tet, f"{mem} more screens", tet], model)
     assert len(model.prompts_of("plan_structure")) == 2
-    assert session_with_deck.structure is not None
+    assert session_with_deck.last_run['structure'] is not None
 
 
 # ---- display ----------------------------------------------------------------------------------

@@ -90,7 +90,7 @@ def test_pause_close_resume_approve(model, db, output):
     assert len(model.topic_map_prompts()) == prompts_before  # the saved map is shown, not rebuilt
     assert rendered("gate.topics.title", count=4) in output()
     assert msg("gate.topics.approved") in output()
-    assert session2.topic_map is not None and len(session2.topic_map) == 4
+    assert session2.last_run['topic_map'] is not None and len(session2.last_run['topic_map']) == 4
     assert paused_conversations(graph2, store2) == []
 
 
@@ -105,7 +105,7 @@ def test_resume_can_request_changes_after_restart(model, db, output):
     CommandHandler(session2, store=store2, graph=graph2).handle("/resume 1")
     run_graph(session2, graph2, None, ask_fn=answers("N add tires", "Y", "Y"), store=store2)
     assert "apply this feedback: add tires" in model.topic_map_prompts()[-1]
-    assert [t["name"] for t in session2.topic_map][-1] == "TIRES"
+    assert [t["name"] for t in session2.last_run['topic_map']][-1] == "TIRES"
     assert output().count("[INFO] Entering Node: gate_topics") == 2  # first run + the revised map
 
 
@@ -190,8 +190,8 @@ def test_resume_from_the_type_gate(model, db, output):
     graph2, store2, session2 = pause_then_reopen(model, db, [])
     # N at the type gate switches the proposed training type to compliance.
     run_graph(session2, graph2, None, ask_fn=answers("N", "Y", "Y"), store=store2)
-    assert session2.lesson_type == "compliance"
-    assert session2.structure["lesson_type"] == "compliance"
+    assert session2.last_run['lesson_type'] == "compliance"
+    assert session2.last_run['structure']["lesson_type"] == "compliance"
     assert msg("gate.type.chosen", type=msg("lesson_types.compliance")) in output()
 
 
@@ -203,5 +203,5 @@ def test_resume_from_the_structure_gate(model, db, output):
     run_graph(session2, graph2, None, ask_fn=answers("Y"), store=store2)
     assert len(model.prompts_of("plan_structure")) == plans_before  # the saved structure is shown
     assert msg("gate.structure.approved") in output()
-    assert session2.structure is not None and len(session2.structure["screens"]) == 4
+    assert session2.last_run['structure'] is not None and len(session2.last_run['structure']["screens"]) == 4
     assert paused_conversations(graph2, store2) == []

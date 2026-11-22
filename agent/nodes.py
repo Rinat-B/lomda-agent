@@ -71,6 +71,12 @@ SCOPE_CHECK_WITH_SOURCES = (
     "material are OUT_OF_SCOPE."
     + SOURCE_DATA_RULE
 )
+SCOPE_CHECK_WITH_LESSON = (
+    "\nA lesson was built and saved in this conversation: {title}. One more category:\n"
+    "EDIT_LESSON - a request to change that saved lesson (a screen, a question, a wording, an "
+    "illustration), for example 'on screen 4 replace the question'. A request for a NEW lesson is "
+    "BUILD_LESSON.\nReply with exactly one word: BUILD_LESSON, EDIT_LESSON, QUESTION or OUT_OF_SCOPE."
+)
 SCOPE_EXCERPT_CHARS = 600
 SCOPE_EXCERPTS = 3
 
@@ -78,6 +84,12 @@ INTENT_QUESTION = "question"
 INTENT_BUILD = "build_lesson"
 INTENT_OUT = "out_of_scope"
 INTENT_NEEDS_FILES = "needs_files"  # build_lesson with no files in the session
+INTENT_EDIT = "edit_lesson"  # change the lesson saved earlier in this conversation
+# What a saved lesson brings to an edit in the next message (the previous run's state).
+PREVIOUS_LESSON_KEYS = ("lesson_type", "topic_map", "structure", "written_screens", "written_groups", "lesson_title",
+                        "lesson_summary", "lesson", "writer_models", "findings", "review_round", "key_points",
+                        "web_facts", "research", "accepted_facts", "illustrations", "illustration_notes", "motif",
+                        "motif_candidates", "requirements", "reasons", "review", "saved_path")
 
 TOPIC_MAP_ATTEMPTS = 3
 TOPIC_MAP_PROMPT = (
@@ -239,6 +251,8 @@ class AgentState(TypedDict, total=False):
     clarified: bool | None  # the clarification question was asked (or not needed) in this run
     suggestions: list[dict] | None  # the agent's suggestions {"when", "text", "reason", "answer"} (report.md)
     research_wide: bool | None  # the owner accepted a wider web search (thin material, training)
+    previous_lesson: dict | None  # the state of the lesson saved earlier in this conversation (for an edit)
+    edit_of: str | None  # the saved lesson this run edits (its index.html)
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -382,8 +396,13 @@ def scope_check(state: AgentState, config: RunnableConfig) -> dict:
         # Always ask the model; give it the session's files and the closest excerpt as context.
         system = SCOPE_CHECK_PROMPT + SCOPE_CHECK_WITH_SOURCES
         user = scope_context(state["question"], index)
+    previous = state.get("previous_lesson")
+    if previous and previous.get("lesson"):
+        system += SCOPE_CHECK_WITH_LESSON.format(title=previous["lesson"].get("title", ""))
     result = _call("scope_check", [SystemMessage(system), HumanMessage(user)], config, role="small")
     intent = classify_intent(result.text)
+    if "EDIT_LESSON" in result.text.upper() and previous and previous.get("lesson") and index is not None:
+        return {"intent": INTENT_EDIT}
     if intent == INTENT_OUT:
         return {"intent": intent, "answer": msg("graph.out_of_scope")}
     if intent == INTENT_BUILD and index is None:
@@ -1849,7 +1868,23 @@ def route_after_scope_check(state: AgentState) -> str:
         return "answer"
     if intent == INTENT_BUILD:
         return "classify_type"
+    if intent == INTENT_EDIT:
+        return "edit_lesson"
     return "end"  # out_of_scope, or build_lesson without files (message already set)
+
+
+def edit_lesson(state: AgentState, config: RunnableConfig) -> dict:
+    """A change to the lesson saved earlier in this conversation ("on screen 4 replace the question"):
+    the saved lesson's state comes back, the request goes to fix_screens as the owner's change (only
+    the screens it names are rewritten), the changed screens are checked again, and gate 3 and
+    write_files follow; the new version gets its own folder (name-2), the old one stays."""
+    previous = state.get("previous_lesson") or {}
+    say(msg("edit.loading", title=(previous.get("lesson") or {}).get("title", ""), path=previous.get("saved_path") or "-"))
+    return {**{k: previous.get(k) for k in PREVIOUS_LESSON_KEYS},
+            "feedback": state["question"], "owner_request": None, "output_folder": None, "saved_path": None,
+            "report_path": None, "approved": None, "gate_answer": None, "pending": None, "fixed_screens": [],
+            "fixed_illustrations": [], "lesson_started": time.time(), "edit_of": previous.get("saved_path"),
+            "clarified": True}
 
 
 def _route_after_review(state: AgentState, gate_node: str, redo_node: str, next_node: str) -> str:

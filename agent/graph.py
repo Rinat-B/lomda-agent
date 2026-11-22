@@ -40,6 +40,7 @@ from agent.nodes import (
     clarify,
     classify_type,
     cost_guarded,
+    edit_lesson,
     evaluator,
     fix_screens,
     gate_review,
@@ -70,6 +71,7 @@ def build_graph(checkpointer=None):
     graph.add_node("scope_check", scope_check)
     graph.add_node("answer", answer)
     graph.add_node("classify_type", classify_type)
+    graph.add_node("edit_lesson", edit_lesson)
     graph.add_node("gate_type", gate_type)
     graph.add_node("clarify", clarify)
     graph.add_node("research", cost_guarded("research", research))
@@ -89,9 +91,10 @@ def build_graph(checkpointer=None):
     graph.add_edge(START, "scope_check")
     graph.add_conditional_edges(
         "scope_check", route_after_scope_check,
-        {"answer": "answer", "classify_type": "classify_type", "end": END},
+        {"answer": "answer", "classify_type": "classify_type", "edit_lesson": "edit_lesson", "end": END},
     )
     graph.add_edge("answer", END)
+    graph.add_edge("edit_lesson", "fix_screens")
     graph.add_edge("classify_type", "gate_type")
     graph.add_conditional_edges("gate_type", route_after_gate_type, {"gate_type": "gate_type", "clarify": "clarify"})
     graph.add_conditional_edges("clarify", route_after_clarify, {"research": "research", "topic_map": "topic_map"})

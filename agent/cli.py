@@ -66,6 +66,8 @@ FRESH_RUN = {
     "clarified": None,
     "suggestions": None,
     "research_wide": None,
+    "previous_lesson": None,
+    "edit_of": None,
     "cost_cap": None,
     "cost_stop": None,
     "fixed_illustrations": None,
@@ -205,9 +207,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
     elif values.get("answer"):
         session.history.append({"kind": "answer", "text": values["answer"]})
     if values.get("approved"):  # the lesson flow reached its end (write_files)
-        session.lesson_type = values.get("lesson_type")
-        session.topic_map = values.get("topic_map")
-        session.structure = values.get("structure")
+        session.last_run = dict(values)
     if values.get("answer"):
         show_markdown(values["answer"])
     if values.get("saved_path"):
@@ -231,9 +231,15 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
 
 def run_question(question: str, session: Session, graph, ask_fn: Callable[[str], str] = ask, store=None) -> bool:
     """Run one question through the graph from a fresh state."""
+    from agent.nodes import PREVIOUS_LESSON_KEYS
+
     session.run_start = len(session.usage)
     session.history.append({"kind": "question", "text": question})
-    return run_graph(session, graph, {**FRESH_RUN, "question": question}, ask_fn, store)
+    payload = {**FRESH_RUN, "question": question}
+    last = session.last_run
+    if last and last.get("saved_path") and last.get("lesson"):  # the next message may edit it
+        payload["previous_lesson"] = {k: last.get(k) for k in PREVIOUS_LESSON_KEYS}
+    return run_graph(session, graph, payload, ask_fn, store)
 
 
 def run_turn(line: str, handler: CommandHandler, graph) -> bool:
