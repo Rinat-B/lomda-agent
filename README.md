@@ -204,6 +204,8 @@ evals/                                         eval scripts, rubric, fixtures, r
 tests/                                         unit tests (pytest)
 examples/sample_lesson/                        a small hand-made lesson for the player
 docs/SPEC.md                                   the specification (Hebrew)
+docs/agent_audit.md                            audit of the conversation abilities, and what was closed (Hebrew)
+docs/dev_log/                                  development decision logs per day (Hebrew); logs/ holds run logs only (not in git)
 scripts/build.ps1                              PyInstaller build of agent.exe
 manifest.json                                  project manifest
 .github/workflows/release.yml                  builds agent.exe for a v* tag; attaches it and agent.zip to the Release
