@@ -1,0 +1,148 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>סימולטור ראות בערפל</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F3F6F9;
+    --text: #1F2933;
+    --muted: #4B5866;
+    --primary: #1D63A0;
+    --primary-text: #FFFFFF;
+    --accent: #256B5C;
+    --highlight: #FFF3BF;
+    --success: #1B6E3F;
+    --error: #A9231A;
+    --border: #C5CED8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: Arial, "Noto Sans Hebrew", sans-serif; }
+  body { min-height: 320px; display: flex; justify-content: center; overflow-x: hidden; }
+  .app { width: 100%; max-width: 100%; min-height: 320px; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; }
+  h1 { margin: 0; font-size: 16px; line-height: 1.15; }
+  .sub { margin: 0; font-size: 11px; line-height: 1.2; color: var(--muted); }
+  .scene { position: relative; height: 56px; flex: 0 0 56px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--bg); }
+  .sky { position: absolute; inset: 0; background: linear-gradient(var(--bg), var(--surface)); }
+  .road { position: absolute; left: 0; right: 0; bottom: 0; height: 24px; background: var(--border); border-top: 2px solid var(--bg); }
+  .road::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed var(--bg); transform: translateY(-50%); }
+  .posts { position: absolute; inset: 0; }
+  .post { position: absolute; bottom: 20px; width: 3px; height: 18px; background: var(--muted); border-radius: 2px; display: none; }
+  .post::before { content: ""; position: absolute; top: -4px; left: -3px; width: 9px; height: 5px; background: var(--highlight); border: 1px solid var(--border); border-radius: 2px; }
+  .post.p1 { left: 50%; }
+  .post.p2 { left: 75%; }
+  .scene.poles-1 .p1 { display: block; }
+  .scene.poles-0 .p1, .scene.poles-0 .p2 { display: none; }
+  .fog { position: absolute; inset: 0; background: var(--bg); opacity: 0.25; pointer-events: none; transition: opacity 0.2s; }
+  .scene.heavy .fog { opacity: 0.7; }
+  .scene-note { position: absolute; top: 2px; right: 4px; font-size: 9px; line-height: 1.1; color: var(--muted); background: var(--bg); padding: 1px 3px; border-radius: 3px; }
+  .controls { display: flex; flex-direction: column; gap: 3px; }
+  .state-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; }
+  .state-row label { font-size: 12px; }
+  select { font: inherit; font-size: 12px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); max-width: 100%; }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .estimate { font-size: 12px; line-height: 1.2; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; }
+  .actions { display: flex; flex-direction: column; gap: 3px; }
+  .actions button { font: inherit; font-size: 12px; line-height: 1.15; padding: 5px 8px; min-height: 26px; border: 1px solid var(--primary); border-radius: 6px; background: var(--primary); color: var(--primary-text); text-align: right; cursor: pointer; }
+  .actions button:hover { opacity: 0.9; }
+  .actions button:active { opacity: 0.8; }
+  .feedback { min-height: 26px; font-size: 12px; line-height: 1.2; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .feedback.success { border-color: var(--success); color: var(--success); }
+  .feedback.error { border-color: var(--error); color: var(--error); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+  @media (max-width: 360px) {
+    .state-row { grid-template-columns: 1fr; }
+    .scene-note { display: none; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>סימולטור ראות בערפל</h1>
+    <p class="sub">התאמת נהיגה לראות מוגבלת</p>
+  </header>
+  <section class="scene poles-1" id="scene">
+    <div class="sky"></div>
+    <div class="fog"></div>
+    <div class="road"></div>
+    <div class="posts">
+      <div class="post p1"></div>
+      <div class="post p2"></div>
+    </div>
+    <div class="scene-note">כביש בין-עירוני · מרחק בין עמודי תאורה כ-50 מ׳</div>
+  </section>
+  <section class="controls" aria-label="בקרת המצב">
+    <div class="state-row">
+      <label for="poles">כמה עמודי תאורה אתם רואים?</label>
+      <select id="poles">
+        <option value="1">עמוד תאורה אחד</option>
+        <option value="0">אף עמוד תאורה</option>
+      </select>
+    </div>
+    <label class="check">
+      <input type="checkbox" id="under50">
+      הערכת הראות: מתחת ל-50 מ׳
+    </label>
+    <div class="estimate" id="estimate" aria-live="polite"></div>
+  </section>
+  <div class="actions" role="group" aria-label="בחרו פעולה">
+    <button type="button" data-action="slowFog">להאט ל-50 קמ״ש ולהדליק אורות ערפל</button>
+    <button type="button" data-action="stopHazard">לעצור בצד במקום בטוח ולהדליק אורות חירום</button>
+  </div>
+  <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+</main>
+<script>
+  const poles = document.getElementById('poles');
+  const under50 = document.getElementById('under50');
+  const scene = document.getElementById('scene');
+  const estimate = document.getElementById('estimate');
+  const feedback = document.getElementById('feedback');
+
+  function setFeedback(message, type) {
+    feedback.textContent = message;
+    feedback.className = 'feedback' + (type ? ' ' + type : '');
+  }
+
+  function updateScene() {
+    const polesValue = poles.value;
+    const isUnder50 = under50.checked;
+    scene.classList.toggle('poles-1', polesValue === '1');
+    scene.classList.toggle('poles-0', polesValue === '0');
+    scene.classList.toggle('heavy', isUnder50);
+    const visibilityText = isUnder50 ? 'מתחת ל-50 מ׳' : 'מתחת ל-100 מ׳';
+    estimate.textContent = `רואים פחות מ-2 עמודי תאורה — הראות מוערכת: ${visibilityText}`;
+    setFeedback('', '');
+  }
+
+  poles.addEventListener('change', updateScene);
+  under50.addEventListener('change', updateScene);
+
+  document.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      const isUnder50 = under50.checked;
+
+      if (isUnder50) {
+        if (action === 'stopHazard') {
+          setFeedback('נכון. הראות מתחת ל-50 מ׳. עוצרים בצד במקום בטוח ומדליקים אורות חירום. לא עוצרים על השול בעקומה או מיד אחריה.', 'success');
+        } else {
+          setFeedback('הראות מתחת ל-50 מ׳. האם זו ראות שבה מותר להמשיך בנסיעה? בדקו את ההנחיה. נסו פעולה אחרת.', 'error');
+        }
+      } else {
+        if (action === 'slowFog') {
+          setFeedback('נכון. רואים פחות מ-2 עמודי תאורה — הראות מתחת ל-100 מ׳. מאטים ל-50 קמ״ש ומדליקים אורות ערפל.', 'success');
+        } else {
+          setFeedback('רואים פחות מ-2 עמודי תאורה — הראות מתחת ל-100 מ׳. מהי הפעולה שמתאימה לראות מוגבלת? נסו פעולה אחרת.', 'error');
+        }
+      }
+    });
+  });
+
+  updateScene();
+</script>
+</body>
+</html>

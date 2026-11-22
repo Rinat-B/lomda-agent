@@ -78,7 +78,14 @@ PROMPT = (
     "consequence of breaking a rule, such as a crash or a spin, is not wrong), drops_caution (it says "
     "caution is not needed, to go on unchanged, or to skip a safety step), reveals_answer (after a "
     "WRONG answer it states the right answer or action, instead of a hint and another try; showing "
-    "the result of the learner's own setting, such as a crash with the distances, is not revealing).\n"
+    "the result of the learner's own setting, such as a crash with the distances, is not revealing), "
+    "solution_like (after a WRONG answer, other text shown with the feedback, such as an instruction "
+    "or a rule of the source, reads like the answer to what was just asked, even if it is meant as "
+    "general information).\n"
+    "6b. derived_controls: a value the page could compute from the learner's own choice (for example "
+    "the visibility from the number of posts seen) but offers as a separate control the learner can "
+    "set (a checkbox, a radio, a select). For each: control, derived_from, can_contradict (the learner "
+    "can set both into a combination the source makes impossible, e.g. one post seen and 'under 50 m').\n"
     "7. situation: if the source's rules tell situations apart (for example the rear slides vs. "
     "the front does not respond to the wheel) and the page shows ONE of those situations without "
     "saying which (a condition that only changes a number, such as tyre tread, is not a situation), "
@@ -91,6 +98,7 @@ PROMPT = (
     '"choices": [{"combination": "...", "selectable": true, "source_has_data": true}], '
     '"cause_effect": [{"cause": "...", "effect_in_page": "...", "correct": true}], '
     '"feedback": [{"case": "...", "text": "...", "correct": true, "drops_caution": false, "reveals_answer": false}], '
+    '"derived_controls": [{"control": "...", "derived_from": "...", "can_contradict": true}], '
     '"situation": {"name_missing": ""}}\n\n'
     + SOURCE_DATA_RULE
 )
@@ -163,8 +171,14 @@ def findings_from_table(data: dict, screen: int | None, where: str) -> list[Find
             problems.append(msg("illustration_logic.feedback_caution"))
         if _true(f.get("reveals_answer")):
             problems.append(msg("illustration_logic.feedback_reveals"))
+        if _true(f.get("solution_like")):
+            problems.append(msg("illustration_logic.feedback_solution_like"))
         if problems:
             add("illustration_feedback", f.get("text", ""), " ".join(problems))
+    for c in _rows(data, "derived_controls"):
+        if _true(c.get("can_contradict")):
+            add("illustration_choice", c.get("control", ""),
+                msg("illustration_logic.derived_control", control=c.get("control", ""), source=c.get("derived_from", "")))
     situation = data.get("situation") if isinstance(data.get("situation"), dict) else {}
     missing = str(situation.get("name_missing") or "").strip()
     if missing:

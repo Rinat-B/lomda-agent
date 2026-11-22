@@ -341,3 +341,21 @@ def test_an_existing_output_folder_is_never_overwritten(tmp_path):
     (base / "short_winter").mkdir(parents=True)
     assert unique_output_folder("short_winter.pptx", base) == base / "short_winter-2"
     assert unique_output_folder("C:/x/my file.pdf", base) == base / "my_file"
+
+
+def test_did_you_know_shows_the_document_title_not_the_file_name():
+    from agent.writer import source_line, source_titles
+
+    chunks = [{"text": "נהיגה בטוחה בחורף", "locator": {"file": "short_winter.pptx", "slide": 1, "paragraph": 1}},
+              {"text": "x" * 300, "locator": {"file": "long_first.docx", "paragraph": 1}},
+              {"text": "web", "locator": {"file": "gov.il", "url": "https://gov.il/a", "title": "t"}}]
+    titles = source_titles(chunks)
+    assert titles == {"short_winter.pptx": "נהיגה בטוחה בחורף", "long_first.docx": "long_first"}
+    line = source_line([{"file": "short_winter.pptx", "slide": 1}], titles)
+    assert line.startswith("נהיגה בטוחה בחורף") and "short_winter.pptx" not in line
+
+
+def test_the_writer_is_told_did_you_know_is_never_administrative():
+    from agent.writer import TYPE_WRITING
+
+    assert "never an administrative detail" in TYPE_WRITING["training"]

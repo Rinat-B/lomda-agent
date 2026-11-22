@@ -149,3 +149,20 @@ def test_every_graph_node_that_calls_a_model_has_a_hebrew_name_in_the_report():
     for node in ("scope_check", "classify_type", "research", "topic_map", "plan_structure", "motif", "write_lesson",
                  "build_illustrations", "browser_check", "key_points", "evaluator", "fix_screens"):
         assert msg_or_none(f"report.nodes.{node}"), node
+
+
+def test_a_derived_control_and_solution_like_feedback_are_findings():
+    data = table(derived_controls=[{"control": "מתחת ל-50 מ׳", "derived_from": "מספר העמודים", "can_contradict": True},
+                                   {"control": "x", "derived_from": "y", "can_contradict": False}],
+                 feedback=[{"case": "טעות", "text": "אינה מתאימה", "correct": True, "drops_caution": False,
+                            "reveals_answer": False, "solution_like": True}])
+    found = {f.category: f for f in findings_from_table(data, 4, "illustration s4")}
+    assert msg("illustration_logic.derived_control", control="מתחת ל-50 מ׳", source="מספר העמודים") in found["illustration_choice"].problem
+    assert msg("illustration_logic.feedback_solution_like") in found["illustration_feedback"].problem
+
+
+def test_the_writer_is_told_to_compute_derived_values_and_keep_hints_apart():
+    from agent.illustrations import BUILD_PROMPT, LOGIC_FIX_PROMPT
+
+    assert "never offered as a separate control" in BUILD_PROMPT and "no instruction" in BUILD_PROMPT
+    assert "compute a value that follows from the learner's choice" in LOGIC_FIX_PROMPT

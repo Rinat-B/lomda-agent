@@ -144,3 +144,10 @@ def test_the_graph_puts_the_chosen_candidate_in_lesson_json(monkeypatch, output,
     assert len(state["motif_candidates"]) == 2
     assert state["lesson"]["motif"]["svg"].startswith("<svg") and state["lesson"]["motif"]["description"]
     assert {r.node for r in session.usage} >= {"motif"}
+
+
+def test_weather_icons_are_bundled_from_the_npm_package():
+    data = json.loads(open("agent/assets/lucide/icons.json", encoding="utf-8").read())
+    assert data["source"].startswith("npm lucide-static@")
+    for name in ("snowflake", "cloud-fog", "truck"):
+        assert name in data["icons"] and "<image" not in data["icons"][name]

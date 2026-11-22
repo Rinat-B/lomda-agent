@@ -179,6 +179,7 @@ def test_checkers_of_another_family_and_the_same_family_fallback(monkeypatch, ou
         return make_result(model=kw["models"][0])
 
     monkeypatch.setattr(nodes, "call_llm", fake_call)
+    monkeypatch.setattr(nodes, "checkers_must_be_independent", lambda: False)  # balanced: the fallback is allowed
     review: dict = {}
     call = nodes._checker_call({}, {"writer_models": ["nvidia/w1:free"]}, review)
     assert call([], timeout=10).model == "nvidia/c2:free"
@@ -191,6 +192,36 @@ def test_checkers_of_another_family_and_the_same_family_fallback(monkeypatch, ou
     call = nodes._checker_call({}, {"writer_models": ["baidu/w:free"]}, review)
     call([], timeout=10)
     assert used[0] == ["google/c1:free", "nvidia/c2:free"] and "same_family" not in review
+
+
+def test_in_free_a_checker_never_runs_on_the_writers_family(monkeypatch, output):
+    import pytest as _pytest
+
+    from agent.errors import AllModelsFailedError, NodeError
+    import agent.llm as llm
+
+    monkeypatch.setattr(llm, "load_models", lambda role="writer": ["google/c1:free", "nvidia/c2:free"])
+    monkeypatch.setattr(nodes, "checkers_must_be_independent", lambda: True)
+    used: list[list[str]] = []
+
+    def fake_call(messages, **kw):
+        used.append(kw["models"])
+        raise AllModelsFailedError([("google/c1:free", RuntimeError("429"))])
+
+    monkeypatch.setattr(nodes, "call_llm", fake_call)
+    review: dict = {}
+    call = nodes._checker_call({}, {"writer_models": ["nvidia/w1:free"]}, review)
+    with _pytest.raises(NodeError):
+        call([], timeout=10)
+    assert used == [["google/c1:free"]]  # never the nvidia checker
+    assert review["no_independent"] == ["nvidia"] and "same_family" not in review
+    review2: dict = {}
+    only_same = nodes._checker_call({}, {"writer_models": ["google/w:free", "nvidia/w:free"]}, review2)
+    with _pytest.raises(NodeError):
+        only_same([], timeout=10)
+    assert review2["no_independent"] == ["google", "nvidia"]
+    from agent.report import build_report  # noqa: F401 - the report line exists
+    assert msg("report.no_independent", families="nvidia")
 
 
 # ---- bookkeeping -----------------------------------------------------------------------------------

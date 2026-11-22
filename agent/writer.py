@@ -9,6 +9,7 @@ models. Errors go back to the model once; after that the next writer model is tr
 """
 
 import json
+from pathlib import Path
 import math
 import re
 
@@ -100,7 +101,10 @@ TYPE_WRITING = {
         "Training lesson: a warm, direct tone that speaks to the learner. A screen may be rich: "
         "explain why each rule exists, not only what it says, because people follow rules they "
         "understand. You may add one did_you_know block per screen with an interesting fact from "
-        "the excerpts that appears nowhere else in the lesson and that no question needs."
+        "the excerpts that appears nowhere else in the lesson and that no question needs: something "
+        "that surprises or explains (a number, a cause, a consequence), never an administrative detail "
+        "about the training itself (who it is for, how long it takes, how many questions it has, a "
+        "deadline). If a screen has no such fact, it has no did_you_know."
     ),
     "compliance": (
         "Compliance lesson: a formal tone. Every word that is not in the owner's document is a "
@@ -285,14 +289,40 @@ def shuffle_options(question: dict, seed: str) -> dict:
     return question
 
 
-def source_line(locators: list[dict]) -> str:
+MAX_TITLE_CHARS = 80
+
+
+def source_titles(chunks: list[dict]) -> dict[str, str]:
+    """file -> the document's title as the learner should see it: the first text of the file (the
+    first slide's or page's first line) when it is short, else the file name without extension."""
+    titles: dict[str, str] = {}
+    for c in chunks:
+        loc = c.get("locator") or {}
+        file = loc.get("file")
+        if not file or file in titles or loc.get("url"):
+            continue
+        first = " ".join(str(c.get("text") or "").split("\n")[0].split())
+        titles[file] = first if 2 <= len(first) <= MAX_TITLE_CHARS else Path(file).stem
+    return titles
+
+
+def source_line(locators: list[dict], titles: dict[str, str] | None = None) -> str:
+    """The did_you_know source line the learner sees: the document's title (not the file name) and
+    where in it, e.g. "Safe winter driving, slide 1"; a web source keeps its site."""
     from agent.nodes import source_label
 
-    return ", ".join(dict.fromkeys(source_label(loc).strip("()") for loc in locators))
+    labels = []
+    for loc in locators:
+        label = source_label(loc).strip("()")
+        file = loc.get("file")
+        if titles and file in titles and not loc.get("url"):
+            label = label.replace(file, titles[file], 1)
+        labels.append(label)
+    return ", ".join(dict.fromkeys(labels))
 
 
 def parse_group(text: str, plan_screens: list[dict], excerpts: list[tuple[str, dict]], lesson_type: str,
-                first: bool, last: bool) -> dict:
+                first: bool, last: bool, titles: dict[str, str] | None = None) -> dict:
     """Validate a group reply and return {"screens": [schema screens], "lesson_title"?, "summary"?}.
     Raises ValueError with every problem found, phrased for the model to fix."""
     match = _JSON_BLOCK.search(text)
@@ -355,7 +385,7 @@ def parse_group(text: str, plan_screens: list[dict], excerpts: list[tuple[str, d
                 if kind == "did_you_know":
                     if lesson_type == "compliance":
                         problems.append(f"{where}: a compliance lesson has no did_you_know blocks")
-                    block["source_line"] = source_line(block["sources"]) or "-"
+                    block["source_line"] = source_line(block["sources"], titles) or "-"
                     urls = [loc["url"] for loc in block["sources"] if loc.get("url")]
                     if urls:
                         block["source_url"] = urls[0]

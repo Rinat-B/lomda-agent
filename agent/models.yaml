@@ -11,6 +11,10 @@
 # checked against OpenRouter's model list (cached for a day); unknown ids are skipped.
 default_profile: free
 
+# Profiles where a checker never runs on the writer's model family: a check with no other family
+# available is recorded as failed and report.md says so (agent/nodes.py, checkers_must_be_independent).
+checker_independence: [free]
+
 # The spending cap of one run (USD); MAX_COST_USD in .env wins. Before a paid step that would
 # cross it the agent asks [Y/N] (agent/cost_cap.py).
 max_cost_usd: 1.5
@@ -27,6 +31,9 @@ profiles:
     checker:
       - google/gemma-4-31b-it:free
       - google/gemma-4-26b-a4b-it:free
+      # another family (checked on OpenRouter 22.11.2026): the gemma models answer 429 for long
+      # stretches, and nemotron is the writers' family, which a free checker never uses
+      - inclusionai/ling-3.2-flash:free
       - nvidia/nemotron-3.5-super-vl:free
     small:
       - nvidia/nemotron-3.5-lightning:free

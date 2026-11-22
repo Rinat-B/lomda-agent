@@ -28,7 +28,7 @@ from agent.structure import (
     structure_json,
 )
 from agent.tools import ChunkIndex, make_retrieve_tool
-from agent.writer import assemble_lesson, build_messages, group_excerpts, parse_group, screen_groups
+from agent.writer import assemble_lesson, build_messages, group_excerpts, parse_group, screen_groups, source_titles
 from agent.topics import (
     Unit,
     describe_unit,
@@ -1283,7 +1283,8 @@ def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
     user = _with_requirements(user, state)
     result, model = _write_group(
         [SystemMessage(system), HumanMessage(user)], config,
-        lambda text: parse_group(text, plan, excerpts, lesson_type, is_first, is_last),
+        lambda text: parse_group(text, plan, excerpts, lesson_type, is_first, is_last,
+                                 titles=source_titles(_owner_chunks(index.chunks))),
     )
     update: dict = {
         "written_screens": (state.get("written_screens") or []) + result["screens"],
@@ -1549,20 +1550,45 @@ def _checker_call(config: RunnableConfig, state: AgentState, review: dict):
             log(msg("evaluator.same_family", writer_families=", ".join(review["same_family"]),
                     models=", ".join(models)))
 
+    def note_no_independent() -> None:
+        with lock:
+            if not review.get("no_independent"):
+                review["no_independent"] = sorted({family(m) for m in writers})
+                log(msg("evaluator.no_independent", writer_families=", ".join(review["no_independent"])))
+
+    independent = checkers_must_be_independent()
+    if independent:  # free: a checker of the writer's family never runs; a check with none is failed
+        fallback = []
     if not preferred:
-        preferred, fallback = fallback, []
-        note_same_family(preferred)
+        if independent:
+            note_no_independent()
+            preferred = []
+        else:
+            preferred, fallback = fallback, []
+            note_same_family(preferred)
 
     def call(messages, timeout=None, role="checker"):
+        if not preferred:
+            raise NodeError("evaluator", AllModelsFailedError([("-", RuntimeError("no checker of another family than the writer"))]))
         try:
             return _call("evaluator", messages, config, timeout=timeout, role="checker", models=preferred)
         except NodeError as e:
             if fallback and isinstance(e.cause, AllModelsFailedError):
                 note_same_family(fallback)
                 return _call("evaluator", messages, config, timeout=timeout, role="checker", models=fallback)
+            if independent and isinstance(e.cause, AllModelsFailedError):
+                note_no_independent()
             raise
 
     return call
+
+
+def checkers_must_be_independent() -> bool:
+    """In the free profile a checker never runs on the writer's model family (models.yaml:
+    checker_independence); a check with no other family available is recorded as failed."""
+    from agent.llm import active_profile, load_config
+
+    return active_profile() in (load_config().get("checker_independence") or ["free"])
 
 
 KEY_POINTS_ATTEMPTS = 2
@@ -1693,7 +1719,8 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
         try:
             result, model = _write_group(
                 [SystemMessage(system), HumanMessage(user)], config,
-                lambda text, plan=plan, excerpts=excerpts: parse_group(text, plan, excerpts, lesson_type, False, False),
+                lambda text, plan=plan, excerpts=excerpts: parse_group(text, plan, excerpts, lesson_type, False, False,
+                                                                       titles=source_titles(_owner_chunks(index.chunks))),
                 node="fix_screens",
             )
         except NodeError as e:

@@ -152,6 +152,8 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         lines.append(msg("report.checkers", models=", ".join(checker_models)))
     if review.get("same_family"):
         lines.append(msg("report.same_family", families=", ".join(review["same_family"])))
+    if review.get("no_independent"):
+        lines.append(msg("report.no_independent", families=", ".join(review["no_independent"])))
     for check, error in (review.get("failed") or {}).items():
         lines.append(msg("report.failed", check=check_label(check)))
     if review.get("fix_failed"):

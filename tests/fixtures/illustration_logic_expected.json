@@ -115,5 +115,49 @@
    "illustration_cause"
   ],
   "why": "'One second is about 13.9 m' is computed, not in the source. Truck + dry road can be selected, and the source has no stopping distance for it."
+ },
+ "day10_fog": {
+  "slides": [
+   4
+  ],
+  "title": "סימולטור ראות בערפל",
+  "description": "הלומד בוחר כמה עמודי תאורה הוא רואה, ההמחשה מציגה את הראות המוערכת, והלומד בוחר פעולה.",
+  "must": [
+   {
+    "category": "illustration_choice",
+    "keywords": [
+     "50",
+     "סותר",
+     "נגזר",
+     "פקד"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause"
+  ],
+  "why": "Both a post count and a separate 'under 50 m' checkbox: one post + under 50 m can be chosen, a contradiction. The visibility should be computed from the count (owner's manual review of day 10)."
+ },
+ "day10_skid": {
+  "slides": [
+   3
+  ],
+  "title": "תרגול החזרת השליטה בהחלקה",
+  "description": "הלומד בוחר סוג החלקה (אחורית או קדמית) ופעולת היגוי, ומקבל משוב.",
+  "must": [
+   {
+    "category": "illustration_feedback",
+    "keywords": [
+     "ABS",
+     "נקרא",
+     "בנפרד",
+     "חושף"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause"
+  ],
+  "why": "After a wrong move, 'does not fit' is shown together with the ABS braking instruction, which reads like the answer (owner's manual review of day 10)."
  }
 }
