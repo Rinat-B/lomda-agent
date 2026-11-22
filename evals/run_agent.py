@@ -159,6 +159,12 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
     starts: dict[str, tuple[str, float]] = {}
 
     def stream(payload) -> None:
+        from agent.keep_awake import keep_awake
+
+        with keep_awake():
+            _stream(payload)
+
+    def _stream(payload) -> None:
         for task in graph.stream(payload, config, stream_mode="tasks", durability="sync"):
             if "input" in task:
                 starts[task["id"]] = (task["name"], time.monotonic())

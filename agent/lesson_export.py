@@ -61,6 +61,14 @@ def placeholder_html(title: str, description: str) -> str:
     return page.replace("__TITLE__", escape(title)).replace("__DESCRIPTION__", escape(description))
 
 
+def index_html(title: str) -> str:
+    """The player page with the lesson's title in the browser tab (also before the script runs)."""
+    from html import escape
+
+    page = (PLAYER_DIR / "index.html").read_text(encoding="utf-8")
+    return page.replace("<title>Lesson</title>", f"<title>{escape(title)}</title>", 1)
+
+
 def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, placeholders: bool = False,
                   illustrations: dict[str, str] | None = None) -> Path:
     """Write the lesson folder; returns the path of index.html.
@@ -95,7 +103,7 @@ def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, p
     out_dir.mkdir(parents=True, exist_ok=True)
     assets = out_dir / "assets"
     assets.mkdir(exist_ok=True)
-    shutil.copyfile(PLAYER_DIR / "index.html", out_dir / "index.html")
+    (out_dir / "index.html").write_text(index_html(lesson["title"]), encoding="utf-8")
     for name in PLAYER_ASSETS:
         shutil.copyfile(PLAYER_DIR / name, assets / name)
     for page, src, dest, block in planned:

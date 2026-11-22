@@ -245,3 +245,32 @@ def test_a_radio_group_is_one_tab_stop_in_the_real_check():
     except il.NoBrowser as e:
         pytest.skip(str(e))
     assert results["radio.html"] == []
+
+
+def test_the_browser_tab_shows_the_lesson_title_and_no_english(tmp_path):
+    import re
+    from html.parser import HTMLParser
+
+    from agent.lesson_export import export_lesson
+
+    lesson = json.loads((ROOT / "examples" / "sample_lesson" / "lesson.json").read_text(encoding="utf-8"))
+    index = export_lesson(lesson, tmp_path, placeholders=True)
+    page = index.read_text(encoding="utf-8")
+    assert f"<title>{lesson['title']}</title>" in page
+
+    class Text(HTMLParser):
+        words: list[str] = []
+        skip = False
+
+        def handle_starttag(self, tag, attrs):
+            self.skip = tag in ("script", "style")
+
+        def handle_data(self, data):
+            if not self.skip:
+                self.words += re.findall(r"[A-Za-z]{2,}", data)
+
+    for name in ("index.html", *(b["file"] for s in lesson["screens"] for b in s["blocks"] if b["type"] == "illustration")):
+        parser = Text()
+        parser.words = []
+        parser.feed((tmp_path / name).read_text(encoding="utf-8"))
+        assert parser.words == [], f"{name}: {parser.words}"

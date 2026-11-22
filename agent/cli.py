@@ -99,6 +99,13 @@ def stream_until_pause(graph, payload, config: dict, resumed_node: str | None = 
     On resume, LangGraph runs the paused node again from the top; that re-entry is the
     first node to start, and it is not printed a second time.
     """
+    from agent.keep_awake import keep_awake
+
+    with keep_awake():  # no Windows sleep while nodes run (not while a gate waits for the user)
+        _stream(graph, payload, config, resumed_node)
+
+
+def _stream(graph, payload, config: dict, resumed_node: str | None) -> None:
     skip = resumed_node
     # durability="sync": the checkpoint of each node is written before the next one starts, so a
     # run stopped anywhere (the cost gate, Ctrl+C, a closed window) continues with /resume.
