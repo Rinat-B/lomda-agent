@@ -231,3 +231,17 @@ def test_the_real_browser_check_in_edge():
     assert results["good.html"] == []
     assert any("no control" in p for p in results["static.html"])
     assert any("sideways" in p for p in results["wide.html"])
+
+
+def test_a_radio_group_is_one_tab_stop_in_the_real_check():
+    page = ('<!doctype html><html dir="rtl" lang="he"><body>'
+            '<label><input type="radio" name="r" value="a" checked> a</label>'
+            '<label><input type="radio" name="r" value="b"> b</label>'
+            '<button id="b">go</button><p id="out">0</p>'
+            '<script>document.getElementById("b").onclick = () => {document.getElementById("out").textContent = "1"};'
+            '</script></body></html>')
+    try:
+        results = il.check_illustrations({"radio.html": page}, {})
+    except il.NoBrowser as e:
+        pytest.skip(str(e))
+    assert results["radio.html"] == []

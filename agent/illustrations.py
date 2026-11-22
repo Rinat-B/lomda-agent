@@ -140,13 +140,19 @@ class NoBrowser(Exception):
     """Playwright or the installed Edge is not available: the check is skipped."""
 
 
+# Tab stops, not elements: a group of radio buttons is one stop (the arrows move inside it).
 ACTIVATE_JS = """
 () => {
   const controls = Array.from(document.querySelectorAll(
     'button, input, select, textarea, [tabindex]:not([tabindex="-1"]), a[href]'))
     .filter(e => !e.disabled && e.offsetParent !== null);
-  return controls.length;
+  return new Set(controls.map((e, i) => e.type === 'radio' && e.name ? 'radio:' + e.name : 'c' + i)).size;
 }
+"""
+FOCUS_KEY_JS = """
+(() => { const e = document.activeElement; if (!e || e === document.body) return null;
+  if (e.type === 'radio' && e.name) return 'radio:' + e.name;
+  if (!e.dataset.probe) e.dataset.probe = String(Math.random()); return e.dataset.probe; })()
 """
 
 SNAPSHOT_JS = """
@@ -174,9 +180,7 @@ def _check_page(page, url: str, width: int, height: int) -> list[str]:
         reached = set()
         for _ in range(count + 5):
             page.keyboard.press("Tab")
-            reached.add(page.evaluate(
-                "(() => { const e = document.activeElement; if (!e || e === document.body) return null;"
-                " if (!e.dataset.probe) e.dataset.probe = String(Math.random()); return e.dataset.probe; })()"))
+            reached.add(page.evaluate(FOCUS_KEY_JS))
         reached.discard(None)
         if len(reached) < count:
             problems.append(f"{width} px: Tab reaches {len(reached)} of {count} controls")

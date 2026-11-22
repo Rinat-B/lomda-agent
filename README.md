@@ -65,8 +65,8 @@ node.
 | --- | --- |
 | **MCP**: `source-reader` server (stdio, FastMCP) for pptx, docx, pdf, txt, md; `/mcp`, `/mcp auth` | built |
 | **RAG**: BM25 over the source chunks, Hebrew prefixes and niqqud handled, answers cite slide/page | built |
-| **Web search** for verified enrichment | not built yet (day 9) |
-| **Code execution**: building interactive illustrations and checking them in a sandboxed browser | not built yet (day 9); illustrations are placeholders with a description |
+| **Web search**: training lessons only; OpenRouter's web plugin (Exa, 3 results, at most 12 searches a lesson); every fact needs a quote that the agent finds on the downloaded page (HTML, PDF, or the page rendered in Edge); official sources only (`agent/assets/web_sources.json`); unverified facts go to the owner at gate 2 | built |
+| **Code execution**: one writer call per interactive illustration builds a self-contained HTML page, cleaned in code (no network, no eval), then, after `[Y/N]`, checked in the installed Edge at 390 and 1280 px (loads, no console errors, no sideways scroll, Tab reaches every control, a control changes the page); the player runs it in `<iframe sandbox="allow-scripts">` | built |
 
 ## Install and run
 
@@ -113,6 +113,7 @@ with `powershell -ExecutionPolicy Bypass -File scripts\build.ps1`.
 | `/cost` | calls, tokens and cost so far, by node and model (also printed after every task) |
 | `/resume` | continue a conversation that stopped at a gate |
 | `/new`, `/quit` | new conversation, exit |
+| `agent.exe --check-browser` | check that the illustration browser test can run on this machine (installed Edge) |
 
 At a gate: `Y` approves, `N` + comment asks for a change, free text is classified by a small
 model (approve / change / question), `exit` pauses at the gate.
@@ -133,8 +134,9 @@ writer's.
 
 **Free-model limits.** OpenRouter allows 50 free-model requests a day on an account without
 credit, and 1000 a day after a one-time $10 credit purchase. A short lesson (5 slides, 7-8
-screens) takes about 23-29 model calls and 25-30 minutes on the free models, so without
-credit you can build about one lesson a day. Free models also hit rate limits (429) at busy
+screens) takes about 30-45 model calls and 30-55 minutes on the free models (with web research
+and 3 illustrations), so without credit you can build about one lesson a day. Web searches cost
+money even with free models (about $0.007 each). Free models also hit rate limits (429) at busy
 hours; the agent waits and falls back, and a check that could not run is reported, never
 counted as passed.
 
@@ -189,8 +191,6 @@ QUICKSTART.txt                                 download, first run, key and limi
 
 ## Not built yet
 
-- web search and verified enrichment (day 9)
-- interactive illustrations and their sandboxed browser check (day 9); placeholders now
 - decision diagrams beyond the current SVG drawing, visual motif, `/summary`, `MAX_COST_USD`
   ceiling per run (day 10)
 - `/model` command; optional narration; the desktop app (bonus track)

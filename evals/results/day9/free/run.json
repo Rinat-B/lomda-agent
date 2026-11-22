@@ -1,0 +1,988 @@
+{
+ "experiment": "day9-free",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "baidu/ernie-5.5-flash-preview:free",
+   "nvidia/nemotron-3.5-super-vl:free",
+   "nvidia/nemotron-3-ultra-550b-a55b:free"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 47202.9,
+ "gate_answers": [
+  "Y",
+  "Y",
+  "Y",
+  "Y"
+ ],
+ "screens": 7,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 2,
+ "findings_total": 48,
+ "findings_fixed": 29,
+ "open_findings": [
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 1,
+   "where": "block 4 (multiple_choice), main",
+   "evidence": "לצאת למשמרת בלי להשלים, כי עכשיו כבר מאוחר מדי בכל מקרה; לדחות את ההשלמה עד אחרי עונת החורף; לבקש ממנהל המשמרות שישלים את ההדרכה בשבילכם",
+   "problem": "אין כלל המצדיק יציאה ללא הדרכה; הכלל קובע את ההיפך, והמצב משאיר זמן להספיק לפני 1 בדצמבר ולפני המשמרת ב-2 בדצמבר.; דחייה מנוגדת למועד הקבוע בכלל ומסכנת את השיבוץ למשמרת; אינה הגיונית מבחינת הבטיחות או הנהלים.; אין תמיכה בכלל לבקשה הזו, והיא מנסה להתחמק מחובה אישית של הנהג.",
+   "suggestion": "",
+   "id": "F11",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 1,
+   "where": "block 4 (multiple_choice), alternate",
+   "evidence": "לומר לו שההדרכה בכלל לא רלוונטית לו כי היא מיועדת לנהגי משאית בלבד; להרגיע אותו שבאמת אפשר להשלים מתי שנוח לו; להציע לו לחכות שמנהל המשמרות יזכיר לו כשיתחיל החורף",
+   "problem": "טענה שקרית שנסתרת במפורש במקור; אינה הגנה על החבר.; מגינה על דחייה שנוגדת את המועד הקבוע בכלל.; אין בכלל בסיס להסתמך על תזכורת של מנהל; המועד האישי הוא 1 בדצמבר.",
+   "suggestion": "",
+   "id": "F12",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 7 (multiple_choice), main",
+   "evidence": "לשמור מרווח של שנייה אחת בלבד, כי זו שנת התגובה שכבר נכללת בנתונים; להיצמד לרכב שלפניכם כדי לא לאחר, כי בעיר נוסעים ממילא לאט; לספור מרחק של 28 מ׳ מאחורי הרכב שלפניכם, כי זה מרחק העצירה",
+   "problem": "מרווח של שנייה אחת מסוכן ברור על כביש רטוב ומנוגד לכלל 4 השניות לרכב קל.; נוהג רשלני ומסוכן שמפר את כלל המרווח.; שימוש לא נכון בנתון יבש בתנאי רטיבות, והתעלמות מכלל 4 השניות וממצב הגשם הראשון.",
+   "suggestion": "",
+   "id": "F13",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 2,
+   "where": "block 7 (multiple_choice), alternate",
+   "evidence": "לא להגדיל מרווח, כי הגשם כבר לא הראשון של העונה; לשמור מרחק של 40 מ׳, כי זה מרחק העצירה של רכב קל בכביש רטוב; לשמור מרווח של 4 שניות, כי זה מספיק לכל הרכבים",
+   "problem": "הנחה שגויה לפיה רק גשם ראשון מחייב זהירות; הכלל למשאית רטובה חל תמיד.; שימוש בנתון של רכב קל למשאית, והתעלמות מכלל 6 השניות למשאית.; מרווח קצר מדי למשאית ברטוב ומנוגד לכלל 6 השניות.",
+   "suggestion": "",
+   "id": "F14",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "לצאת ולנסוע מהר כדי לסיים את שלוש החלוקות לפני שהמצב מחמיר; לצאת כרגיל ולסמוך על כך ש-2.5 מ״מ קרוב מספיק ל-3 מ״מ; לצאת אבל לבדוק את הצמיגים שוב רק לפני החלוקה הבאה",
+   "problem": "החלטה רשלנית ומסוכנת שמפרת במפורש את כלל בדיקת הצמיגים.; הערכה שגויה של גבול ברור; 2.5 מ״מ אינו עומד בדרישת המינימום של 3 מ״מ.; דחיית הטיפול בליקוי בטיחותי קיים אינה פותרת את האיסור על יציאה עם צמיגים מתחת למינימום.",
+   "suggestion": "",
+   "id": "F15",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 3,
+   "where": "block 3 (multiple_choice), alternate",
+   "evidence": "לייעץ לו לצאת ולסמוך על מזל שהכביש יהיה יבש; לומר לו ש-2 מ״מ זה כמעט 3 מ״מ, אז אפשר לצאת בלי בעיה; לעודד אותו לצאת ולנסוע במהירות כדי לסיים את החלוקות מהר",
+   "problem": "עצה פזיזה ומסוכנת שמעודדת עבירה על כלל בטיחות.; הקטנת ראש של גבול ברור; 2 מ״מ אינו עומד בדרישת 3 מ״מ לפחות.; עצה רשלנית ומסוכנת ביותר.",
+   "suggestion": "",
+   "id": "F16",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 3,
+   "where": "block 1 (paragraph)",
+   "evidence": "אבל היא בדיוק מה שקובע אם תצליחו לעצור בזמן כשתצטרכו.",
+   "problem": "מה שקובע נכתב בזכר בעוד שהנושא הבדיקה הוא נקבה.",
+   "suggestion": "לכתוב מה שקובעת.",
+   "id": "F21",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 3,
+   "where": "block 2 (stop_and_think)",
+   "evidence": "הצמיגים השחוקים, ובהפרש של כ-20 אחוז במרחק הבלימה — כי עומק חריץ שמתחת ל-3 מ״מ מאריך את הבלימה דווקא בכביש רטוב.",
+   "problem": "המשפט חסר פעולה עיקרית אחרי הצמיגים השחוקים.",
+   "suggestion": "לכתוב הצמיגים השחוקים יעצרו רחוק יותר, בהפרש של כ-20 אחוז במרחק הבלימה.",
+   "id": "F22",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "language",
+   "category": "language",
+   "screen": 5,
+   "where": "block 3 (paragraph)",
+   "evidence": "כל רכבי הצויד משנת 2019 ואילך מצוידים בו.",
+   "problem": "המילה הצויד אינה קיימת בהקשר של צי כלי רכב; כנראה טעות לכתיב הצי.",
+   "suggestion": "לכתוב הצי.",
+   "id": "F25",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 7,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "באמצע משמרת אתם נכנסים לחנייה, הרכב מחליק קצת על הרטוב, אתם מיישרים וממשיכים. אין שריטה ואין נזק. בסוף היום אתם רוצים ללכת הביתה. מה הייתם אמורים לעשות לגבי ההחלקה הזאת, ומתי?",
+   "problem": "השאלה מתארת מצב פשוט (החלקה קלה ללא נזק בסוף יום עבודה) ושואלת ישירות מה הכלל קובע ומתי; הלומד נדרש לשחזר את הוראת הדיווח מהמקור ללא פרשנות מורכבת של פרטי המצב.",
+   "suggestion": "",
+   "id": "F27",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 7,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "לדווח למוקד הצויד לפני סוף המשמרת",
+   "problem": "אירעה החלקה עם שריטה קלה והנהג ממשיך במשמרת; מועד 'לפני סוף המשמרת' אינו מבטיח בהכרח כי יחלפו פחות משעתיים מרגע ההחלקה. אפשרות זו עלולה לקיים את הכלל אם סוף המשמרת קרוב, אך מכיוון שאין ידיעה כי יתרת המשמרת קצרה משעתיים, היא מסתכנת באיחור מעבר למועד.",
+   "suggestion": "",
+   "id": "F28",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 6 (multiple_choice), main",
+   "evidence": "ללחוץ בחוזקה על הבלם תוך כדי סיבוב חד של ההגה; לסובב את ההגה בחוזקה נגד כיוון ההחלקה; ללחוץ חזק על הגז כדי להתגבר על ההחלקה",
+   "problem": "סותר את הכלל להחלקת האחור (הורדת רגל מהגז והגה עדין לכיוון ההחלקה); בלימה חזקה והיגוי חד בהחלקה מעמיקים את הסחרור.; היגוי נגד כיוון ההחלקה הוא הפוך מהכלל ומסוכן בהחלקה.; הוספת גז בהחלקת אחור מנוגדת לכלל ומסוכנת.",
+   "suggestion": "",
+   "id": "F31",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 4,
+   "where": "block 6 (multiple_choice), alternate",
+   "evidence": "לסובב את ההגה חזק הצידה עד שהגלגלים ייתפסו; להמשיך ללחוץ על הגז כדי לעבור את הפנייה מהר",
+   "problem": "היגוי חד לצד מנוגד לכלל של יישור מעט ההגה עד לחזרת האחיזה.; האצה בפניה רטובה עם הגה לא מגיב היא פעולה רשלנית ומסוכנת.",
+   "suggestion": "",
+   "id": "F32",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 6,
+   "where": "block 8 (multiple_choice), main",
+   "evidence": "להאיץ כדי לצאת מאזור הערפל",
+   "problem": "התהדקות בערפל סמיך היא פעולה רשלנית ומסוכנת.",
+   "suggestion": "",
+   "id": "F34",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "distractors",
+   "screen": 6,
+   "where": "block 8 (multiple_choice), alternate",
+   "evidence": "להאיץ כדי לעבור את העקומה לפני שהערפל מתעבה",
+   "problem": "האצה בערפל סמיך עם ראות נמוכה מאוד היא פעולה רשלנית ומסוכנת.",
+   "suggestion": "",
+   "id": "F35",
+   "status": "open",
+   "found_round": 0,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 5,
+   "where": "block 2 (list)",
+   "evidence": "אם ברכב יש ABS: לוחצים חזק וברציפות על הבלם, גם כשהדוושה רוטטת.",
+   "problem": "העובדה כבר נלמדת במסך 4, בלוק 3. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F45",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "repetition",
+   "category": "repetition",
+   "screen": 7,
+   "where": "block 1 (list)",
+   "evidence": "בודקים צמיגים לפני כל יציאה, ומשאירים בהם עומק חריץ של 3 מ״מ לפחות.",
+   "problem": "העובדה כבר נלמדת במסך 3, בלוק 1. כל עובדה נלמדת פעם אחת: כדאי להשאיר אותה במקום אחד.",
+   "suggestion": "",
+   "id": "F46",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "inconsistent_scenario",
+   "screen": 1,
+   "where": "block 3 (multiple_choice), main",
+   "evidence": "להשלים את ההדרכה במלואה לפני היציאה לדרך",
+   "problem": "דוחה את ההשלמה לבוקר ה-2 בדצמבר ומשלים דקות ספורות לפני היציאה, כלומר אחרי ה-1 בדצמבר, ולכאורה לא עמד במועד האחרון להשתבץ.",
+   "suggestion": "",
+   "id": "F47",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  },
+  {
+   "check": "single_answer",
+   "category": "recall_question",
+   "screen": 4,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "אתם יוצאים מפנייה שמאלה בכביש רטוב, ופתאום האחור מתחיל להחליק והרכב מסתובב. מה תעשו בשנייה הראשונה עם דוושת הגז ועם ההגה?",
+   "problem": "הגזע מציין במפורש כי האחור מחליק והרכב מסתובב ביציאה מפנייה בכביש רטוב, ושואל מה לעשות עם דוושת הגז וההגה בשנייה הראשונה; התשובה נזכרת ישירות מהכלל להחלקת אחור (הסר רגל מהגז והגה עדין לכיוון ההחלקה), בלי צורך בפרשנות מורכבת של פרטי המצב מעבר לזיהוי שהאחור הוא המחליק.",
+   "suggestion": "",
+   "id": "F48",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 24,
+  "total": 25,
+  "missing": [
+   "אחרי כל החלקה, גם בלי נזק, מדווחים למוקד הצי תוך שעתיים: דיווח על כמעט-תאונה עוזר למנוע את התאונה הבאה"
+  ],
+  "percent": 96
+ },
+ "review": {
+  "failed": {},
+  "same_family": [
+   "baidu",
+   "nvidia"
+  ]
+ },
+ "writer_models": [
+  "baidu/ernie-5.5-flash-preview:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free"
+ ],
+ "calls": 41,
+ "cost_usd": 0.035,
+ "usage_by_node": {
+  "scope_check": {
+   "calls": 1,
+   "prompt_tokens": 446,
+   "completion_tokens": 461,
+   "cost_usd": 0.0
+  },
+  "classify_type": {
+   "calls": 1,
+   "prompt_tokens": 1121,
+   "completion_tokens": 1778,
+   "cost_usd": 0.0
+  },
+  "research": {
+   "calls": 7,
+   "prompt_tokens": 24773,
+   "completion_tokens": 40260,
+   "cost_usd": 0.035
+  },
+  "topic_map": {
+   "calls": 2,
+   "prompt_tokens": 10946,
+   "completion_tokens": 16487,
+   "cost_usd": 0.0
+  },
+  "plan_structure": {
+   "calls": 1,
+   "prompt_tokens": 1999,
+   "completion_tokens": 16172,
+   "cost_usd": 0.0
+  },
+  "write_lesson": {
+   "calls": 2,
+   "prompt_tokens": 7061,
+   "completion_tokens": 83344,
+   "cost_usd": 0.0
+  },
+  "build_illustrations": {
+   "calls": 3,
+   "prompt_tokens": 3291,
+   "completion_tokens": 126625,
+   "cost_usd": 0.0
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 8942,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 19,
+   "prompt_tokens": 125793,
+   "completion_tokens": 291151,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 4,
+   "prompt_tokens": 42720,
+   "completion_tokens": 83954,
+   "cost_usd": 0.0
+  }
+ },
+ "usage_by_model": {
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 5,
+   "prompt_tokens": 4714,
+   "completion_tokens": 18540,
+   "cost_usd": 0.0
+  },
+  "baidu/ernie-5.5-flash-preview:free": {
+   "calls": 13,
+   "prompt_tokens": 46198,
+   "completion_tokens": 275529,
+   "cost_usd": 0.035
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 23,
+   "prompt_tokens": 168513,
+   "completion_tokens": 375105,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "scope_check": 3.1,
+  "classify_type": 9.4,
+  "gate_type": 0.0,
+  "research": 182.0,
+  "topic_map": 74.2,
+  "gate_topics": 0.0,
+  "plan_structure": 76.8,
+  "gate_structure": 0.0,
+  "write_lesson": 384.9,
+  "build_illustrations": 490.1,
+  "browser_check": 14.9,
+  "assemble_lesson": 0.2,
+  "evaluator": 44435.7,
+  "fix_screens": 1531.2,
+  "gate_review": 0.0,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "scope_check": 1,
+  "classify_type": 1,
+  "gate_type": 2,
+  "research": 1,
+  "topic_map": 1,
+  "gate_topics": 2,
+  "plan_structure": 1,
+  "gate_structure": 2,
+  "write_lesson": 2,
+  "build_illustrations": 1,
+  "browser_check": 2,
+  "assemble_lesson": 3,
+  "evaluator": 3,
+  "fix_screens": 2,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "scope_check",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 446,
+   "completion_tokens": 461,
+   "cost": 0.0
+  },
+  {
+   "node": "classify_type",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1121,
+   "completion_tokens": 1778,
+   "cost": 0.0
+  },
+  {
+   "node": "research",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 308,
+   "completion_tokens": 2424,
+   "cost": 0.0
+  },
+  {
+   "node": "research",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 5458,
+   "completion_tokens": 2081,
+   "cost": 0.007
+  },
+  {
+   "node": "research",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 4955,
+   "completion_tokens": 7871,
+   "cost": 0.007
+  },
+  {
+   "node": "research",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1490,
+   "completion_tokens": 8562,
+   "cost": 0.007
+  },
+  {
+   "node": "research",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1564,
+   "completion_tokens": 4935,
+   "cost": 0.0
+  },
+  {
+   "node": "research",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 5523,
+   "completion_tokens": 9453,
+   "cost": 0.007
+  },
+  {
+   "node": "research",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 5475,
+   "completion_tokens": 4934,
+   "cost": 0.007
+  },
+  {
+   "node": "topic_map",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1296,
+   "completion_tokens": 15361,
+   "cost": 0.0
+  },
+  {
+   "node": "topic_map",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 9650,
+   "completion_tokens": 1126,
+   "cost": 0.0
+  },
+  {
+   "node": "plan_structure",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1999,
+   "completion_tokens": 16172,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 3871,
+   "completion_tokens": 53462,
+   "cost": 0.0
+  },
+  {
+   "node": "write_lesson",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 3190,
+   "completion_tokens": 29882,
+   "cost": 0.0
+  },
+  {
+   "node": "build_illustrations",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1128,
+   "completion_tokens": 42057,
+   "cost": 0.0
+  },
+  {
+   "node": "build_illustrations",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1070,
+   "completion_tokens": 39527,
+   "cost": 0.0
+  },
+  {
+   "node": "build_illustrations",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1093,
+   "completion_tokens": 45041,
+   "cost": 0.0
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 8942,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9481,
+   "completion_tokens": 4521,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3672,
+   "completion_tokens": 14925,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9485,
+   "completion_tokens": 16709,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 1986,
+   "completion_tokens": 10697,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10651,
+   "completion_tokens": 12690,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10881,
+   "completion_tokens": 5226,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3274,
+   "completion_tokens": 21651,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10742,
+   "completion_tokens": 25173,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 12774,
+   "completion_tokens": 20656,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 10505,
+   "completion_tokens": 22522,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9803,
+   "completion_tokens": 1477,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 1958,
+   "completion_tokens": 14127,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8652,
+   "completion_tokens": 18331,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 9906,
+   "completion_tokens": 19554,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3651,
+   "completion_tokens": 18546,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3288,
+   "completion_tokens": 28481,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3288,
+   "completion_tokens": 16505,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8861,
+   "completion_tokens": 6018,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 11019,
+   "completion_tokens": 19263,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8422,
+   "completion_tokens": 21513,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 8833,
+   "completion_tokens": 12199,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3687,
+   "completion_tokens": 18220,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3694,
+   "completion_tokens": 26101,
+   "cost": 0.0
+  }
+ ],
+ "research": {
+  "searches": 5,
+  "ideas": [
+   {
+    "idea": "Official winter driving safety regulations and vehicle preparation guidelines from Israeli authorities",
+    "kind": "guidance",
+    "query": "הנחיות נהיגה בטוחה בחורף וציוד נדרש משרד התחבורה והבטיחות בדרכים",
+    "round": "open"
+   },
+   {
+    "idea": "Recent statistics on weather-related road accidents and casualties in Israel",
+    "kind": "data",
+    "query": "נתוני תאונות דרכים בחורף ישראל 2023-2024 משטרת ישראל ואגף התנועה",
+    "round": "open"
+   },
+   {
+    "idea": "Real incident of vehicle skidding on wet roads during recent winter in Israel",
+    "kind": "incident",
+    "query": "תאונת החלקה כביש רטוב ישראל דצמבר 2023 מעורבות רכב פרטי",
+    "round": "open"
+   },
+   {
+    "idea": "בדיקה והטמעת הנחיות רשמיות לנהיגה בטוחה בחורף ממשרד התחבורה ונתיבי התנועה, כולל חוקי תאורה, בדיקת צמיגים ומרחקי בלימה נדרשים.",
+    "kind": "guidance",
+    "query": "מה הן ההנחיות הרשמיות לנהיגה בחורף על פי חוקי התעבורה וההנחיות של אגף התנועה, וכיצד מתפרסמות לנהגים?",
+    "round": "gaps"
+   },
+   {
+    "idea": "איסוף ופרסום נתוני הבטיחות בדרכים לשנת 2024 של הרשות הלאומית לבטיחות בדרכים, לרבות מספר נהרגים, פצועים וחלוקה לפי סוגי כבישים (עירוניים/לא עירוניים) ועונות השנה.",
+    "kind": "data",
+    "query": "מה הם הנתונים העדכניים של הרשות הלאומית לבטיחות בדרכים לתאונות דרכים בישראל לשנת 2024, לפי חלוקה עונתית וסוגי כבישים?",
+    "round": "gaps"
+   }
+  ],
+  "notes": []
+ },
+ "web_facts": [
+  {
+   "fact": "יש לבדוק את תקינותן של כלל מערכות הרכב במוסך מורשה לפני החורף.",
+   "quote": "לקראת החורף יש לבדוק את תקינותן של כלל מערכות הרכב במוסך מורשה.",
+   "url": "https://www.gov.il/BlobFolder/reports/safety_rules_book/he/publications_safety_rules_book.pdf",
+   "title": "כללי בטיחות בדרכים",
+   "kind": "guidance",
+   "idea": "Official winter driving safety regulations and vehicle preparation guidelines from Israeli authorities",
+   "cited": true,
+   "id": "W1",
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)"
+  },
+  {
+   "fact": "משאיות במשקל מעל 10 טון, רכבי אספנות, רכבי עבודה ואוטובוסים חייבים בבדיקת חורף שנתית.",
+   "quote": "תקנות התעבורה מחייבות לבצע בדיקת חורף מדי שנה למשאיות שמשקלן הכולל עולה על 10טון, לרכב אספנות, לרכב עבודה ולאוטובוס – למעט אוטובוס זעיר פרטי.",
+   "url": "https://ask.ralbad.org.il/2235",
+   "title": "למה צריך להכין את הרכב לחורף? | Ask רלב\"ד",
+   "kind": "data",
+   "idea": "Official winter driving safety regulations and vehicle preparation guidelines from Israeli authorities",
+   "cited": true,
+   "id": "W2",
+   "relation": "new",
+   "site": "ask.ralbad.org.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "ask.ralbad.org.il: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "מחודש נובמבר עד 31 במרץ נהגים ברכב מנועי חייבים להדליק פנסי חזית ואחוריים בדרכים שאינן עירוניות.",
+   "quote": "בתקופה שמיום 1 בנובמבר ועד 31 במרס בכל שנה, כל נהג ברכב מנועי חייב להדליק את פנסי החזית ואת הפנסים האחוריים בדרכים שאינן עירוניות.",
+   "url": "https://www.gov.il/BlobFolder/reports/safety_rules_book/he/publications_safety_rules_book.pdf",
+   "title": "כללי בטיחות בדרכים",
+   "kind": "data",
+   "idea": "Official winter driving safety regulations and vehicle preparation guidelines from Israeli authorities",
+   "cited": true,
+   "id": "W3",
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)"
+  },
+  {
+   "fact": "בשנת 2024 דווחו למשטרת ישראל על 8,315 תאונות דרכים עם נפגעים, שבהן נפגעו 14,450 בני אדם.",
+   "quote": "בשנת ,2024 דווחו למשטרת ישראל על 8,315 תאונות דרכים עם נפגעים שסווגו בלמ\"ס כת\"ד מורחב, בתאונות אלה נפגעו 14,450 בני אדם.",
+   "url": "https://www.cbs.gov.il/he/mediarelease/DocLib/2025/230/27_25_230b.pdf",
+   "title": "תאונות דרכים עם נפגעים בשנת 2024 - נתונים סופיים",
+   "kind": "data",
+   "idea": "Recent statistics on weather-related road accidents and casualties in Israel",
+   "cited": true,
+   "id": "W4",
+   "relation": "new",
+   "site": "cbs.gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)"
+  },
+  {
+   "fact": "בשנת 2024 נהרגו בתאונות דרכים 439 בני אדם, המספר הגבוה ביותר ב-17 השנים האחרונות.",
+   "quote": "439 בני אדם נהרגו בתאונות דרכים – זהו מספר ההרוגים הגבוה ביותר ב17- השנים האחרונות.",
+   "url": "https://www.cbs.gov.il/he/mediarelease/DocLib/2025/230/27_25_230b.pdf",
+   "title": "תאונות דרכים עם נפגעים בשנת 2024 - נתונים סופיים",
+   "kind": "data",
+   "idea": "Recent statistics on weather-related road accidents and casualties in Israel",
+   "cited": true,
+   "id": "W5",
+   "relation": "new",
+   "site": "cbs.gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)"
+  },
+  {
+   "fact": "בשנת 2024 עלה אחוז תאונות הדרכים הקטלניות שאירעו בדרכים לא עירוניות ל-63.2%, לעומת 54.7% בשנת 2023.",
+   "quote": "חלה עלייה באחוז תאונות הדרכים הקטלניות שאירעו בדרכים לא עירוניות ( 63.2% לעומת 54.7% ב2023-).",
+   "url": "https://www.cbs.gov.il/he/mediarelease/DocLib/2025/230/27_25_230b.pdf",
+   "title": "תאונות דרכים עם נפגעים בשנת 2024 - נתונים סופיים",
+   "kind": "data",
+   "idea": "Recent statistics on weather-related road accidents and casualties in Israel",
+   "cited": true,
+   "id": "W6",
+   "relation": "new",
+   "site": "cbs.gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)"
+  },
+  {
+   "fact": "בפברואר 2023 התנגש רכב ברכב שבא מולו בכביש 465 בעקבות החלקה שנגרמה ממזג אוויר סוער וגשמים עזים.",
+   "quote": "רכב התנגש היום ברכב שבא מולו בכביש 465 זאת כתוצאה מהחלקה בעקבות מזג האוויר הסוער והגשמים העזים",
+   "url": "https://www.jdn.co.il/news/1902092/",
+   "title": "תיעוד ממצלמת הרכב: הרכב מחליק ומתנגש בעוצמה ברכב שבא מולו • צפו",
+   "kind": "incident",
+   "idea": "Real incident of vehicle skidding on wet roads during recent winter in Israel",
+   "cited": true,
+   "id": "W7",
+   "relation": "new",
+   "site": "jdn.co.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "jdn.co.il: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "בדצמבר 2023 החליק רכב לתעלה בצד הדרך בכביש 87 סמוך לצומת בית צידה בצפון הכנרת, ונפצעו ארבעה בני אדם.",
+   "quote": "פצוע קשה ושלושה בינוני בעקבות רכב שהחליק הלילה (רביעי) לתעלה בצד הדרך, בכביש 87 סמוך לצומת בית צידה בצפון הכנרת.",
+   "url": "https://www.walla.co.il/news/breaking-news/3626993",
+   "title": "פצוע קשה ושלושה בינוני בעקבות רכב שהחליק לתעלה בצפון הכנרת",
+   "kind": "incident",
+   "idea": "Real incident of vehicle skidding on wet roads during recent winter in Israel",
+   "cited": true,
+   "id": "W8",
+   "relation": "new",
+   "site": "walla.co.il",
+   "tier": "news",
+   "status": "unverified",
+   "reason": "page not loaded: HTTP 418"
+  },
+  {
+   "fact": "בחורף מומלץ להדליק אורות גם בדרכים עירוניות, ובתנאי ערפל יש להאט ולהדליק גם את פנסי הערפל.",
+   "quote": "מומלץ להדליק אורות בחורף גם בדרכים עירוניות.\n\n- בתנאי ערפל מאטים ומדליקים גם את פנסי הערפל.",
+   "url": "https://www.netanya.muni.il/City/RoadSafety/Pages/safewinterdriving.aspx",
+   "title": "כללי בטיחות לנהיגת חורף ורכיבה בטוחה",
+   "kind": "guidance",
+   "idea": "בדיקה והטמעת הנחיות רשמיות לנהיגה בטוחה בחורף ממשרד התחבורה ונתיבי התנועה, כולל חוקי תאורה, בדיקת צמיגים ומרחקי בלימה נדרשים.",
+   "cited": true,
+   "relation": "new",
+   "site": "netanya.muni.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "the quote is not on the page",
+   "id": "W9"
+  },
+  {
+   "fact": "יש לשמור על מרחק נסיעה בטוח של 2 שניות לפחות מהרכב שלפנים, ובחורף מומלץ לשמור על מרחק גדול יותר.",
+   "quote": "שומרים על מרחק נסיעה בטוח של 2 שניות לפחות מהרכב שלפנים. בחורף אף מומלץ לשמור על מרחק גדול יותר.",
+   "url": "https://www.gov.il/BlobFolder/reports/safety_rules_book/he/publications_safety_rules_book.pdf",
+   "title": "כללי בטיחות בדרכים",
+   "kind": "guidance",
+   "idea": "בדיקה והטמעת הנחיות רשמיות לנהיגה בטוחה בחורף ממשרד התחבורה ונתיבי התנועה, כולל חוקי תאורה, בדיקת צמיגים ומרחקי בלימה נדרשים.",
+   "cited": true,
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)",
+   "id": "W10"
+  },
+  {
+   "fact": "בדיקת תקינות הצמיגים כוללת אחת לשבועיים בדיקה של מצב הצמיגים ולחץ האוויר, ותקינותם משפיעה גם על מרחק הבלימה.",
+   "quote": "בודקים אחת לשבועיים את מצב הצמיגים, כולל הצמיג הרזרבי. חשוב לוודא שאין בגלגל חתכים, בקיעים, יובש, עיוותים, נפיחויות או עצמים זרים, ושהחריצים שבצמיגים לא נשחקו.",
+   "url": "https://www.gov.il/BlobFolder/reports/safety_rules_book/he/publications_safety_rules_book.pdf",
+   "title": "כללי בטיחות בדרכים",
+   "kind": "guidance",
+   "idea": "בדיקה והטמעת הנחיות רשמיות לנהיגה בטוחה בחורף ממשרד התחבורה ונתיבי התנועה, כולל חוקי תאורה, בדיקת צמיגים ומרחקי בלימה נדרשים.",
+   "cited": true,
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)",
+   "id": "W11"
+  },
+  {
+   "fact": "בשנת 2024 נהרגו בישראל 439 בני אדם, עלייה של כ-22% לעומת 361 הרוגים בשנת 2023.",
+   "quote": "בשנת 2024 נהרגו 439 בני אדם המהווים עלייה של כ22%- בהשוואה לשנת 2023 בה נהרגו 361 בני אדם",
+   "url": "https://www.gov.il/BlobFolder/guide/trends_2024/he/alon_ikarey_megamot.pdf",
+   "title": "עיקרי מגמות בבטיחות בדרכים בישראל לשנת 2024",
+   "kind": "data",
+   "idea": "איסוף ופרסום נתוני הבטיחות בדרכים לשנת 2024 של הרשות הלאומית לבטיחות בדרכים, לרבות מספר נהרגים, פצועים וחלוקה לפי סוגי כבישים (עירוניים/לא עירוניים) ועונות השנה.",
+   "cited": true,
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)",
+   "id": "W12"
+  },
+  {
+   "fact": "בשנת 2024 נפגעו 55% מההרוגים והפצועים קשה בתאונות דרכים בדרכים עירוניות.",
+   "quote": "55% מההרוגים והפצועים קשה בתאונות נפגעו בדרכים עירוניות.",
+   "url": "https://www.gov.il/BlobFolder/guide/trends_2024/he/alon_ikarey_megamot.pdf",
+   "title": "עיקרי מגמות בבטיחות בדרכים בישראל לשנת 2024",
+   "kind": "data",
+   "idea": "איסוף ופרסום נתוני הבטיחות בדרכים לשנת 2024 של הרשות הלאומית לבטיחות בדרכים, לרבות מספר נהרגים, פצועים וחלוקה לפי סוגי כבישים (עירוניים/לא עירוניים) ועונות השנה.",
+   "cited": true,
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)",
+   "id": "W13"
+  },
+  {
+   "fact": "הסיכון לתאונה חמורה גבוה יותר בכבישים עירוניים, ואילו הסיכון לתאונה קטלנית גבוה יותר בכבישים בין-עירוניים.",
+   "quote": "בעשר השנים האחרונות הסיכון לתאונה חמורה לכל ק\"מ דרך היה גבוה בכבישים עירוניים. במקביל, בכבישים בין-עירוניים היה סיכון גבוה יותר לתאונות קטלניות.",
+   "url": "https://www.gov.il/BlobFolder/guide/trends_2024/he/alon_ikarey_megamot.pdf",
+   "title": "עיקרי מגמות בבטיחות בדרכים בישראל לשנת 2024",
+   "kind": "data",
+   "idea": "איסוף ופרסום נתוני הבטיחות בדרכים לשנת 2024 של הרשות הלאומית לבטיחות בדרכים, לרבות מספר נהרגים, פצועים וחלוקה לפי סוגי כבישים (עירוניים/לא עירוניים) ועונות השנה.",
+   "cited": true,
+   "relation": "new",
+   "site": "gov.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: not an HTML page (application/pdf)",
+   "id": "W14"
+  }
+ ],
+ "illustration_notes": {
+  "assets/illustrations/s2.html": {
+   "screen": 2,
+   "title": "כמה מקום באמת צריך כדי לעצור?",
+   "status": "built",
+   "reason": "",
+   "check": "passed"
+  },
+  "assets/illustrations/s4.html": {
+   "screen": 4,
+   "title": "להחזיר את הרכב לכיוון",
+   "status": "built",
+   "reason": "",
+   "check": "passed"
+  },
+  "assets/illustrations/s6.html": {
+   "screen": 6,
+   "title": "סופרים עמודים ובוחרים פעולה",
+   "status": "built",
+   "reason": "",
+   "check": "passed"
+  }
+ }
+}

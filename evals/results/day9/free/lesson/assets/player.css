@@ -1,0 +1,104 @@
+/* Lesson player. Colors come from the lesson palette (CSS variables set by player.js). */
+:root {
+  --background: #FFFFFF; --surface: #F3F6F9; --text: #1F2933; --muted: #4B5866;
+  --primary: #1D63A0; --primary-text: #FFFFFF; --accent: #256B5C; --highlight: #FFF3BF;
+  --success: #1B6E3F; --error: #A9231A; --border: #C5CED8;
+  --radius: 10px; --gutter: 16px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--background); color: var(--text);
+  font-family: "Segoe UI", "Arial Hebrew", Arial, sans-serif; font-size: 1.0625rem; line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+img, svg, iframe, video { max-width: 100%; }
+h1, h2, h3 { line-height: 1.3; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+.skip-link {
+  position: absolute; inset-inline-start: var(--gutter); top: -60px; z-index: 10;
+  background: var(--primary); color: var(--primary-text); padding: 10px 14px; border-radius: var(--radius);
+}
+.skip-link:focus { top: 8px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* header */
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); }
+.topbar-inner { max-width: 760px; margin: 0 auto; padding: 12px var(--gutter); }
+.topbar h1 { margin: 0 0 8px; font-size: 1.35rem; }
+.motif:empty { display: none; }
+.motif svg { height: 40px; width: auto; }
+.progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0; background: var(--primary); transition: width .3s ease; }
+.progress-text { margin: 6px 0 0; color: var(--muted); font-size: .9rem; }
+
+/* screen */
+main { max-width: 760px; margin: 0 auto; padding: 20px var(--gutter) 40px; outline: none; }
+.topic { margin: 0 0 4px; color: var(--accent); font-weight: 600; font-size: .95rem; }
+.screen h2 { margin: 0 0 16px; font-size: 1.5rem; }
+.screen h2:focus { outline: none; }
+.screen p, .screen ul, .screen ol { margin: 0 0 16px; }
+.screen li { margin-bottom: 6px; }
+.block { margin-bottom: 20px; }
+
+.dyk {
+  background: var(--surface); border-inline-start: 5px solid var(--accent);
+  border-radius: var(--radius); padding: 12px 16px;
+}
+.dyk h3, .think h3 { margin: 0 0 6px; font-size: 1.05rem; color: var(--accent); }
+.dyk .source { color: var(--muted); font-size: .9rem; margin: 0; }
+.think { background: var(--highlight); border-radius: var(--radius); padding: 12px 16px; color: var(--text); }
+.think h3 { color: var(--text); }
+.think .explanation { margin-top: 10px; }
+
+/* buttons */
+button, .button {
+  font: inherit; min-height: 44px; padding: 8px 18px; border-radius: var(--radius); cursor: pointer;
+  background: var(--primary); color: var(--primary-text); border: 2px solid var(--primary);
+}
+button.secondary { background: var(--surface); color: var(--primary); }
+button[aria-disabled="true"] { background: var(--surface); color: var(--muted); border: 2px dashed var(--border); cursor: not-allowed; }
+
+/* questions */
+.mc { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin: 0; background: var(--surface); }
+/* A floated legend sits inside the box instead of on its border. */
+.mc legend { float: inline-start; width: 100%; padding: 0; margin-bottom: 8px; font-weight: 600; }
+.mc legend + * { clear: both; }
+.qnum { display: block; color: var(--accent); font-size: .9rem; }
+.option {
+  display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 8px 10px; margin: 6px 0;
+  background: var(--background); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+}
+.option input { margin-top: .35em; width: 1.1em; height: 1.1em; flex: none; }
+.option.chosen { border: 2px solid var(--primary); }
+.option input:disabled { cursor: default; }
+.feedback { margin: 10px 0 0; font-weight: 600; }
+.feedback.correct { color: var(--success); }
+.feedback.incorrect { color: var(--error); }
+.feedback.info { color: var(--muted); font-weight: 400; }
+
+/* media */
+figure { margin: 0; }
+figcaption { color: var(--muted); font-size: .92rem; margin-top: 6px; }
+.illustration iframe { display: block; width: 100%; border: 1px solid var(--border); border-radius: var(--radius); background: #FFFFFF; }
+.diagram h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.diagram svg { display: block; width: 100%; height: auto; }
+
+/* navigation */
+.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; }
+.nav .spacer { flex: 1 1 auto; }
+.hint { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .92rem; min-height: 1.4em; }
+
+/* result */
+.result-box { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px; }
+.wrong-list li { margin-bottom: 8px; }
+.cert { display: grid; gap: 8px; max-width: 420px; }
+.cert input { font: inherit; min-height: 44px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+              background: var(--background); color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+@media print { .nav, .skip-link, .progress { display: none; } }

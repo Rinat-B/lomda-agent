@@ -1,0 +1,539 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>כמה מקום באמת צריך כדי לעצור?</title>
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --surface:#F3F6F9;
+    --text:#1F2933;
+    --muted:#4B5866;
+    --primary:#1D63A0;
+    --primary-text:#FFFFFF;
+    --accent:#256B5C;
+    --highlight:#FFF3BF;
+    --success:#1B6E3F;
+    --error:#A9231A;
+    --border:#C5CED8;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;
+    padding:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  }
+  body{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    overflow-x:hidden;
+  }
+  .app{
+    width:min(390px,100%);
+    max-width:100%;
+    padding:4px 8px;
+  }
+  h1{
+    font-size:16px;
+    line-height:1.2;
+    margin:0 0 4px;
+    text-align:center;
+    font-weight:800;
+    letter-spacing:-0.01em;
+  }
+  .scene{
+    height:94px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    overflow:hidden;
+    position:relative;
+  }
+  .scene svg{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+  .controls{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:6px;
+    margin-top:6px;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    min-width:0;
+  }
+  .field label{
+    font-size:11px;
+    line-height:1.1;
+    color:var(--muted);
+    font-weight:700;
+  }
+  select{
+    width:100%;
+    min-width:0;
+    height:28px;
+    padding:0 6px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    background:#fff;
+    color:var(--text);
+    font:inherit;
+    font-size:12px;
+  }
+  .range-row{
+    margin-top:6px;
+  }
+  .range-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:6px;
+    font-size:11px;
+    line-height:1.2;
+    color:var(--muted);
+  }
+  .range-head label{
+    font-weight:700;
+    color:var(--text);
+  }
+  .range-head strong{
+    font-size:13px;
+    color:var(--text);
+    white-space:nowrap;
+  }
+  input[type="range"]{
+    display:block;
+    width:100%;
+    height:24px;
+    margin:0;
+    accent-color:var(--primary);
+  }
+  .btn{
+    display:block;
+    width:100%;
+    height:32px;
+    margin-top:6px;
+    border:1px solid var(--primary);
+    border-radius:8px;
+    background:var(--primary);
+    color:var(--primary-text);
+    font:inherit;
+    font-size:13px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .btn:active{
+    background:#174F80;
+  }
+  .status{
+    margin-top:6px;
+    min-height:36px;
+    padding:5px 7px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+    font-size:11.5px;
+    line-height:1.35;
+    color:var(--text);
+    overflow-wrap:anywhere;
+  }
+  .status.success{
+    border-color:var(--success);
+    background:#F6FBF8;
+  }
+  .status.error{
+    border-color:var(--error);
+    background:#FFF7F6;
+  }
+  .status.info{
+    border-color:var(--border);
+    background:#fff;
+  }
+  .status strong{
+    font-weight:800;
+  }
+  .note{
+    margin:3px 0 0;
+    font-size:9.5px;
+    line-height:1.25;
+    color:var(--muted);
+    text-align:center;
+  }
+  select:focus-visible,
+  input:focus-visible,
+  button:focus-visible{
+    outline:3px solid var(--primary);
+    outline-offset:2px;
+  }
+  @media (max-width:340px){
+    h1{font-size:15px}
+    .scene{height:90px}
+  }
+</style>
+</head>
+<body>
+<main class="app" aria-label="הדמיית מרחק עצירה">
+  <h1>כמה מקום באמת צריך כדי לעצור?</h1>
+
+  <div class="scene">
+    <svg viewBox="0 0 360 94" role="img" aria-label="מסלול ישר: הרכב שלכם נוסע מאחורי רכב קדמי">
+      <line x1="8" y1="76" x2="352" y2="76" stroke="#4B5866" stroke-width="3" stroke-linecap="round"/>
+      <line x1="8" y1="80" x2="352" y2="80" stroke="#C5CED8" stroke-width="1" stroke-dasharray="6 6"/>
+
+      <line id="bracketLine" x1="44" y1="28" x2="156.5" y2="28" stroke="#1D63A0" stroke-width="1.5"/>
+      <line x1="44" y1="23" x2="44" y2="33" stroke="#1D63A0" stroke-width="1.5"/>
+      <line id="bracketTick" x1="156.5" y1="23" x2="156.5" y2="33" stroke="#1D63A0" stroke-width="1.5"/>
+      <text id="bracketText" x="100.25" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#1D63A0" font-family="system-ui, sans-serif">45 מ׳</text>
+
+      <g id="stopMarker" opacity="0">
+        <line x1="114" y1="34" x2="114" y2="76" stroke="#256B5C" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <circle cx="114" cy="76" r="3" fill="#256B5C"/>
+      </g>
+
+      <g id="collisionMarker" opacity="0">
+        <circle cx="156.5" cy="60" r="8" fill="none" stroke="#A9231A" stroke-width="2"/>
+        <text x="156.5" y="64" text-anchor="middle" font-size="12" font-weight="900" fill="#A9231A" font-family="system-ui, sans-serif">!</text>
+      </g>
+
+      <g id="ownCar" transform="translate(44,68)">
+        <rect id="ownBody" x="-38" y="-14" width="38" height="14" rx="4" fill="#1D63A0"/>
+        <rect x="-28" y="-21" width="16" height="9" rx="3" fill="#1D63A0" opacity="0.9"/>
+        <circle cx="-28" cy="4" r="4" fill="#1F2933"/>
+        <circle cx="-12" cy="4" r="4" fill="#1F2933"/>
+        <circle cx="-28" cy="4" r="1.5" fill="#C5CED8"/>
+        <circle cx="-12" cy="4" r="1.5" fill="#C5CED8"/>
+      </g>
+
+      <g id="leadCar" transform="translate(156.5,68)">
+        <rect id="leadBody" x="0" y="-14" width="38" height="14" rx="4" fill="#4B5866"/>
+        <rect x="6" y="-21" width="16" height="9" rx="3" fill="#4B5866" opacity="0.9"/>
+        <circle cx="10" cy="4" r="4" fill="#1F2933"/>
+        <circle cx="28" cy="4" r="4" fill="#1F2933"/>
+        <circle cx="10" cy="4" r="1.5" fill="#C5CED8"/>
+        <circle cx="28" cy="4" r="1.5" fill="#C5CED8"/>
+      </g>
+
+      <text id="ownLabel" x="25" y="92" text-anchor="middle" font-size="9" fill="#4B5866" font-family="system-ui, sans-serif">אתם</text>
+      <text id="leadLabel" x="175.5" y="92" text-anchor="middle" font-size="9" fill="#4B5866" font-family="system-ui, sans-serif">רכב קדמי</text>
+    </svg>
+  </div>
+
+  <div class="controls">
+    <div class="field">
+      <label for="vehicle">רכב</label>
+      <select id="vehicle">
+        <option value="car" selected>רכב קל</option>
+        <option value="truck">משאית חלוקה עמוסה</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="road">כביש</label>
+      <select id="road">
+        <option value="dry" selected>כביש יבש</option>
+        <option value="wet">כביש רטוב</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="range-row">
+    <div class="range-head">
+      <label for="gap">מרווח מאחורי הרכב שלפניכם</label>
+      <strong id="gapValue">45 מ׳</strong>
+    </div>
+    <input id="gap" type="range" min="5" max="90" step="1" value="45" dir="ltr">
+  </div>
+
+  <button id="brake" class="btn" type="button">בלימה</button>
+
+  <div id="status" class="status info" role="status" aria-live="polite" aria-atomic="true">
+    <strong>רכב קל בכביש יבש.</strong> מרחק עצירה כולל זמן תגובה: 28 מ׳. בחרו מרווח ולחצו בלימה.
+  </div>
+
+  <p class="note">כל הנתונים כוללים שנייה אחת של זמן תגובה.</p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const START_X = 44;
+  const SCALE = 2.5;
+  const REACTION_DISTANCE = (50 / 3.6) * 1;
+  const BRAKE_DURATION = 2.0;
+
+  const vehicleSelect = document.getElementById("vehicle");
+  const roadSelect = document.getElementById("road");
+  const gapInput = document.getElementById("gap");
+  const gapValue = document.getElementById("gapValue");
+  const brakeBtn = document.getElementById("brake");
+  const status = document.getElementById("status");
+
+  const ownCar = document.getElementById("ownCar");
+  const leadCar = document.getElementById("leadCar");
+  const ownBody = document.getElementById("ownBody");
+  const leadBody = document.getElementById("leadBody");
+  const bracketLine = document.getElementById("bracketLine");
+  const bracketTick = document.getElementById("bracketTick");
+  const bracketText = document.getElementById("bracketText");
+  const ownLabel = document.getElementById("ownLabel");
+  const leadLabel = document.getElementById("leadLabel");
+  const stopMarker = document.getElementById("stopMarker");
+  const collisionMarker = document.getElementById("collisionMarker");
+
+  const vehicleNames = {
+    car: "רכב קל",
+    truck: "משאית חלוקה עמוסה"
+  };
+  const roadNames = {
+    dry: "כביש יבש",
+    wet: "כביש רטוב"
+  };
+
+  const state = {
+    running: false,
+    animationId: null,
+    startTime: 0,
+    distance: 0,
+    gapAtStart: 45,
+    totalStop: 28,
+    collision: false,
+    showStop: false,
+    phase: "idle"
+  };
+
+  function getTotalStop(){
+    const v = vehicleSelect.value;
+    const r = roadSelect.value;
+    if (v === "car"){
+      return r === "dry" ? 28 : 40;
+    }
+    return 55;
+  }
+
+  function setOwnColor(color){
+    ownBody.setAttribute("fill", color);
+  }
+
+  function setLeadColor(color){
+    leadBody.setAttribute("fill", color);
+  }
+
+  function resetColors(){
+    setOwnColor("#1D63A0");
+    setLeadColor("#4B5866");
+  }
+
+  function updateScene(){
+    const gap = Number(gapInput.value);
+    const leadX = START_X + gap * SCALE;
+    const ownX = START_X + state.distance * SCALE;
+
+    ownCar.setAttribute("transform", "translate(" + ownX + ",68)");
+    leadCar.setAttribute("transform", "translate(" + leadX + ",68)");
+
+    bracketLine.setAttribute("x2", leadX);
+    bracketTick.setAttribute("x1", leadX);
+    bracketTick.setAttribute("x2", leadX);
+    bracketText.setAttribute("x", (START_X + leadX) / 2);
+    bracketText.textContent = gap + " מ׳";
+
+    ownLabel.setAttribute("x", ownX - 19);
+    leadLabel.setAttribute("x", leadX + 19);
+
+    const stopX = START_X + state.totalStop * SCALE;
+    const stopLine = stopMarker.querySelector("line");
+    const stopDot = stopMarker.querySelector("circle");
+    stopLine.setAttribute("x1", stopX);
+    stopLine.setAttribute("x2", stopX);
+    stopDot.setAttribute("cx", stopX);
+    stopMarker.setAttribute("opacity", state.showStop ? "1" : "0");
+
+    const collisionCircle = collisionMarker.querySelector("circle");
+    const collisionText = collisionMarker.querySelector("text");
+    collisionCircle.setAttribute("cx", leadX);
+    collisionText.setAttribute("x", leadX);
+    collisionMarker.setAttribute("opacity", state.collision ? "1" : "0");
+  }
+
+  function updateGapLabel(){
+    gapValue.textContent = gapInput.value + " מ׳";
+  }
+
+  function syncRoadOptions(){
+    const dryOption = roadSelect.querySelector('option[value="dry"]');
+    if (vehicleSelect.value === "truck"){
+      dryOption.disabled = true;
+      if (roadSelect.value === "dry"){
+        roadSelect.value = "wet";
+      }
+    } else {
+      dryOption.disabled = false;
+    }
+  }
+
+  function setInfo(){
+    const v = vehicleSelect.value;
+    const r = roadSelect.value;
+    const d = getTotalStop();
+    status.className = "status info";
+    status.innerHTML = "<strong>" + vehicleNames[v] + " ב" + roadNames[r] + ".</strong> מרחק עצירה כולל זמן תגובה: " + d + " מ׳. בחרו מרווח ולחצו בלימה.";
+  }
+
+  function setGapInfo(){
+    const gap = Number(gapInput.value);
+    const d = getTotalStop();
+    status.className = "status info";
+    status.innerHTML = "<strong>מרווח נוכחי: " + gap + " מ׳.</strong> מרחק עצירה נדרש: " + d + " מ׳. לחצו בלימה.";
+  }
+
+  function stopAndReset(){
+    if (state.animationId !== null){
+      cancelAnimationFrame(state.animationId);
+      state.animationId = null;
+    }
+    state.running = false;
+    state.distance = 0;
+    state.collision = false;
+    state.showStop = false;
+    state.phase = "idle";
+    brakeBtn.textContent = "בלימה";
+    resetColors();
+  }
+
+  function resetForSelection(){
+    stopAndReset();
+    state.totalStop = getTotalStop();
+    updateScene();
+    setInfo();
+  }
+
+  function brake(){
+    if (state.running){
+      return;
+    }
+
+    const gap = Number(gapInput.value);
+    const total = getTotalStop();
+
+    state.gapAtStart = gap;
+    state.totalStop = total;
+    state.running = true;
+    state.distance = 0;
+    state.collision = false;
+    state.showStop = false;
+    state.phase = "reaction";
+    state.startTime = performance.now();
+
+    brakeBtn.textContent = "בולם…";
+    resetColors();
+    updateScene();
+
+    status.className = "status info";
+    status.innerHTML = "<strong>זמן תגובה:</strong> הרכב ממשיך בנסיעה שנייה שלמה לפני שמתחילה בלימה.";
+
+    state.animationId = requestAnimationFrame(animate);
+  }
+
+  function animate(now){
+    if (!state.running){
+      return;
+    }
+
+    const elapsed = (now - state.startTime) / 1000;
+    const gap = state.gapAtStart;
+    const total = state.totalStop;
+
+    let distance;
+
+    if (elapsed <= 1){
+      distance = REACTION_DISTANCE * elapsed;
+    } else {
+      const p = Math.min(1, (elapsed - 1) / BRAKE_DURATION);
+      const eased = 1 - Math.pow(1 - p, 2);
+      distance = REACTION_DISTANCE + (total - REACTION_DISTANCE) * eased;
+    }
+
+    if (total >= gap && distance >= gap){
+      state.distance = gap;
+      state.collision = true;
+      state.running = false;
+      state.animationId = null;
+
+      brakeBtn.textContent = "נסו שוב";
+      setOwnColor("#A9231A");
+      setLeadColor("#A9231A");
+      updateScene();
+
+      status.className = "status error";
+      status.innerHTML = "<strong>התנגשות!</strong> המרווח היה " + gap + " מ׳, אך נדרשו " + total + " מ׳ כדי לעצור. נסו להשאיר מרווח גדול יותר.";
+      return;
+    }
+
+    if (elapsed >= 1 + BRAKE_DURATION){
+      state.distance = total;
+      state.showStop = true;
+      state.running = false;
+      state.animationId = null;
+
+      brakeBtn.textContent = "ניסיון נוסף";
+      updateScene();
+
+      const remain = gap - total;
+      status.className = "status success";
+      status.innerHTML = "<strong>נעצרתם בבטחה!</strong> המרווח היה " + gap + " מ׳; נדרשו " + total + " מ׳ לעצירה, ולכן נותרו " + remain + " מ׳.";
+      return;
+    }
+
+    state.distance = distance;
+    updateScene();
+
+    if (elapsed >= 1 && state.phase !== "braking"){
+      state.phase = "braking";
+      status.className = "status info";
+      status.innerHTML = "<strong>זמן התגובה הסתיים.</strong> הרכב מתחיל לבלום וממשיך להתקדם.";
+    }
+
+    state.animationId = requestAnimationFrame(animate);
+  }
+
+  vehicleSelect.addEventListener("change", function(){
+    syncRoadOptions();
+    resetForSelection();
+  });
+
+  roadSelect.addEventListener("change", function(){
+    resetForSelection();
+  });
+
+  gapInput.addEventListener("input", function(){
+    updateGapLabel();
+    stopAndReset();
+    updateScene();
+  });
+
+  gapInput.addEventListener("change", function(){
+    updateGapLabel();
+    if (!state.running){
+      setGapInfo();
+    }
+  });
+
+  brakeBtn.addEventListener("click", brake);
+
+  syncRoadOptions();
+  updateGapLabel();
+  state.totalStop = getTotalStop();
+  updateScene();
+  setInfo();
+})();
+</script>
+</body>
+</html>

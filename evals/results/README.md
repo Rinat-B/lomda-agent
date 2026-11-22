@@ -94,6 +94,11 @@ help, and the first lesson's strict balanced test (questions 6 and 7 must be cau
 
 Such questions are left to the content owner's review at gate 3.
 
+## Day 9: research and illustrations
+
+Real runs with web research and interactive illustrations, screenshots and the free-versus-Sonnet
+comparison of illustrations: [day9/README.md](day9/README.md).
+
 ## Other files
 
 - `day6_real_run_report.md`: report.md of a real free-profile run (day 6)

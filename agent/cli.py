@@ -20,6 +20,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="agent", description="E-learning lesson agent")
     parser.add_argument("--debug", action="store_true", help="show full tracebacks on screen")
     parser.add_argument("--mcp", metavar="SERVER", help="run a built-in MCP server over stdio (internal)")
+    parser.add_argument("--check-browser", action="store_true",
+                        help="check that the illustration browser test can run (installed Edge)")
     return parser.parse_args(argv)
 
 
@@ -196,8 +198,30 @@ def check_models() -> None:
         log(msg("llm.not_listed", models=", ".join(missing)))
 
 
+def check_browser() -> int:
+    """Run the illustration check on a tiny built-in page: 0 when Edge and Playwright work."""
+    from agent.illustrations import NoBrowser, check_illustrations
+
+    page = ('<!doctype html><html dir="rtl" lang="he"><body><button id="b">1</button><p id="o">0</p>'
+            '<script>document.getElementById("b").onclick=()=>{document.getElementById("o").textContent="1"}</script>'
+            '</body></html>')
+    try:
+        problems = check_illustrations({"check.html": page}, {})["check.html"]
+    except NoBrowser as e:
+        say(msg("cli.check_browser.unavailable", reason=str(e)), style="yellow")
+        return 1
+    if problems:
+        say(msg("cli.check_browser.failed", problems="; ".join(problems)), style="yellow")
+        return 1
+    say(msg("cli.check_browser.ok"))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.check_browser:
+        configure_stdio()
+        raise SystemExit(check_browser())
     if args.mcp:
         # MCP server mode: stdout carries the protocol, so nothing else may run or print.
         run_server(args.mcp)
