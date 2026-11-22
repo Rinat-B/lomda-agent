@@ -416,7 +416,8 @@
       "illustrations": "בודק ההמחשות",
       "pedagogy": "בודק הפדגוגיה",
       "key_points": "חילוץ הנקודות המהותיות",
-      "illustration_logic": "לוגיקת המחשה"
+      "illustration_logic": "לוגיקת המחשה",
+      "diagram_source": "בודק תרשים מול המקור"
     },
     "nodes": {
       "scope_check": "סיווג הבקשה",
@@ -530,5 +531,9 @@
     "by_node": "לפי צומת:",
     "by_model": "לפי מודל:",
     "cost_item": "- {name}: {calls} קריאות, {tokens} טוקנים, ${cost:.6f}"
+  },
+  "diagram_check": {
+    "missing_leaf": "במקור יש פעולה שאין לה עלה בתרשים: {action}.",
+    "not_in_source": "הצומת \"{label}\" לא בא מהמקור: {reason}"
   }
 }

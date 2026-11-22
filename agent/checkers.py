@@ -496,6 +496,10 @@ MODEL_CHECKS: dict[str, dict] = {
     },
 }
 
+# Both ways against the source, one call for all diagrams (agent/diagram_check.py); only when the
+# lesson has a decision diagram.
+MODEL_CHECKS["diagram_source"] = {"categories": ("diagram_logic",), "source": True, "format": "diagram", "prompt": ""}
+
 _FORMATS = {"findings": FINDINGS_FORMAT, "illustrations": ILLUSTRATIONS_FORMAT}
 # share of the lesson's questions / illustrations a checklist reply must cover
 MIN_COVERAGE = 0.8
@@ -764,6 +768,13 @@ def _ask_until_valid(name: str, messages: list[BaseMessage], parse, call: ModelC
 def run_model_check(name: str, lesson: dict, lesson_text: str, source_text: str,
                     call: ModelCall = call_llm, screens: Screens = None,
                     chunks: list[dict] | None = None) -> tuple[list[Finding], list[LLMResult]]:
+    if MODEL_CHECKS[name]["format"] == "diagram":
+        from agent import diagram_check
+
+        if not _has_diagram(lesson, screens):
+            return [], []
+        return _ask_until_valid(name, diagram_check.messages(lesson, chunks or []),
+                                lambda text: [f for f in diagram_check.parse(text, lesson) if _in(f.screen, screens)], call)
     if MODEL_CHECKS[name]["format"] == "single_answer":
         items = single_answer_items(lesson, chunks or [], screens)
         if not items:
@@ -783,6 +794,11 @@ def run_model_check(name: str, lesson: dict, lesson_text: str, source_text: str,
 SINGLE_ANSWER_BATCH = {"free": 3, "balanced": 2}
 
 
+def _has_diagram(lesson: dict, screens: Screens = None) -> bool:
+    return any(b["type"] == "decision_diagram" for i, s in enumerate(lesson["screens"], 1) if _in(i, screens)
+               for b in s["blocks"])
+
+
 def batch_screens(fmt: str) -> int | None:
     """Screens per call for a batched check format in the active profile (None = not batched)."""
     from agent.llm import active_profile
@@ -798,6 +814,8 @@ def check_jobs(lesson: dict, model_checks: tuple[str, ...], screens: Screens = N
     numbers = list(screens) if screens else list(range(1, len(lesson["screens"]) + 1))
     jobs: list[tuple[str, Screens]] = []
     for name in model_checks:
+        if MODEL_CHECKS[name]["format"] == "diagram" and not _has_diagram(lesson, screens):
+            continue  # nothing to check: no call
         size = batch_screens(MODEL_CHECKS[name]["format"])
         if size:
             jobs += [(name, tuple(numbers[i:i + size])) for i in range(0, len(numbers), size)]

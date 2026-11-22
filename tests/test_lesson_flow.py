@@ -190,6 +190,8 @@ def prompt_kind(system: str) -> str:
         return "illustration"
     if system.startswith("The interactive illustration you built failed"):
         return "illustration_fix"
+    if system.startswith("You check the decision diagrams"):
+        return "check"
     if system.startswith("You design the visual motif"):
         return "motif"
     if system.startswith("You check the LOGIC of one interactive illustration"):
@@ -223,7 +225,7 @@ def checker_reply(kind: str, user: str) -> str:
         return json.dumps({"points": [{"text": "Screen 1 explains the rule.", "source": "deck.pptx, slide 1"},
                                       {"text": "Screen 2 explains the rule.", "source": "deck.pptx, slide 1"},
                                       {"text": "Tyres need 3 mm of tread.", "source": "deck.pptx, slide 2"}]})
-    return json.dumps({"findings": [],
+    return json.dumps({"findings": [], "diagrams": [],
                        "illustrations": [{"adds_value": True}] * user.count(", illustration] Title")})
 
 

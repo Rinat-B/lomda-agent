@@ -167,11 +167,15 @@ def test_a_failing_model_check_is_recorded_and_the_rest_still_run():
             return make_result(text=json.dumps({"questions": [{"id": i, "options": []} for i in ids]}))
         if '"illustrations"' in system:
             return make_result(text='{"illustrations": [' + ",".join(['{"adds_value": true}'] * 8) + "]}")
+        if system.startswith("You check the decision diagrams"):
+            return make_result(text='{"diagrams": []}')
         return make_result(text='{"findings": []}')
 
     report = run_checkers(BAD, [], call=call)
     assert set(report.failed) == {"language"}
-    assert len(report.calls) == 6  # grounding, illustrations, pedagogy, 3 question batches
+    has_diagram = checkers._has_diagram(BAD)
+    # grounding, illustrations, pedagogy, 3 question batches, and the diagram check if there is a diagram
+    assert len(report.calls) == 6 + has_diagram
     assert {f.check for f in report.findings} == set(CODE_CHECKS)
 
 

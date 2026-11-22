@@ -12,3 +12,7 @@ data/
 dist-new/
 examples/*/build/
 output/
+
+# run_agent checkpoints of eval runs (resumable, not results)
+evals/results/**/checkpoints.sqlite*
+evals/results/**/thread_id.txt
