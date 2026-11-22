@@ -1,0 +1,119 @@
+{
+ "_note": "Day-9 illustrations and what the logic checker must find, checked by hand against evals/fixtures/short_winter.pptx (slides 2-4). must: a finding of that category whose problem or evidence has one of the keywords (any finding of the category if none are given); must_not: categories that would be false alarms on that page.",
+ "free_fog": {
+  "slides": [
+   4
+  ],
+  "title": "סופרים עמודים ובוחרים פעולה",
+  "description": "אתם רואים כביש בין-עירוני עם עמודי תאורה במרווח של כ-50 מ׳, ומזיזים מחוון של עובי הערפל. אתם רואים כמה עמודים נראים לפניכם, ואז בוחרים פעולה: להמשיך, להאט, להדליק אורות ערפל או לעצור בצד ולהדליק אורות חירום. בסוף מקבלים משוב אם הבחירה שלכם מתאימה למה שראיתם בכביש.",
+  "must": [
+   {
+    "category": "illustration_rule",
+    "keywords": [
+     "בלי שינוי",
+     "להמשיך",
+     "אין צורך להאט"
+    ]
+   },
+   {
+    "category": "illustration_feedback",
+    "keywords": [
+     "חושף",
+     "לוותר על זהירות"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause",
+   "illustration_choice"
+  ],
+  "why": "Two or more posts -> 'continue with no change, no need to slow down': the source has no such rule (a recommendation it does not give, which drops caution). After a wrong choice the feedback states the right action."
+ },
+ "free_distance": {
+  "slides": [
+   2
+  ],
+  "title": "כמה מקום באמת צריך כדי לעצור?",
+  "description": "במסך יופיע מסלול ישר שעליו רכב אחד נוסע מאחורי רכב אחר. תוכלו לבחור אם אתם נוהגים ברכב קל או במשאית חלוקה עמוסה, ולגרור את סמן המרחק כדי להחליט כמה מרווח אתם משאירים מאחורי הרכב שלפניכם. כשתלחצו על בלימה, תראו את הרכב ממשיך לנסוע שנייה שלמה של זמן תגובה ורק אחר כך נעצר — ותוכלו להשוות בין כביש יבש לרטוב. אם נקודת העצירה נופלת לפני הרכב שלפניכם, זו התנגשות; נסו שוב עם מרווח גדול יותר, עד שהרכב נעצר בשלום.",
+  "must": [
+   {
+    "category": "illustration_number",
+    "keywords": [
+     "50",
+     "קמ"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause",
+   "illustration_choice"
+  ],
+  "why": "The stopping distances (28, 40, 55 m) are the source's numbers at 50 km/h, but the page never shows the speed. Truck + dry road is disabled in the code (no data in the source), so it is not required."
+ },
+ "free_skid": {
+  "slides": [
+   3
+  ],
+  "title": "להחזיר את הרכב לכיוון",
+  "description": "תראו מבט מלמעלה על רכב שנכנס לפנייה בכביש רטוב. בזמן שהרכב מחליק, תוכלו ללחוץ על חצאי ההגה — שמאלה או ימינה — ועל דוושת הגז. אם כיוונתם את ההגה לכיוון ההחלקה והרמתם את הרגל מהגז, תראו שהאחיזה חוזרת והרכב משלים את הפנייה; אבל אם ההגה פונה נגד ההחלקה או שהגז נשאר לחוץ, הרכב מסתחרר ויוצא מהציר. נסו שוב בכל פעם, וראו בעצמכם את ההבדל.",
+  "must": [
+   {
+    "category": "illustration_situation",
+    "keywords": [
+     "אחור"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause",
+   "illustration_choice"
+  ],
+  "why": "'Skid to the left' without saying that the rear slides; the source has a different action when the front does not respond."
+ },
+ "sonnet_fog": {
+  "slides": [
+   4
+  ],
+  "title": "סופרים עמודים בערפל",
+  "description": "כביש בפרספקטיבה עם עמודי תאורה ממוספרים כל כ-50 מ׳; מחוון של צפיפות הערפל; הלומד סופר כמה עמודים נראים, בוחר טווח ראות ומקבל הסבר.",
+  "must": [
+   {
+    "category": "illustration_feedback",
+    "keywords": [
+     "חושף"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause",
+   "illustration_choice"
+  ],
+  "why": "After a wrong estimate the feedback states the right one. The fog logic is NOT inverted (denser fog -> fewer posts in the code); the day-9 note misread a screenshot taken at the slider's minimum, so a cause finding is a false alarm."
+ },
+ "sonnet_distance": {
+  "slides": [
+   2
+  ],
+  "title": "כמה מרווח צריך כדי לעצור בזמן?",
+  "description": "הלומד בוחר סוג רכב, מצב כביש ומרווח בשניות, ולוחץ 'המכונית שלפניכם בולמת בפתאומיות'; קו עצירה מראה אם נעצר בזמן.",
+  "must": [
+   {
+    "category": "illustration_number",
+    "keywords": [
+     "13.9",
+     "13,9"
+    ]
+   },
+   {
+    "category": "illustration_choice",
+    "keywords": [
+     "יבש"
+    ]
+   }
+  ],
+  "must_not": [
+   "illustration_cause"
+  ],
+  "why": "'One second is about 13.9 m' is computed, not in the source. Truck + dry road can be selected, and the source has no stopping distance for it."
+ }
+}

@@ -103,3 +103,11 @@ def fake_mcp():
 
 def make_result(model="m/free", prompt=10, completion=5, cost=0.0, text="ok") -> LLMResult:
     return LLMResult(text=text, model=model, prompt_tokens=prompt, completion_tokens=completion, cost=cost)
+
+
+@pytest.fixture(autouse=True)
+def no_motif_preview(monkeypatch):
+    """Gate 2 opens the motif candidates in a browser; tests do not."""
+    from agent import cli
+
+    monkeypatch.setattr(cli, "preview_motifs", lambda candidates, palette: None)

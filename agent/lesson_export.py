@@ -61,6 +61,21 @@ def placeholder_html(title: str, description: str) -> str:
     return page.replace("__TITLE__", escape(title)).replace("__DESCRIPTION__", escape(description))
 
 
+def with_clean_motif(lesson: dict) -> dict:
+    """Output guard: the motif SVG through the cleaner (scripts, on* events, foreignObject and
+    outside links removed); an SVG that cannot be parsed safely is dropped."""
+    from agent.svg_clean import UnsafeSvg, clean_svg
+
+    motif = lesson.get("motif") or {}
+    if not motif.get("svg"):
+        return lesson
+    try:
+        svg = clean_svg(motif["svg"])[0]
+    except UnsafeSvg:
+        svg = ""
+    return {**lesson, "motif": {**motif, "svg": svg}}
+
+
 def index_html(title: str) -> str:
     """The player page with the lesson's title in the browser tab (also before the script runs)."""
     from html import escape
@@ -104,6 +119,7 @@ def export_lesson(lesson: dict, out_dir: Path, source_dir: Path | None = None, p
     assets = out_dir / "assets"
     assets.mkdir(exist_ok=True)
     (out_dir / "index.html").write_text(index_html(lesson["title"]), encoding="utf-8")
+    lesson = with_clean_motif(lesson)
     for name in PLAYER_ASSETS:
         shutil.copyfile(PLAYER_DIR / name, assets / name)
     for page, src, dest, block in planned:

@@ -1,0 +1,410 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ראות מוגבלת: מתי מאטים, מדליקים ועוצרים</title>
+<style>
+:root {
+  --bg: #FFFFFF;
+  --surface: #F3F6F9;
+  --text: #1F2933;
+  --muted: #4B5866;
+  --primary: #1D63A0;
+  --primary-text: #FFFFFF;
+  --accent: #256B5C;
+  --highlight: #FFF3BF;
+  --success: #1B6E3F;
+  --error: #A9231A;
+  --border: #C5CED8;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  padding: 4px;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, "Segoe UI", sans-serif;
+  direction: rtl;
+}
+.app {
+  width: 100%;
+  max-width: 390px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+h1 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text);
+  overflow-wrap: break-word;
+}
+.scene {
+  position: relative;
+  height: 98px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: linear-gradient(to bottom, #FFFFFF 0%, #F3F6F9 100%);
+  isolation: isolate;
+}
+.road {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  background: var(--muted);
+  border-top: 2px solid var(--text);
+}
+.road::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 10px;
+  border-top: 2px dashed #FFFFFF;
+  opacity: .85;
+}
+.pole {
+  position: absolute;
+  bottom: 30px;
+  width: 3px;
+  background: var(--text);
+  border-radius: 1px;
+  transition: opacity .18s ease;
+  z-index: 2;
+}
+.pole::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -5px;
+  width: 13px;
+  height: 4px;
+  background: var(--text);
+  border-radius: 2px;
+}
+.pole.hidden { opacity: 0; }
+.p1 { right: 18%; height: 36px; }
+.p2 { right: 36%; height: 28px; }
+.p3 { right: 54%; height: 22px; }
+.p4 { right: 72%; height: 16px; }
+.fog {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: .45;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity .18s ease;
+}
+.car {
+  position: absolute;
+  right: 4px;
+  bottom: 32px;
+  width: 24px;
+  height: 9px;
+  background: var(--accent);
+  border-radius: 4px 7px 2px 2px;
+  z-index: 4;
+}
+.car::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: -4px;
+  width: 12px;
+  height: 5px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+}
+.control { margin-top: 5px; }
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  line-height: 1.2;
+  color: var(--muted);
+}
+.label-row label {
+  font-weight: 700;
+  color: var(--text);
+}
+#fogValue {
+  font-weight: 700;
+  color: var(--primary);
+}
+input[type="range"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 20px;
+  margin: 2px 0 0;
+  padding: 0;
+  background: transparent;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.count {
+  margin: 3px 0 2px;
+  min-height: 14px;
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--text);
+  overflow-wrap: break-word;
+}
+.action-area { margin-top: 4px; }
+.action-area label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11.5px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--text);
+}
+.action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+  align-items: stretch;
+}
+select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 32px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.1;
+  cursor: pointer;
+}
+.check-btn {
+  height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--primary-text);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+button:focus,
+select:focus,
+input[type="range"]:focus {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+.feedback {
+  margin: 4px 0 0;
+  min-height: 34px;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--muted);
+  overflow-wrap: break-word;
+}
+.feedback.success {
+  border-color: var(--success);
+  color: var(--success);
+}
+.feedback.error {
+  border-color: var(--error);
+  color: var(--error);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pole, .fog { transition: none; }
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>סופרים עמודים ובוחרים פעולה</h1>
+
+  <div class="scene" aria-hidden="true">
+    <div class="road"></div>
+    <div class="pole p1"></div>
+    <div class="pole p2"></div>
+    <div class="pole p3"></div>
+    <div class="pole p4"></div>
+    <div class="fog" id="fogLayer"></div>
+    <div class="car"></div>
+  </div>
+
+  <div class="control">
+    <div class="label-row">
+      <label for="fog">עובי הערפל</label>
+      <span id="fogValue">כבד</span>
+    </div>
+    <input id="fog" type="range" min="0" max="100" value="70" step="5" aria-describedby="visibilityText">
+  </div>
+
+  <p class="count" id="visibilityText" aria-live="polite" aria-atomic="true">נראה עמוד אחד — פחות משני עמודים, מתחת ל-100 מ׳</p>
+
+  <div class="action-area">
+    <label for="action">בחירת פעולה</label>
+    <div class="action-row">
+      <select id="action">
+        <option value="">בחרו פעולה</option>
+        <option value="continue">להמשיך בלי שינוי</option>
+        <option value="slowFog">להאט ל-50 קמ״ש ולדליק אורות ערפל</option>
+        <option value="slowOnly">להאט ל-50 קמ״ש בלבד</option>
+        <option value="stopHazard">לעצור בצד במקום בטוח ולהדליק אורות חירום</option>
+      </select>
+      <button class="check-btn" id="check" type="button">בדיקה</button>
+    </div>
+  </div>
+
+  <p class="feedback" id="feedback" role="status" aria-live="polite" aria-atomic="true">בחרו פעולה ולחצו "בדיקה".</p>
+</main>
+
+<script>
+const fogInput = document.getElementById('fog');
+const fogValue = document.getElementById('fogValue');
+const fogLayer = document.getElementById('fogLayer');
+const visibilityText = document.getElementById('visibilityText');
+const actionSelect = document.getElementById('action');
+const checkButton = document.getElementById('check');
+const feedback = document.getElementById('feedback');
+const poles = Array.from(document.querySelectorAll('.pole'));
+
+let currentCount = 1;
+
+function getCount(value) {
+  if (value < 20) return 4;
+  if (value < 40) return 3;
+  if (value < 60) return 2;
+  if (value < 80) return 1;
+  return 0;
+}
+
+function getFogLabel(value) {
+  if (value < 20) return 'דק';
+  if (value < 45) return 'קל';
+  if (value < 75) return 'בינוני';
+  return 'כבד';
+}
+
+function polePhrase(count) {
+  if (count === 0) return 'אין עמודים שנראים';
+  if (count === 1) return 'עמוד אחד נראה';
+  if (count === 2) return 'שני עמודים נראים';
+  if (count === 3) return 'שלושה עמודים נראים';
+  return 'ארבעה עמודים נראים';
+}
+
+function countSentence(count) {
+  if (count === 0) return 'נראים 0 עמודים — מתחת ל-50 מ׳';
+  if (count === 1) return 'נראה עמוד אחד — פחות משני עמודים, מתחת ל-100 מ׳';
+  if (count === 2) return 'נראים שני עמודים — לפחות שני עמודים';
+  if (count === 3) return 'נראים שלושה עמודים — לפחות שני עמודים';
+  return 'נראים ארבעה עמודים — לפחות שני עמודים';
+}
+
+function clearFeedback() {
+  feedback.textContent = 'בחרו פעולה ולחצו "בדיקה".';
+  feedback.className = 'feedback';
+}
+
+function resetAll() {
+  clearFeedback();
+  actionSelect.value = '';
+}
+
+function updateFog(value) {
+  currentCount = getCount(value);
+  const fogLabel = getFogLabel(value);
+  fogValue.textContent = fogLabel;
+  fogInput.setAttribute('aria-valuetext', 'עובי הערפל ' + fogLabel + '; ' + polePhrase(currentCount));
+
+  poles.forEach((pole, index) => {
+    pole.classList.toggle('hidden', index >= currentCount);
+  });
+
+  const fogOpacity = 0.08 + (value / 100) * 0.62;
+  fogLayer.style.opacity = fogOpacity.toFixed(2);
+
+  visibilityText.textContent = countSentence(currentCount);
+  resetAll();
+}
+
+function correctActionForCount(count) {
+  if (count >= 2) return 'continue';
+  if (count === 1) return 'slowFog';
+  return 'stopHazard';
+}
+
+function expectedText(count) {
+  if (count >= 2) return 'להמשיך בלי שינוי';
+  if (count === 1) return 'להאט ל-50 קמ״ש ולדליק אורות ערפל';
+  return 'לעצור בצד במקום בטוח ולהדליק אורות חירום';
+}
+
+function reasonText(count) {
+  if (count >= 2) return 'רואים לפחות שני עמודים, ולכן אין צורך להאט לפי הנתונים.';
+  if (count === 1) return 'רואים פחות משני עמודים, מתחת ל-100 מ׳.';
+  return 'הראות מתחת ל-50 מ׳.';
+}
+
+function evaluate(action) {
+  const correct = correctActionForCount(currentCount);
+
+  if (action === correct) {
+    feedback.className = 'feedback success';
+    feedback.textContent = 'נכון! ' + reasonText(currentCount) + ' הפעולה המתאימה: ' + expectedText(currentCount) + '.';
+    return;
+  }
+
+  feedback.className = 'feedback error';
+  let prefix = 'עדיין לא. ';
+  if (currentCount === 1 && action === 'slowOnly') {
+    prefix = 'כמעט. ';
+  }
+  feedback.textContent = prefix + reasonText(currentCount) + ' הפעולה המתאימה: ' + expectedText(currentCount) + '.';
+}
+
+fogInput.addEventListener('input', (event) => {
+  updateFog(Number(event.target.value));
+});
+
+actionSelect.addEventListener('change', clearFeedback);
+
+checkButton.addEventListener('click', () => {
+  const action = actionSelect.value;
+
+  if (!action) {
+    feedback.className = 'feedback error';
+    feedback.textContent = 'בחרו פעולה קודם.';
+    return;
+  }
+
+  evaluate(action);
+});
+
+updateFog(Number(fogInput.value));
+</script>
+</body>
+</html>

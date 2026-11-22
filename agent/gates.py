@@ -182,8 +182,29 @@ def ask_accepted_facts(facts: list[dict], ask: Callable[[str], str], say: Callab
     return []
 
 
+def format_motifs(motifs: list[dict]) -> str:
+    lines = [msg("gate.structure.motif_candidates_title"), ""]
+    lines += [msg("gate.structure.motif_candidate", index=i, text=m["description"], icons=", ".join(m.get("icons") or []))
+              for i, m in enumerate(motifs, 1)]
+    return "\n".join(lines)
+
+
+def ask_motif_choice(count: int, ask: Callable[[str], str], say: Callable[..., None]) -> int:
+    """The chosen candidate's index (Enter or Y = the first; after 3 unclear answers, the first)."""
+    for _ in range(3):
+        text = _read(ask, msg("gate.structure.motif_ask", count=count)).strip()
+        decision = parse_decision(text)
+        if not text or (decision is not None and decision.explicit and decision.approved):
+            return 0
+        if text.isdigit() and 1 <= int(text) <= count:
+            return int(text) - 1
+        say(msg("gate.structure.motif_again", count=count), style="yellow")
+    return 0
+
+
 def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
-                    say: Callable[..., None], preview: Callable[[dict], None] | None = None) -> dict:
+                    say: Callable[..., None], preview: Callable[[dict], None] | None = None,
+                    motif_preview: Callable[[list, dict], None] | None = None) -> dict:
     """Show the reviewed item (or the answer to the last question) and read the reply.
 
     Returns the interrupt resume value: {"approved", "feedback"} for Y/N answers (decided
@@ -196,6 +217,10 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
         show(format_structure(request["structure"]))
         if request.get("unverified"):
             show(format_unverified(request["unverified"]))
+        if request.get("motifs"):
+            show(format_motifs(request["motifs"]))
+            if motif_preview is not None:
+                motif_preview(request["motifs"], request.get("palette") or {})
     elif gate == "review":
         if preview is not None:
             preview(request["lesson"], request.get("illustrations"))
@@ -215,6 +240,8 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
             reply = {"approved": True, "feedback": decision.feedback}
             if request.get("unverified") and not request.get("answer"):
                 reply["accepted_facts"] = ask_accepted_facts(request["unverified"], ask, say)
+            if request.get("motifs"):
+                reply["motif_choice"] = ask_motif_choice(len(request["motifs"]), ask, say)
             return reply
         feedback = decision.feedback
         while not feedback:
@@ -285,7 +312,7 @@ def ask_cost_gate(request: dict, ask: Callable[[str], str], say: Callable[..., N
 
 def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
              say: Callable[..., None], preview: Callable[[dict], None] | None = None,
-             say_path: Callable[..., None] | None = None) -> dict:
+             say_path: Callable[..., None] | None = None, motif_preview: Callable[[list, dict], None] | None = None) -> dict:
     """Answer whichever gate the graph is waiting at."""
     if request.get("gate") == "type":
         return ask_type_gate(request, ask, say)
@@ -295,4 +322,4 @@ def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], Non
         return ask_browser_check_gate(request, ask, say, say_path)
     if request.get("gate") == "cost_cap":
         return ask_cost_gate(request, ask, say)
-    return ask_review_gate(request, ask, show, say, preview)
+    return ask_review_gate(request, ask, show, say, preview, motif_preview)

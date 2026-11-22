@@ -106,6 +106,9 @@ class CommandHandler:
         if command == "/cost":
             self.cost()
             return TurnResult()
+        if command == "/summary":
+            self.summary(arg)
+            return TurnResult()
         if command == "/new":
             self.new()
             return TurnResult()
@@ -288,6 +291,47 @@ class CommandHandler:
         self.out(msg("commands.mcp.auth_saved", name=name), style="green")
         if not self.mcp.needs_auth(name):
             self.out(msg("commands.mcp.auth_not_required", name=name))
+
+    def summary(self, arg: str) -> bool:
+        """/summary [path]: write the conversation's summary to a local text file after [Y/N]."""
+        from agent.gates import parse_decision
+        from agent.persistence import output_dir
+        from agent.summary import build_summary, target_path
+
+        if not self.session.history and not self.session.files and not self.session.usage:
+            self.out(msg("commands.summary.empty"))
+            return False
+        path = target_path(arg, output_dir())
+        self.out(msg("commands.summary.target"))
+        self.out_path(str(path))
+        if path.exists():
+            self.out(msg("commands.summary.exists"), style="yellow")
+        ask = self.ask_line
+        if ask is None:
+            from agent.console import ask as console_ask
+
+            ask = console_ask
+        for _ in range(3):
+            try:
+                decision = parse_decision(ask(msg("commands.summary.ask")))
+            except (EOFError, KeyboardInterrupt):
+                decision = None
+                break
+            if decision is not None and decision.explicit:
+                break
+            self.out(msg("commands.summary.ask_again"), style="yellow")
+        if decision is None or not decision.explicit or not decision.approved:
+            self.out(msg("commands.summary.not_saved"))
+            return False
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(build_summary(self.session), encoding="utf-8")
+        except OSError as e:
+            self.out(msg("commands.summary.failed", error=str(e)), style="yellow")
+            return False
+        self.out(msg("commands.summary.saved"), style="green")
+        self.out_path(str(path))
+        return True
 
     def cost(self) -> None:
         if not self.session.usage:

@@ -108,12 +108,12 @@ def test_y_raises_the_cap_for_this_run_and_the_lesson_is_finished(monkeypatch, d
 
 def test_n_keeps_the_whole_lesson_and_the_report_says_the_run_stopped(monkeypatch, deck_session, output, out_dir):
     ask = scripted(["N"])
-    # 1.05: research, planning, writing and the illustrations fit; the first full check does not
-    graph, model = run(monkeypatch, deck_session, ask, cap=1.05)
+    # 1.25: research, planning (with two motif candidates), writing and the illustrations fit; the first full check does not
+    graph, model = run(monkeypatch, deck_session, ask, cap=1.25)
     state = state_of(graph, deck_session)
     assert len(ask.cost_asked) == 1
     stop = state["cost_stop"]
-    assert stop["cap"] == 1.05 and stop["node"] == "evaluator"
+    assert stop["cap"] == 1.25 and stop["node"] == "evaluator"
     assert model.revisions == []  # the fix rounds were skipped
     assert state["lesson"] and len(state["lesson"]["screens"]) == len(state["structure"]["screens"])
     folder = out_dir / "deck"
@@ -124,11 +124,11 @@ def test_n_keeps_the_whole_lesson_and_the_report_says_the_run_stopped(monkeypatc
     assert all(f["status"] == "open" for f in state["findings"])
     if open_:
         assert open_[0]["problem"] in report
-    assert sum(r.cost for r in deck_session.usage) <= 1.05  # nothing paid after the stop
+    assert sum(r.cost for r in deck_session.usage) <= 1.25  # nothing paid after the stop
     from agent.gates import format_review
 
     assert msg("cost_cap.gate_line", **stop) in format_review(nodes.review_summary(state))  # gate 3 says it too
-    assert "$0.9000" in output()
+    assert "$1.1000" in output()
 
 
 def test_n_before_the_lesson_pauses_and_resume_continues_from_a_new_process(monkeypatch, deck_session, output,

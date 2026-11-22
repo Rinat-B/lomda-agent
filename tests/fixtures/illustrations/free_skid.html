@@ -1,0 +1,391 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>להחזיר את הרכב לכיוון</title>
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --surface:#F3F6F9;
+    --text:#1F2933;
+    --muted:#4B5866;
+    --primary:#1D63A0;
+    --primary-text:#FFFFFF;
+    --accent:#256B5C;
+    --highlight:#FFF3BF;
+    --success:#1B6E3F;
+    --error:#A9231A;
+    --border:#C5CED8;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Arial, sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:6px;
+  }
+  .app{
+    width:100%;
+    max-width:360px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  h1{
+    margin:0;
+    font-size:17px;
+    line-height:1.2;
+  }
+  .subtitle{
+    margin:0;
+    color:var(--muted);
+    font-size:11px;
+    line-height:1.2;
+  }
+  .scene-card{
+    position:relative;
+    height:132px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--surface);
+    overflow:hidden;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .scene-card[data-result="success"]{
+    border-color:var(--success);
+    box-shadow:0 0 0 1px var(--success) inset;
+  }
+  .scene-card[data-result="fail"]{
+    border-color:var(--error);
+    box-shadow:0 0 0 1px var(--error) inset;
+  }
+  .scene{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+  .badge{
+    position:absolute;
+    top:6px;
+    right:6px;
+    padding:3px 7px;
+    border-radius:999px;
+    background:var(--highlight);
+    color:var(--text);
+    border:1px solid var(--border);
+    font-size:11px;
+    line-height:1.1;
+    white-space:nowrap;
+  }
+  .feedback{
+    min-height:30px;
+    padding:5px 8px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--surface);
+    color:var(--text);
+    font-size:12px;
+    line-height:1.25;
+    display:flex;
+    align-items:center;
+  }
+  .feedback[data-result="success"]{
+    border-color:var(--success);
+    color:var(--success);
+  }
+  .feedback[data-result="fail"]{
+    border-color:var(--error);
+    color:var(--error);
+  }
+  .controls{
+    display:grid;
+    grid-template-columns:1fr 1.15fr 1fr;
+    gap:5px;
+    direction:ltr;
+  }
+  button{
+    font:inherit;
+    direction:rtl;
+    min-width:0;
+    min-height:50px;
+    padding:5px 4px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    font-size:12px;
+    line-height:1.1;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  button:hover:not(:disabled){
+    border-color:var(--primary);
+  }
+  button:active:not(:disabled){
+    transform:translateY(1px);
+  }
+  button:focus-visible{
+    outline:3px solid var(--primary);
+    outline-offset:2px;
+  }
+  button:disabled{
+    opacity:.55;
+    cursor:not-allowed;
+  }
+  .steer[aria-pressed="true"]{
+    background:var(--highlight);
+    border-color:var(--primary);
+    color:var(--text);
+  }
+  #gasBtn{
+    background:var(--primary);
+    border-color:var(--primary);
+    color:var(--primary-text);
+  }
+  #gasBtn[aria-pressed="false"]{
+    background:var(--bg);
+    border-color:var(--primary);
+    color:var(--text);
+  }
+  #gasBtn:hover:not(:disabled){
+    border-color:var(--text);
+  }
+  .footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .hint{
+    margin:0;
+    color:var(--muted);
+    font-size:11px;
+    line-height:1.2;
+  }
+  .retry{
+    min-height:26px;
+    padding:3px 10px;
+    border-color:var(--primary);
+    color:var(--primary);
+    font-size:12px;
+    white-space:nowrap;
+  }
+  #carMove, #carRotate{
+    transform-box:fill-box;
+    transform-origin:center;
+    transition:transform .38s cubic-bezier(.2,.7,.3,1);
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;}
+    #carMove, #carRotate{transition:none!important;}
+  }
+</style>
+</head>
+<body>
+<main class="app" aria-labelledby="lessonTitle">
+  <header>
+    <h1 id="lessonTitle">להחזיר את הרכב לכיוון</h1>
+    <p class="subtitle">כביש רטוב · החלקה בפנייה</p>
+  </header>
+
+  <section class="scene-card" id="sceneCard" data-result="sliding" aria-label="תצוגה מלמעלה של הרכב, ההחלקה והגה">
+    <span class="badge" id="skidBadge">החלקה שמאלה</span>
+    <svg class="scene" viewBox="0 0 360 132" role="img" aria-labelledby="sceneTitle sceneDesc">
+      <title id="sceneTitle">מבט מלמעלה על הרכב בכביש רטוב</title>
+      <desc id="sceneDesc">רכב נכנס לפנייה. החלקה שמאלה.</desc>
+      <rect width="360" height="132" fill="#F3F6F9"/>
+      <path d="M -40 118 C 60 118, 92 76, 180 76 C 268 76, 292 30, 400 30" fill="none" stroke="#FFFFFF" stroke-width="64"/>
+      <path d="M -40 118 C 60 118, 92 76, 180 76 C 268 76, 292 30, 400 30" fill="none" stroke="#C5CED8" stroke-width="2" stroke-dasharray="10 12"/>
+      <ellipse cx="70" cy="90" rx="26" ry="7" fill="#1D63A0" opacity="0.10"/>
+      <ellipse cx="300" cy="38" rx="22" ry="6" fill="#256B5C" opacity="0.10"/>
+      <g id="skidArrow" transform="translate(180 75)" aria-hidden="true">
+        <path d="M -38 0 L -78 0" stroke="#256B5C" stroke-width="4" stroke-linecap="round"/>
+        <path d="M -78 0 l 12 -7 v 14 z" fill="#256B5C"/>
+      </g>
+      <g transform="translate(180 75)">
+        <g id="carMove">
+          <g id="carRotate">
+            <rect x="-32" y="-13" width="64" height="26" rx="9" fill="#1D63A0" stroke="#1F2933" stroke-width="1.5"/>
+            <rect x="-16" y="-9" width="26" height="18" rx="4" fill="#FFFFFF" opacity="0.92"/>
+            <rect x="12" y="-7" width="12" height="14" rx="3" fill="#4B5866"/>
+            <circle cx="-22" cy="-14" r="5" fill="#1F2933"/>
+            <circle cx="-22" cy="14" r="5" fill="#1F2933"/>
+            <circle cx="22" cy="-14" r="5" fill="#1F2933"/>
+            <circle cx="22" cy="14" r="5" fill="#1F2933"/>
+            <circle cx="27" cy="-7" r="2.5" fill="#FFF3BF"/>
+            <circle cx="27" cy="7" r="2.5" fill="#FFF3BF"/>
+          </g>
+        </g>
+      </g>
+      <g id="successMark" transform="translate(318 100)" style="display:none" aria-hidden="true">
+        <circle r="12" fill="#1B6E3F"/>
+        <path d="M -5 0 L -1 4 L 6 -4" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <g id="spinMark" transform="translate(318 100)" style="display:none" aria-hidden="true">
+        <circle r="12" fill="#A9231A"/>
+        <path d="M -4 -4 L 4 4 M 4 -4 L -4 4" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </section>
+
+  <div class="feedback" id="feedback" role="status" aria-live="polite" aria-atomic="true" data-result="sliding">הגז לחוץ. קודם מרימים רגל מהגז.</div>
+
+  <div class="controls" role="group" aria-label="בקרת הגה וגז">
+    <button class="steer" id="steerLeft" type="button" aria-pressed="false">הגה שמאלה</button>
+    <button id="gasBtn" type="button" aria-pressed="true"><span id="gasLabel">דוושת גז — לחוץ</span></button>
+    <button class="steer" id="steerRight" type="button" aria-pressed="false">הגה ימינה</button>
+  </div>
+
+  <div class="footer">
+    <p class="hint">מסובבים בעדינות לכיוון ההחלקה.</p>
+    <button class="retry" id="retryBtn" type="button">נסו שוב</button>
+  </div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  const skidBadge = document.getElementById("skidBadge");
+  const sceneDesc = document.getElementById("sceneDesc");
+  const feedback = document.getElementById("feedback");
+  const gasBtn = document.getElementById("gasBtn");
+  const gasLabel = document.getElementById("gasLabel");
+  const steerLeft = document.getElementById("steerLeft");
+  const steerRight = document.getElementById("steerRight");
+  const retryBtn = document.getElementById("retryBtn");
+  const carMove = document.getElementById("carMove");
+  const carRotate = document.getElementById("carRotate");
+  const skidArrow = document.getElementById("skidArrow");
+  const sceneCard = document.getElementById("sceneCard");
+  const successMark = document.getElementById("successMark");
+  const spinMark = document.getElementById("spinMark");
+
+  const state = {
+    gasPressed: true,
+    steer: null,
+    skid: "left",
+    result: "sliding"
+  };
+
+  function setFeedback(message, result){
+    feedback.textContent = message;
+    feedback.dataset.result = result;
+  }
+
+  function updateUI(){
+    gasLabel.textContent = state.gasPressed ? "דוושת גז — לחוץ" : "דוושת גז — מורם";
+    gasBtn.setAttribute("aria-pressed", state.gasPressed ? "true" : "false");
+    steerLeft.setAttribute("aria-pressed", state.steer === "left" ? "true" : "false");
+    steerRight.setAttribute("aria-pressed", state.steer === "right" ? "true" : "false");
+
+    const skidText = state.skid === "left" ? "החלקה שמאלה" : "החלקה ימינה";
+    skidBadge.textContent = skidText;
+    sceneDesc.textContent = "רכב נכנס לפנייה. " + skidText + ".";
+    skidArrow.setAttribute("transform", state.skid === "left" ? "translate(180 75)" : "translate(180 75) scale(-1 1)");
+
+    const locked = state.result !== "sliding";
+    steerLeft.disabled = locked;
+    steerRight.disabled = locked;
+    gasBtn.disabled = locked;
+  }
+
+  function updateScene(){
+    sceneCard.dataset.result = state.result;
+    if(state.result === "success"){
+      carMove.style.transform = "translate(52px, -20px)";
+      carRotate.style.transform = "rotate(-8deg)";
+      successMark.style.display = "block";
+      spinMark.style.display = "none";
+    } else if(state.result === "fail"){
+      const angle = state.skid === "left" ? 68 : -68;
+      carMove.style.transform = "translate(16px, 24px)";
+      carRotate.style.transform = "rotate(" + angle + "deg)";
+      successMark.style.display = "none";
+      spinMark.style.display = "block";
+    } else {
+      carMove.style.transform = "translate(0, 0)";
+      carRotate.style.transform = "rotate(0deg)";
+      successMark.style.display = "none";
+      spinMark.style.display = "none";
+    }
+  }
+
+  function evaluate(){
+    const correct = state.steer === state.skid;
+
+    if(!state.gasPressed && correct){
+      state.result = "success";
+      setFeedback("האחיזה חזרה והרכב משלים את הפנייה.", "success");
+    } else if(state.steer !== null && (!correct || state.gasPressed)){
+      state.result = "fail";
+      if(!correct && state.gasPressed){
+        setFeedback("הגז לחוץ וההגה נגד ההחלקה — הרכב מסתחרר ויוצא מהציר.", "fail");
+      } else if(!correct){
+        setFeedback("ההגה פונה נגד ההחלקה — הרכב מסתחרר ויוצא מהציר.", "fail");
+      } else {
+        setFeedback("הגז עדיין לחוץ — הרכב מסתחרר ויוצא מהציר.", "fail");
+      }
+    } else {
+      state.result = "sliding";
+      if(!state.gasPressed){
+        setFeedback("הגז מורם. כוונו בעדינות את ההגה לכיוון ההחלקה.", "sliding");
+      } else {
+        setFeedback("הגז לחוץ. קודם מרימים רגל מהגז.", "sliding");
+      }
+    }
+    updateUI();
+    updateScene();
+  }
+
+  function reset(){
+    state.gasPressed = true;
+    state.steer = null;
+    state.result = "sliding";
+    state.skid = Math.random() < 0.5 ? "left" : "right";
+    updateUI();
+    updateScene();
+    setFeedback("הגז לחוץ. קודם מרימים רגל מהגז.", "sliding");
+  }
+
+  gasBtn.addEventListener("click", function(){
+    if(state.result !== "sliding") return;
+    state.gasPressed = !state.gasPressed;
+    evaluate();
+  });
+
+  steerLeft.addEventListener("click", function(){
+    if(state.result !== "sliding") return;
+    state.steer = "left";
+    evaluate();
+  });
+
+  steerRight.addEventListener("click", function(){
+    if(state.result !== "sliding") return;
+    state.steer = "right";
+    evaluate();
+  });
+
+  retryBtn.addEventListener("click", reset);
+
+  reset();
+})();
+</script>
+</body>
+</html>

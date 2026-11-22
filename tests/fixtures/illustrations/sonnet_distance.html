@@ -1,0 +1,117 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>כמה מרווח צריך כדי לעצור בזמן?</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#FFFFFF;color:#1F2933;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.35}
+.wrap{max-width:100%;width:360px;margin:0 auto;padding:8px}
+h1{font-size:16px;margin:0 0 6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.field{flex:1 1 140px;min-width:0}
+label{display:block;font-weight:bold;font-size:13px;margin-bottom:2px}
+select,button{font:inherit;width:100%;padding:5px 6px;border:1px solid #C5CED8;border-radius:6px;background:#F3F6F9;color:#1F2933}
+input[type=range]{width:100%;accent-color:#1D63A0;margin:2px 0}
+button{background:#1D63A0;color:#FFFFFF;border-color:#1D63A0;font-weight:bold;cursor:pointer}
+:focus-visible{outline:3px solid #1F2933;outline-offset:2px}
+.scene{background:#F3F6F9;border:1px solid #C5CED8;border-radius:6px;margin:6px 0}
+svg{display:block;width:100%;height:auto}
+#res{background:#FFF3BF;border:1px solid #C5CED8;border-radius:6px;padding:6px 8px;min-height:62px}
+#res b.ok{color:#1B6E3F}#res b.bad{color:#A9231A}
+.note{color:#4B5866;font-size:12px;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>כמה מרווח צריך כדי לעצור בזמן?</h1>
+<div class="row">
+<div class="field"><label for="veh">סוג רכב</label>
+<select id="veh"><option value="car">רכב קל</option><option value="truck">משאית חלוקה עמוסה</option></select></div>
+<div class="field"><label for="road">מצב כביש</label>
+<select id="road"><option value="dry">יבש</option><option value="wet">רטוב</option></select></div>
+</div>
+<label for="gap">מרווח שמירה: <span id="gv">4</span> שניות</label>
+<input type="range" id="gap" min="1" max="8" step="1" value="4">
+<button id="go" type="button">המכונית שלפניכם בולמת בפתאומיות</button>
+<div class="scene">
+<svg viewBox="0 0 370 66" dir="ltr" role="img" aria-label="איור: הרכב שלכם משמאל והרכב שלפניכם מימין, והמרווח ביניהם">
+<rect x="0" y="46" width="370" height="14" fill="#C5CED8"/>
+<line x1="0" y1="53" x2="370" y2="53" stroke="#FFFFFF" stroke-dasharray="8 6"/>
+<line id="stopLine" x1="0" y1="8" x2="0" y2="60" stroke="#A9231A" stroke-width="2" stroke-dasharray="4 3" visibility="hidden"/>
+<text id="stopTxt" x="0" y="8" font-size="9" fill="#A9231A" visibility="hidden">נקודת עצירה</text>
+<g id="lead"><rect x="0" y="28" width="30" height="16" rx="3" fill="#256B5C"/><circle cx="7" cy="46" r="3.5" fill="#1F2933"/><circle cx="23" cy="46" r="3.5" fill="#1F2933"/></g>
+<g id="me"><rect x="0" y="28" width="30" height="16" rx="3" fill="#1D63A0"/><circle cx="7" cy="46" r="3.5" fill="#1F2933"/><circle cx="23" cy="46" r="3.5" fill="#1F2933"/></g>
+<text id="boom" x="0" y="26" font-size="16" fill="#A9231A" visibility="hidden">💥</text>
+</svg>
+</div>
+<div id="res" aria-live="polite"></div>
+<div class="note">מודל מפושט ב-50 קמ״ש; שנייה אחת ≈ 13.9 מטר.</div>
+</div>
+<script>
+(function(){
+var S=2.5,X0=40,MS=50/3.6;
+var data={car:{dry:28,wet:40,sec:4},truck:{dry:null,wet:55,sec:6}};
+var $=function(i){return document.getElementById(i)};
+var veh=$('veh'),road=$('road'),gap=$('gap'),res=$('res'),raf=null;
+function cfg(){var v=data[veh.value];return{d:v[road.value],req:v.sec,s:+gap.value,g:Math.round(+gap.value*MS)}}
+function setMe(off){$('me').setAttribute('transform','translate('+(X0-30+off)+',0)')}
+function layout(){
+ var c=cfg();
+ $('gv').textContent=c.s;
+ $('lead').setAttribute('transform','translate('+(X0+c.g*S)+',0)');
+ setMe(0);
+ $('boom').setAttribute('visibility','hidden');
+ var sl=$('stopLine'),st=$('stopTxt');
+ if(c.d!==null){var x=X0+c.d*S;sl.setAttribute('x1',x);sl.setAttribute('x2',x);st.setAttribute('x',Math.min(x+3,300));sl.setAttribute('visibility','visible');st.setAttribute('visibility','visible')}
+ else{sl.setAttribute('visibility','hidden');st.setAttribute('visibility','hidden')}
+}
+function preview(){
+ layout();var c=cfg();
+ var t='מרווח שבחרתם: '+c.s+' שניות (כ-'+c.g+' מטר). מרווח נדרש: '+c.req+' שניות. ';
+ t+=c.d!==null?'מרחק עצירה: '+c.d+' מטר.':'בטקסט אין נתון על מרחק עצירה של משאית בכביש יבש.';
+ t+=' לחצו על הכפתור כדי לראות מה קורה.';
+ res.textContent=t;
+}
+function finish(c){
+ var secOk=c.s>=c.req;
+ var secTxt=secOk?'המרווח עומד בדרישה של '+c.req+' שניות.':'המרווח קצר מהנדרש ('+c.req+' שניות).';
+ var h;
+ if(c.d===null){
+  h='<b class="'+(secOk?'ok':'bad')+'">'+(secOk?'המרווח מספיק לפי הכלל.':'המרווח קצר מדי.')+'</b> אין בטקסט נתון על מרחק עצירה של משאית בכביש יבש, ולכן אפשר לשפוט רק לפי הכלל: '+secTxt;
+ }else if(c.g<c.d){
+  $('boom').setAttribute('x',X0+c.g*S-8);$('boom').setAttribute('visibility','visible');
+  h='<b class="bad">פגעתם ברכב שלפניכם!</b> הרכב צריך '+c.d+' מטר כדי לעצור, והמרווח הוא כ-'+c.g+' מטר בלבד. '+secTxt;
+ }else{
+  h='<b class="ok">נעצרתם בזמן.</b> הרכב צריך '+c.d+' מטר כדי לעצור, והמרווח כ-'+c.g+' מטר (נשארו כ-'+(c.g-c.d)+' מטר). '+secTxt;
+ }
+ res.innerHTML=h;
+}
+function run(){
+ if(raf)cancelAnimationFrame(raf);
+ layout();var c=cfg();
+ if(c.d===null){finish(c);return}
+ var target=Math.min(c.d,c.g)*S;
+ var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(reduce){setMe(target);finish(c);return}
+ var t0=null,dur=1300;
+ res.textContent='הרכב שלפניכם בולם…';
+ function step(t){
+  if(t0===null)t0=t;
+  var p=Math.min((t-t0)/dur,1),e=1-Math.pow(1-p,2);
+  setMe(target*e);
+  if(p<1)raf=requestAnimationFrame(step);else{raf=null;finish(c)}
+ }
+ raf=requestAnimationFrame(step);
+}
+function changed(){if(raf){cancelAnimationFrame(raf);raf=null}preview()}
+veh.addEventListener('change',changed);
+road.addEventListener('change',changed);
+gap.addEventListener('input',changed);
+$('go').addEventListener('click',run);
+preview();
+})();
+</script>
+</body>
+</html>

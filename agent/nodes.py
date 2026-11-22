@@ -219,6 +219,9 @@ class AgentState(TypedDict, total=False):
     report_path: str | None
     cost_cap: float | None  # this run's spending cap after a Y at the cost gate (else MAX_COST_USD)
     cost_stop: dict | None  # {"node", "spent", "cap"} after an N at the cost gate: the orderly finish
+    fixed_illustrations: list[str] | None  # illustration pages rebuilt in the last fix (logic re-checked next)
+    motif_candidates: list[dict] | None  # two motif candidates (agent/motif.py), shown at gate 2
+    motif: dict | None  # the chosen motif {"description", "svg"}
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -263,10 +266,12 @@ RESEARCH_CALLS_ESTIMATE = 8  # 2 small calls and about 6 searches
 def _node_calls(node: str, state: AgentState) -> int:
     """How many model calls this paid node is about to make (an estimate)."""
     from agent.checkers import MODEL_CHECKS, check_jobs
-    from agent.evaluation import actionable, fix_groups, recheck_jobs
+    from agent.evaluation import fix_groups, recheck_jobs, text_findings
 
     if node == "research":
         return RESEARCH_CALLS_ESTIMATE
+    if node == "plan_structure":
+        return 1 + (0 if state.get("motif_candidates") else 2)  # the plan, then two motif candidates
     if node == "build_illustrations":
         built = set(state.get("illustrations") or {})
         todo = [b for _, _, b in _illustration_blocks(state.get("written_screens") or []) if b["file"] not in built]
@@ -276,11 +281,17 @@ def _node_calls(node: str, state: AgentState) -> int:
         if not lesson:
             return 0
         if state.get("findings") is None:
-            return len(check_jobs(lesson, tuple(MODEL_CHECKS))) + (state.get("key_points") is None)
-        return len(recheck_jobs(state["findings"], state.get("fixed_screens") or []))
+            return (len(check_jobs(lesson, tuple(MODEL_CHECKS))) + (state.get("key_points") is None)
+                    + len(state.get("illustrations") or {}))
+        return (len(recheck_jobs(state["findings"], state.get("fixed_screens") or []))
+                + len(state.get("fixed_illustrations") or []))
     if node == "fix_screens":
-        screens = sorted({f["screen"] for f in actionable(state.get("findings") or [])})
-        return max(1, len(fix_groups(screens)))
+        from agent.illustration_logic import logic_files
+
+        findings = state.get("findings") or []
+        screens = sorted({f["screen"] for f in text_findings(findings)})
+        pages = logic_files(findings, state["lesson"]) if state.get("lesson") else {}
+        return max(1, len(fix_groups(screens)) + len(pages))
     return 1
 
 
@@ -306,7 +317,7 @@ def _after_cost_stop(node: str, state: AgentState, config: RunnableConfig) -> di
             findings = reconcile_code_findings(list(state["findings"]), lesson, state.get("review_round") or 0)
         return {"findings": findings, "fixed_screens": []}
     if node == "fix_screens":
-        return {"feedback": None, "fixed_screens": [], "owner_request": None}
+        return {"feedback": None, "fixed_screens": [], "fixed_illustrations": [], "owner_request": None}
     return {}
 
 
@@ -669,7 +680,29 @@ def plan_structure(state: AgentState, config: RunnableConfig) -> dict:
         "plan_structure", [SystemMessage(system), HumanMessage(user)], config,
         lambda text: parse_structure(text, units, topics, lesson_type), PLAN_ATTEMPTS,
     )
-    return {"structure": structure, "feedback": None, "approved": None, "gate_answer": None}
+    update = {"structure": structure, "feedback": None, "approved": None, "gate_answer": None}
+    asked_for_motif = msg("gate.glossary.structure.motif") in (state.get("feedback") or "")
+    if not state.get("motif_candidates") or asked_for_motif:
+        update["motif_candidates"] = motif_candidates(state, structure, config)
+    return update
+
+
+def motif_candidates(state: AgentState, structure: dict, config: RunnableConfig) -> list[dict]:
+    """Two motif candidates in parallel, each from another writer model (agent/motif.py)."""
+    from agent.llm import load_models
+    from agent.motif import candidates
+
+    lesson_type = _lesson_type(state)
+    title = " / ".join(t["name"] for t in (state.get("topic_map") or [])[:3])
+
+    def call(messages, model):
+        return _call("motif", messages, config, role="writer", models=[model])
+
+    found, failed = candidates(title, structure.get("motifs") or [], lesson_type, PALETTES[lesson_type], call,
+                               load_models("writer"))
+    for model, error in failed.items():
+        log(msg("motif.failed", model=model, error=error[:160]))
+    return found
 
 
 # ---- review gates (topic map, structure) ------------------------------------------------
@@ -830,7 +863,7 @@ def _review_gate(gate: str, state: AgentState, config: RunnableConfig, extra: di
             return {"approved": None, "gate_answer": answer_gate_question(reply["text"], gate, item_text, config)}
         reply = {"approved": decision == "approve", "feedback": change}
 
-    extra_update = {"accepted_facts": reply["accepted_facts"]} if "accepted_facts" in reply else {}
+    extra_update = {k: reply[k] for k in ("accepted_facts", "motif_choice") if k in reply}
     if reply.get("approved"):
         return {"approved": True, "feedback": None, "gate_answer": None, **extra_update}
     return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None, **extra_update}
@@ -851,10 +884,20 @@ def gate_structure(state: AgentState, config: RunnableConfig) -> dict:
 
     unverified = [{"id": f["id"], "fact": f["fact"], "url": f["url"], "reason": f.get("reason", "")}
                   for f in state.get("web_facts") or [] if f["status"] == UNVERIFIED]
-    update = _review_gate("structure", state, config, extra={"unverified": unverified} if unverified else None)
+    extra: dict = {"unverified": unverified} if unverified else {}
+    candidates = state.get("motif_candidates") or []
+    if candidates:
+        extra["motifs"] = candidates
+        extra["palette"] = PALETTES[_lesson_type(state)]
+    update = _review_gate("structure", state, config, extra=extra or None)
     if update.get("approved"):
         say(msg("gate.structure.approved"))  # after interrupt: printed once
         update["approved"] = None  # the save gate decides the end of this stage
+        if candidates:
+            index = update.pop("motif_choice", 0)
+            chosen = candidates[index if 0 <= index < len(candidates) else 0]
+            update["motif"] = {"description": chosen["description"], "svg": chosen["svg"]}
+    update.pop("motif_choice", None)
     return update
 
 
@@ -997,6 +1040,14 @@ def assemble_lesson_node(state: AgentState, config: RunnableConfig) -> dict:
         )
     except ValueError as e:
         raise NodeError("assemble_lesson", e) from e
+    if state.get("motif"):  # the chosen motif, cleaned again on its way into lesson.json
+        from agent.svg_clean import UnsafeSvg, clean_svg
+
+        try:
+            lesson = {**lesson, "motif": {"description": state["motif"]["description"],
+                                          "svg": clean_svg(state["motif"]["svg"])[0]}}
+        except UnsafeSvg:
+            pass  # no motif rather than an unsafe one
     update: dict = {"lesson": lesson}
     if not state.get("output_folder"):
         index = _index(config)
@@ -1265,9 +1316,12 @@ def evaluator(state: AgentState, config: RunnableConfig) -> dict:
     """Run the checkers. First time: the source's key points (once), then every check on the
     whole lesson. After a fix: each finding on a rewritten screen is checked again by the
     checker that found it. Then decide whether another fix round fits the call budget."""
-    from agent.evaluation import CALL_BUDGET, MAX_FIX_ROUNDS, actionable, first_evaluation, round_cost, verify_fixes
+    from agent.evaluation import (CALL_BUDGET, MAX_FIX_ROUNDS, actionable, finding_dict, first_evaluation,
+                                  round_cost, verify_fixes, verify_logic)
+    from agent.illustration_logic import run_logic_checks
 
     chunks = _all_chunks(state, config)
+    pages = state.get("illustrations") or {}
     review = dict(state.get("review") or {})
     update: dict = {}
     call = _checker_call(config, state, review)
@@ -1275,11 +1329,18 @@ def evaluator(state: AgentState, config: RunnableConfig) -> dict:
         if state.get("key_points") is None and chunks:
             update["key_points"] = extract_key_points(_owner_chunks(chunks), config) or []
         findings, failed, _ = first_evaluation(state["lesson"], chunks, call)
+        if pages:  # the logic of each built illustration against its screen's source
+            logic, logic_failed, _ = run_logic_checks(state["lesson"], pages, chunks, call)
+            findings += [finding_dict(f, f"F{len(findings) + i}", 0) for i, f in enumerate(logic, 1)]
+            failed.update(logic_failed)
         screens = sorted({f["screen"] for f in actionable(findings)})
         log(msg("evaluator.found", count=len(findings), screens=len(screens)))
     else:
         findings, failed, _ = verify_fixes(list(state["findings"]), state["lesson"], chunks,
                                            state.get("fixed_screens") or [], state.get("review_round") or 0, call)
+        findings, logic_failed, _ = verify_logic(findings, state["lesson"], pages, chunks,
+                                                 state.get("fixed_illustrations") or [], state.get("review_round") or 0, call)
+        failed.update(logic_failed)
         log(msg("evaluator.verified", fixed=sum(f["status"] == "fixed" for f in findings),
                 open=sum(f["status"] == "open" for f in findings)))
     for check, error in failed.items():
@@ -1294,7 +1355,7 @@ def evaluator(state: AgentState, config: RunnableConfig) -> dict:
         if used + needed > CALL_BUDGET:
             review["budget_stop"] = {"used": used, "needed": needed, "budget": CALL_BUDGET}
             log(msg("evaluator.budget_stop", used=used, needed=needed, budget=CALL_BUDGET))
-    return {**update, "findings": findings, "review": review, "fixed_screens": []}
+    return {**update, "findings": findings, "review": review, "fixed_screens": [], "fixed_illustrations": []}
 
 
 def route_after_evaluator(state: AgentState) -> str:
@@ -1310,7 +1371,7 @@ def route_after_evaluator(state: AgentState) -> str:
 def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
     """Rewrite only the screens with open findings (or the screens the owner's request names),
     a few screens per writer call."""
-    from agent.evaluation import MAX_FIX_ROUNDS, actionable, fix_groups, owner_findings
+    from agent.evaluation import MAX_FIX_ROUNDS, fix_groups, owner_findings, text_findings
     from agent.writer import build_revision_messages
 
     index = _index(config)
@@ -1329,7 +1390,7 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
         findings = owner_findings(state["feedback"] or "", len(state["lesson"]["screens"]), findings, round_)
     else:
         round_ += 1
-    todo = actionable(findings)
+    todo = text_findings(findings)  # an illustration's logic is fixed in its page, below
     numbers = sorted({f["screen"] for f in todo})
     if not owner:
         log(msg("evaluator.fixing", round=round_, max=MAX_FIX_ROUNDS, screens=_screens_text(numbers)))
@@ -1365,16 +1426,75 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
         rewritten += group
         for screen in result["screens"]:
             written[int(screen["id"][1:])] = screen
+    pages, notes, rebuilt = dict(state.get("illustrations") or {}), dict(state.get("illustration_notes") or {}), []
+    if not owner:
+        pages, notes, rebuilt, page_models = _fix_illustration_logic(state, config, findings, written)
+        models += page_models
     return {
         "written_screens": [written[n] for n in sorted(written)],
         "findings": findings,
         "review_round": round_,
         "fixed_screens": rewritten,
+        "fixed_illustrations": rebuilt,
+        "illustrations": pages,
+        "illustration_notes": notes,
         "review": review,
         "owner_request": owner,
         "feedback": None,
         "writer_models": (state.get("writer_models") or []) + models,
     }
+
+
+def _fix_illustration_logic(state: AgentState, config: RunnableConfig, findings: list[dict],
+                            written: dict[int, dict]) -> tuple[dict, dict, list[str], list[str]]:
+    """Rebuild each illustration with open logic findings: the page, the findings and the screen text
+    go to the writer; the new page is cleaned and, if the owner allowed the browser check, checked
+    again in Edge. A page that is not clean or fails keeps the old one (its findings stay open)."""
+    from agent.illustration_logic import logic_files
+    from agent.illustrations import (LOGIC_FIX_PROMPT, NoBrowser, check_illustrations, extract_html, sanitize,
+                                     screen_teaching_text)
+
+    pages = dict(state.get("illustrations") or {})
+    notes = {k: dict(v) for k, v in (state.get("illustration_notes") or {}).items()}
+    rebuilt: list[str] = []
+    models: list[str] = []
+    screens = [written[n] for n in sorted(written)]
+    for file, items in logic_files(findings, {"screens": screens}).items():
+        if file not in pages:
+            continue
+        number = items[0]["screen"]
+        screen = written.get(number)
+        problems = "\n".join(f"- {f['problem']}" + (f" ({f['evidence']})" if f.get("evidence") else "") for f in items)
+        messages = [SystemMessage(LOGIC_FIX_PROMPT.format(problems=problems,
+                                                          screen=screen_teaching_text(screen) if screen else "")),
+                    HumanMessage(pages[file])]
+        try:
+            result = _ask_writer("fix_screens", messages, config)
+        except NodeError as e:
+            if not isinstance(e.cause, ValueError):
+                raise  # missing key, 401, daily quota: the user must act
+            log(msg("illustration_logic.fix_failed", screen=number))
+            continue
+        page = extract_html(result.text)
+        unclean = ["no HTML page"]
+        if page:
+            page, _, unclean = sanitize(page)
+        if unclean:
+            log(msg("illustration_logic.fix_failed", screen=number))
+            continue
+        if (notes.get(file) or {}).get("check") in ("passed", "passed_after_fix"):  # the owner allowed the check
+            heights = {b["file"]: b.get("height") or 320 for _, _, b in _illustration_blocks(screens)}
+            try:
+                if check_illustrations({file: page}, heights).get(file):
+                    log(msg("illustration_logic.fix_failed", screen=number))
+                    continue
+            except NoBrowser:
+                notes.setdefault(file, {})["check"] = "no_browser"
+        pages[file] = page
+        notes.setdefault(file, {})["logic_fixed"] = True
+        rebuilt.append(file)
+        models.append(result.model)
+    return pages, notes, rebuilt, models
 
 
 def review_summary(state: AgentState) -> dict:

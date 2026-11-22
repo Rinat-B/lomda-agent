@@ -63,6 +63,8 @@ class Session:
     lesson_type: str | None = None  # training | compliance, once confirmed
     structure: dict | None = None  # the approved lesson structure
     run_start: int = 0  # index in usage where the current run began (report.md counts from here)
+    # requests and their outcomes in this program run, for /summary: {"kind": question|answer|lesson|stopped, ...}
+    history: list[dict] = field(default_factory=list)
 
     def reset(self) -> None:
         self.files.clear()
@@ -74,6 +76,7 @@ class Session:
         self.lesson_type = None
         self.structure = None
         self.run_start = 0
+        self.history.clear()
 
     def all_chunks(self) -> list[dict]:
         return [chunk for source in self.sources.values() for chunk in source.chunks]

@@ -59,6 +59,9 @@ FRESH_RUN = {
     "illustration_notes": None,
     "cost_cap": None,
     "cost_stop": None,
+    "fixed_illustrations": None,
+    "motif_candidates": None,
+    "motif": None,
 }
 
 
@@ -80,6 +83,20 @@ def preview_lesson(lesson: dict, illustrations: dict | None = None) -> None:
     folder = data_dir() / "preview"
     shutil.rmtree(folder, ignore_errors=True)
     open_preview(str(export_lesson(lesson, folder, placeholders=True, illustrations=illustrations)))
+
+
+def preview_motifs(candidates: list, palette: dict) -> None:
+    """Gate 2: the motif candidates side by side in the browser (data/preview/motifs.html)."""
+    from agent.motif import preview_html
+    from agent.persistence import data_dir
+
+    try:
+        path = data_dir() / "preview" / "motifs.html"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(preview_html(candidates, palette), encoding="utf-8")
+        open_preview(str(path))
+    except Exception:  # noqa: BLE001 - the text at the gate is enough
+        pass
 
 
 def graph_config(session: Session) -> dict:
@@ -141,7 +158,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
                 break
             paused_node = snapshot.next[0] if snapshot.next else None
             resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say,
-                              preview=preview_lesson, say_path=say_path)
+                              preview=preview_lesson, say_path=say_path, motif_preview=preview_motifs)
             stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
     except CostPause:
         say(msg("cost_cap.paused"), style="yellow")
@@ -161,6 +178,13 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             store.save(session)
 
     values = graph.get_state(config).values
+    if graph.get_state(config).interrupts:
+        session.history.append({"kind": "stopped"})
+    elif values.get("saved_path"):
+        session.history.append({"kind": "lesson", "title": (values.get("lesson") or {}).get("title"),
+                                "path": values["saved_path"], "report": values.get("report_path")})
+    elif values.get("answer"):
+        session.history.append({"kind": "answer", "text": values["answer"]})
     if values.get("approved"):  # the lesson flow reached its end (write_files)
         session.lesson_type = values.get("lesson_type")
         session.topic_map = values.get("topic_map")
@@ -189,6 +213,7 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
 def run_question(question: str, session: Session, graph, ask_fn: Callable[[str], str] = ask, store=None) -> bool:
     """Run one question through the graph from a fresh state."""
     session.run_start = len(session.usage)
+    session.history.append({"kind": "question", "text": question})
     return run_graph(session, graph, {**FRESH_RUN, "question": question}, ask_fn, store)
 
 

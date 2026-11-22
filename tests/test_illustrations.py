@@ -274,3 +274,46 @@ def test_the_browser_tab_shows_the_lesson_title_and_no_english(tmp_path):
         parser.words = []
         parser.feed((tmp_path / name).read_text(encoding="utf-8"))
         assert parser.words == [], f"{name}: {parser.words}"
+
+
+def _real_check(page: str) -> list[str]:
+    try:
+        return il.check_illustrations({"p.html": page}, {})["p.html"]
+    except il.NoBrowser as e:
+        pytest.skip(str(e))
+
+
+def test_a_change_in_the_drawing_alone_is_not_feedback():
+    page = ('<!doctype html><html dir="rtl" lang="he"><body><button id="b">go</button>'
+            '<svg><rect id="r" width="10" height="10"/></svg>'
+            '<script>document.getElementById("b").onclick = () => '
+            'document.getElementById("r").setAttribute("width", "50");</script></body></html>')
+    assert any("changes no text" in p for p in _real_check(page))
+
+
+def test_a_state_shown_as_a_pressed_button_is_reported():
+    page = ('<!doctype html><html dir="rtl" lang="he"><body>'
+            '<button aria-pressed="true" id="g">gas: pressed</button><p id="o" aria-live="polite">x</p>'
+            '<script>document.getElementById("g").onclick = () => document.getElementById("o").textContent = "y";'
+            '</script></body></html>')
+    assert any("looks chosen" in p for p in _real_check(page))
+
+
+def test_the_feedback_is_read_after_the_animation_ends():
+    """The answer appears only after a 1.5 s animation (requestAnimationFrame)."""
+    page = ('<!doctype html><html dir="rtl" lang="he"><body><button id="b">go</button>'
+            '<div id="car" style="left:0;position:relative">car</div><p id="o" aria-live="polite"></p><script>'
+            'document.getElementById("b").onclick = () => { const t0 = performance.now();'
+            ' function step(t) { const p = Math.min((t - t0) / 1500, 1);'
+            '  document.getElementById("car").style.left = (p * 100) + "px";'
+            '  if (p < 1) requestAnimationFrame(step); else document.getElementById("o").textContent = "stopped"; }'
+            ' requestAnimationFrame(step); };</script></body></html>')
+    assert _real_check(page) == []
+
+
+def test_a_slider_in_a_right_to_left_page_is_moved_both_ways():
+    page = ('<!doctype html><html dir="rtl" lang="he"><body>'
+            '<input type="range" id="s" min="1" max="8" value="1"><p id="o" aria-live="polite">1</p>'
+            '<script>document.getElementById("s").oninput = e => document.getElementById("o").textContent = e.target.value;'
+            '</script></body></html>')
+    assert _real_check(page) == []

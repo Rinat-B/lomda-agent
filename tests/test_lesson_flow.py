@@ -160,6 +160,11 @@ def structure_json_reply(user: str, extra: bool = False, ids=("U1",)) -> str:
     return json.dumps({"screens": screens, "motifs": ["motif one", "motif two"]}, ensure_ascii=False)
 
 
+FAKE_MOTIF = '{"idea": "Winter road", "icons": ["car", "route"], "accent": "primary", "layout": "pair"}'
+EMPTY_LOGIC_TABLE = ('{"source_rules": [], "decisions": [], "numbers": [], "choices": [], "cause_effect": [], '
+                     '"feedback": [], "situation": {"name_missing": ""}}')
+
+
 def prompt_kind(system: str) -> str:
     if system.startswith("You are a gatekeeper"):
         return "scope"
@@ -185,6 +190,12 @@ def prompt_kind(system: str) -> str:
         return "illustration"
     if system.startswith("The interactive illustration you built failed"):
         return "illustration_fix"
+    if system.startswith("You design the visual motif"):
+        return "motif"
+    if system.startswith("You check the LOGIC of one interactive illustration"):
+        return "illustration_logic"
+    if system.startswith("The interactive illustration below teaches"):
+        return "illustration_logic_fix"
     if system.startswith("You design an interactive illustration"):
         return "illustration_design"
     if system.startswith("You plan web research"):
@@ -266,6 +277,8 @@ def scripted(answers, save: str = "N", review: str = "Y"):
             return review
         if prompt.startswith(msg("gate.browser_check.ask", count=0).split("0")[0]):
             return "N"  # unit tests do not start a browser
+        if prompt.startswith(msg("gate.structure.motif_ask", count=0).split("0")[0]):
+            return ""  # the first motif candidate
         return next(asked)
 
     return ask
@@ -310,8 +323,12 @@ class FakeModel:
             return make_result(text=writer_reply(system, first_user))
         if kind in ("check", "single_answer", "key_points"):
             return make_result(text=checker_reply(kind, first_user))
-        if kind in ("illustration", "illustration_fix"):
+        if kind in ("illustration", "illustration_fix", "illustration_logic_fix"):
             return make_result(text=FAKE_ILLUSTRATION)
+        if kind == "illustration_logic":
+            return make_result(text=EMPTY_LOGIC_TABLE)
+        if kind == "motif":
+            return make_result(text=FAKE_MOTIF, model=kwargs.get("models", ["m/free"])[0])
         if kind == "illustration_design":
             return make_result(text='{"title": "New idea", "description": "The learner drags a marker and sees the distance."}')
         if kind == "research_ideas":

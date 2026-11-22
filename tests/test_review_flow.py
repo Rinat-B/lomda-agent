@@ -64,6 +64,8 @@ def answers(gates: list[str], reviews: list[str], save: str = "N"):
     def ask(prompt: str) -> str:
         if prompt == msg("gate.write_files.ask"):
             return save
+        if prompt.startswith(msg("gate.structure.motif_ask", count=0).split("0")[0]):
+            return ""  # the first motif candidate
         if prompt == msg("gate.review.ask"):
             REVIEW_ASKED.append(prompt)
             return next(reviewed)

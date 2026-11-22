@@ -121,10 +121,46 @@ def recheck_jobs(findings: list[dict], screens: list[int]) -> list[tuple[str, tu
     return jobs
 
 
+def text_findings(findings: list[dict]) -> list[dict]:
+    """Open findings the text writer fixes (an illustration's logic is fixed in its page)."""
+    from agent.illustration_logic import CHECK as LOGIC
+
+    return [f for f in actionable(findings) if f["check"] != LOGIC]
+
+
 def round_cost(findings: list[dict]) -> int:
-    """Model calls a fix round would take: the writer calls and the re-check calls."""
-    screens = sorted({f["screen"] for f in actionable(findings)})
-    return len(fix_groups(screens)) + len(recheck_jobs(findings, screens))
+    """Model calls a fix round would take: the writer calls and the re-check calls, and for each
+    illustration with a logic finding one rebuild and one re-check."""
+    from agent.illustration_logic import CHECK as LOGIC
+
+    screens = sorted({f["screen"] for f in text_findings(findings)})
+    pages = {f.get("where") for f in actionable(findings) if f["check"] == LOGIC}
+    return len(fix_groups(screens)) + len(recheck_jobs(findings, screens)) + 2 * len(pages)
+
+
+def verify_logic(findings: list[dict], lesson: dict, pages: dict[str, str], chunks: list[dict],
+                 files: list[str], round_: int, call) -> tuple[list[dict], dict, int]:
+    """After illustrations were rebuilt: the logic check again on those pages. A finding is fixed
+    only if the check no longer reports it (same screen and category); new ones are added."""
+    from agent.illustration_logic import CHECK as LOGIC, run_logic_checks
+
+    if not files:
+        return findings, {}, 0
+    fresh, failed, calls = run_logic_checks(lesson, pages, chunks, call, files=files)
+    failed_screens = {int(label.split(" ")[1]) for label in failed}
+    rebuilt = {f"illustration {file}" for file in files}
+    out = []
+    for f in findings:
+        if (f["check"] == LOGIC and f["status"] == "open" and f.get("where") in rebuilt
+                and f.get("screen") not in failed_screens and not any(_same(f, n) for n in fresh)):
+            f = {**f, "status": "fixed", "fixed_round": round_}
+        out.append(f)
+    next_id = _next_id(out)
+    for n in fresh:
+        if not any(_same(f, n) and f["status"] == "open" for f in out):
+            out.append(finding_dict(n, f"F{next_id}", round_))
+            next_id += 1
+    return out, failed, calls
 
 
 def _same(old: dict, new: Finding) -> bool:

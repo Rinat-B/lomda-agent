@@ -251,7 +251,7 @@ def test_single_answer_also_reports_recall_questions_and_weak_options():
     items = checkers.single_answer_items(BAD, [], (6, 6))
     main = items[0]
     correct = main["correct_index"]
-    options = [{"letter": chr(65 + k), "justified": k == correct, "weak": k != correct and k % 2 == 0,
+    options = [{"letter": chr(65 + k), "justified": k == correct, "weak": k != correct,
                 "reason": f"r{k}"} for k in range(len(main["options"]))]
     reply = json.dumps({"questions": [{"id": "q6", "kind": "recall", "kind_reason": "repeats the rule",
                                        "options": options},
@@ -259,8 +259,21 @@ def test_single_answer_also_reports_recall_questions_and_weak_options():
     found = checkers.parse_single_answer(reply, items)
     kinds = [f.category for f in found]
     assert kinds == ["recall_question", "distractors"]
-    weak = [main["options"][k] for k in range(len(main["options"])) if k != correct and k % 2 == 0]
+    weak = [main["options"][k] for k in range(len(main["options"])) if k != correct]
     assert found[1].evidence == "; ".join(weak)
+
+
+def test_one_weak_distractor_among_plausible_ones_is_not_reported():
+    items = checkers.single_answer_items(BAD, [], (6, 6))
+    main = items[0]
+    correct = main["correct_index"]
+    one_weak = next(k for k in range(len(main["options"])) if k != correct)
+    options = [{"letter": chr(65 + k), "justified": k == correct, "weak": k == one_weak, "reason": "absurd"}
+               for k in range(len(main["options"]))]
+    reply = json.dumps({"questions": [{"id": "q6", "kind": "decision", "options": options},
+                                      {"id": "q6-alternate", "kind": "decision", "options": []}]})
+    assert checkers.parse_single_answer(reply, items) == []
+    assert "Breaking the rule is NOT weak" in checkers.SINGLE_ANSWER_PROMPT
 
 
 def test_single_answer_batches_are_smaller_in_balanced(monkeypatch):

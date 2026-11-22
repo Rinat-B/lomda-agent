@@ -46,6 +46,13 @@ CATEGORIES = (
     "question_overlap",
     "enrichment_misuse",
     "illustration_value",
+    # the illustration logic checker (agent/illustration_logic.py)
+    "illustration_rule",
+    "illustration_number",
+    "illustration_choice",
+    "illustration_cause",
+    "illustration_feedback",
+    "illustration_situation",
     "other",
 )
 
@@ -628,14 +635,22 @@ SINGLE_ANSWER_PROMPT = (
     "as 'after the junction' may be right after it; 'soon' may be too late).\n"
     "- at_risk: true when, under worst_reading, the option would break a rule of the excerpts "
     "(for example a rule that forbids stopping right after a junction).\n"
-    "- weak: true when a learner would rule the option out without knowing the material, "
-    "because it is absurd, obviously dangerous, careless or unrelated.\n"
+    "- weak: true only when a person who never saw the material would rule the option out on "
+    "common sense alone: it is absurd, a joke, unrelated to the situation, or reckless with no "
+    "reason anyone would give (for example 'speed up to get out of the fog'). Breaking the rule is "
+    "NOT weak: in a safety lesson every wrong option is unsafe. A tempting mistake is a good "
+    "distractor, not a weak one: a real habit, a number close to the threshold, the rule of another "
+    "situation or vehicle, a shortcut with a reason that sounds sensible.\n"
     "Write every reason in Hebrew. Reply with only a JSON object: "
     '{"questions": [{"id": "<question id>", "kind": "decision" or "recall", "kind_reason": "...", '
     '"options": [{"letter": "A", "rule": "...", "check": "...", "borderline": true or false, '
     '"justified": true or false, "worst_reading": "...", "at_risk": true or false, '
     '"weak": true or false, "reason": "..."}]}]}, with every question and every option.'
 ) + SOURCE_DATA_RULE
+
+# A question is reported for weak distractors when at least this many of its wrong options are
+# weak (day 9: 10 of 19 open findings were weak-distractor findings the fixes never removed).
+MIN_WEAK_DISTRACTORS = 2
 
 MODEL_CHECKS["single_answer"] = {
     "categories": ("multiple_correct", "wrong_answer", "inconsistent_scenario", "recall_question", "distractors"),
@@ -720,7 +735,7 @@ def parse_single_answer(text: str, items: list[dict]) -> list[Finding]:
             out.append(Finding(category="inconsistent_scenario", evidence=it["options"][correct],
                                problem=risky[correct], **base))
         weak = [(k, r) for k, r in weak if k != correct]
-        if weak:
+        if len(weak) >= MIN_WEAK_DISTRACTORS:  # one silly option among plausible ones is tolerable
             out.append(Finding(category="distractors", evidence="; ".join(it["options"][k] for k, _ in weak),
                                problem="; ".join(r for _, r in weak if r), **base))
     return out

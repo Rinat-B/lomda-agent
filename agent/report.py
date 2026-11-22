@@ -35,6 +35,8 @@ def where_text(where: str) -> str:
         name = msg_or_none(f"report.block_types.{kind}") if kind else None
         return msg("report.block", number=m.group(1), type=name or kind or "-")
 
+    if (where or "").startswith("illustration "):  # the illustration logic checker
+        return msg("report.where_illustration", file=where.removeprefix("illustration ").strip())
     text = _MAIN.sub("", where or "")
     text = _ALTERNATE.sub(", " + msg("report.alternate"), text)
     return _BLOCK.sub(block, text).strip(" ,") or "-"

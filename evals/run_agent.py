@@ -58,6 +58,8 @@ def _scripted(answers: list[str], cost_answer: str = "N"):
             return "Y"  # evals run the browser check
         if prompt == msg("gate.structure.unverified_ask"):
             return ""  # unverified web facts are not accepted in evals
+        if prompt.startswith(msg("gate.structure.motif_ask", count=0).split("0")[0]):
+            return ""  # the first motif candidate
         if prompt == msg("cost_cap.ask"):
             asked.append(f"cost:{cost_answer}")
             return cost_answer

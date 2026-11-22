@@ -12,7 +12,7 @@ from pathlib import Path
 def shoot(run_dir: Path) -> list[Path]:
     from playwright.sync_api import sync_playwright
 
-    from agent.illustrations import _use_first_control
+    from agent.illustrations import _use_first_control, wait_until_still
 
     pages = sorted((run_dir / "lesson" / "assets" / "illustrations").glob("*.html"))
     out = run_dir / "screenshots"
@@ -25,11 +25,11 @@ def shoot(run_dir: Path) -> list[Path]:
             context.route("**/*", lambda r: r.continue_() if r.request.url.startswith("file:") else r.abort())
             page = context.new_page()
             page.goto(page_path.resolve().as_uri())
-            page.wait_for_timeout(400)
+            wait_until_still(page)
             before = out / f"{page_path.stem}-before.png"
             page.screenshot(path=str(before), full_page=True)
             _use_first_control(page)
-            page.wait_for_timeout(400)
+            wait_until_still(page)  # the "after" picture only when the animations ended
             after = out / f"{page_path.stem}-after.png"
             page.screenshot(path=str(after), full_page=True)
             saved += [before, after]

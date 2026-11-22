@@ -25,6 +25,17 @@ BUILD_PROMPT = (
     "sees the result change, as the illustration's description says. It must teach the screen's "
     "decision or relation, using only the facts and numbers of the screen text below; do not invent "
     "facts.\n"
+    "Logic: an illustration of a decision rule uses exactly the thresholds and the actions of that "
+    "rule in the screen text, for the same situation (not a number borrowed from another rule), and "
+    "recommends nothing the text does not say (never 'go on with no change'). It names the kind of "
+    "situation it shows when the text tells situations apart (for example 'the rear slides to the "
+    "left', not just 'a skid to the left'). Every number is shown with its condition (the speed, the "
+    "vehicle, the road); no number of your own (no conversions or derived values). The learner can "
+    "choose only values the text has data for: leave out a combination with no data. More of a cause "
+    "moves the effect the right way (more fog, fewer posts seen). Feedback is true to the text, never "
+    "tells the learner to drop caution, and after a wrong choice gives a hint and lets them try again, "
+    "without stating the right answer. A state of the scene (a pedal held down) is shown as text, not "
+    "as a pressed button; buttons are actions the learner takes.\n"
     "Rules: <html dir=\"rtl\" lang=\"he\">, every visible text in Hebrew; no libraries, no external "
     "files, fonts or images, no network (no fetch, XMLHttpRequest, WebSocket, import, links to other "
     "sites) and no eval or new Function; no localStorage, sessionStorage or cookies (it runs in a "
@@ -42,6 +53,18 @@ FIX_PROMPT = (
     "The interactive illustration you built failed checks. Fix every problem listed and reply with "
     "only the corrected, complete HTML file (same rules as before), starting with <!doctype html>.\n"
     "Problems:\n{problems}"
+)
+
+# A logic finding (agent/illustration_logic.py): the page, the screen text and the findings.
+LOGIC_FIX_PROMPT = (
+    "The interactive illustration below teaches a screen of a Hebrew e-learning lesson, and a check "
+    "against the source found logic problems in it. Fix every problem: use exactly the source's "
+    "thresholds and actions for the situation shown, show every number with its condition, add no "
+    "number of your own, offer only choices the source has data for, keep cause and effect the right "
+    "way, and after a wrong choice give a hint and another try without stating the answer; never "
+    "tell the learner to drop caution. Keep the same idea and the same technical rules (one HTML "
+    "file, RTL, Hebrew, no network, keyboard). Reply with only the corrected, complete HTML file, "
+    "starting with <!doctype html>.\n\nProblems:\n{problems}\n\nScreen text:\n{screen}"
 )
 
 REDESIGN_PROMPT = (
@@ -155,10 +178,44 @@ FOCUS_KEY_JS = """
   if (!e.dataset.probe) e.dataset.probe = String(Math.random()); return e.dataset.probe; })()
 """
 
-SNAPSHOT_JS = """
-() => document.body.innerText + '|' + Array.from(document.querySelectorAll('input, select, textarea'))
-  .map(e => e.value + ':' + e.checked).join(',') + '|' + document.body.innerHTML.length
+# The text the learner reads as an answer: live regions (aria-live, status, alert, output) and any
+# text outside the controls (labels and options are the controls' own words, not feedback).
+FEEDBACK_JS = r"""
+() => {
+  const live = Array.from(document.querySelectorAll('[aria-live], [role=status], [role=alert], output'))
+    .map(e => e.textContent.trim()).join(' | ');
+  const copy = document.body.cloneNode(true);
+  copy.querySelectorAll('button, select, option, input, textarea, label, script, style, [aria-live], [role=status], [role=alert], output')
+    .forEach(e => e.remove());
+  return live + ' || ' + copy.textContent.replace(/\s+/g, ' ').trim();
+}
 """
+# Everything that moves: markup with inline styles and SVG attributes, and running CSS animations.
+STILL_JS = """
+() => document.body.innerHTML.length + ':' + document.body.innerHTML.slice(-4000) + ':'
+  + (document.getAnimations ? document.getAnimations().filter(a => a.playState === 'running').length : 0)
+"""
+# A button that looks chosen before the learner did anything: a state shown as a pressed button.
+PRESSED_JS = r"""
+() => Array.from(document.querySelectorAll('button, [role=button]'))
+  .filter(e => e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-selected') === 'true'
+    || /(^|[\s_-])(active|selected|pressed|is-on|on)($|[\s_-])/i.test(e.className || ''))
+  .map(e => e.textContent.trim().slice(0, 40))
+"""
+STILL_POLL_MS = 200
+STILL_MAX_MS = 6000
+
+
+def wait_until_still(page, max_ms: int = STILL_MAX_MS) -> None:
+    """Wait until the page stops changing (animations by script or CSS ended), up to max_ms."""
+    last, waited = None, 0
+    while waited < max_ms:
+        now = page.evaluate(STILL_JS)
+        if now == last and now.endswith(":0"):
+            return
+        last = now
+        page.wait_for_timeout(STILL_POLL_MS)
+        waited += STILL_POLL_MS
 
 
 def _check_page(page, url: str, width: int, height: int) -> list[str]:
@@ -184,19 +241,33 @@ def _check_page(page, url: str, width: int, height: int) -> list[str]:
         reached.discard(None)
         if len(reached) < count:
             problems.append(f"{width} px: Tab reaches {len(reached)} of {count} controls")
-        before = page.evaluate(SNAPSHOT_JS)
-        _use_first_control(page)
-        page.wait_for_timeout(300)
-        if page.evaluate(SNAPSHOT_JS) == before:
-            problems.append(f"{width} px: using a control changes nothing on the page")
+        pressed = page.evaluate(PRESSED_JS)
+        if pressed:
+            problems.append(f"{width} px: a button looks chosen before the learner acted ({pressed[0]}); "
+                            "show a state as text, not as a pressed button")
+        wait_until_still(page)
+        before = page.evaluate(FEEDBACK_JS)
+        seen: list[str] = []
+
+        def read_feedback() -> None:
+            wait_until_still(page)
+            seen.append(page.evaluate(FEEDBACK_JS))
+
+        _use_first_control(page, after_each=read_feedback)
+        if all(text == before for text in seen):  # a reset at the end does not hide a change on the way
+            problems.append(f"{width} px: using the controls changes no text the learner reads (feedback or "
+                            "the chosen state); a change in the drawing alone is not feedback")
     problems += [f"{width} px: console error: {e[:200]}" for e in dict.fromkeys(errors)]
     return problems
 
 
-def _use_first_control(page) -> None:
-    """Operate every control once, as a learner would with the keyboard or a click."""
+def _use_first_control(page, after_each=None) -> None:
+    """Operate every control once, as a learner would with the keyboard or a click; after_each()
+    runs after each one."""
     handles = page.query_selector_all("button, input, select")
     for h in handles[:6]:
+        if after_each is not None and h.evaluate("e => e.disabled"):
+            continue
         try:
             tag = h.evaluate("e => e.tagName.toLowerCase() + ':' + (e.type || '')")
             if tag.startswith("select"):
@@ -205,14 +276,20 @@ def _use_first_control(page) -> None:
                     h.select_option(index=options - 1)
             elif tag in ("input:range", "input:number"):
                 h.focus()
-                for _ in range(5):
-                    page.keyboard.press("ArrowRight")
+                start = h.evaluate("e => e.value")
+                for key in ("ArrowRight", "ArrowLeft"):  # in a right-to-left page the arrows are reversed
+                    for _ in range(5):
+                        page.keyboard.press(key)
+                    if h.evaluate("e => e.value") != start:
+                        break
             elif tag.startswith("input:text") or tag.startswith("textarea"):
                 h.fill("5")
             else:
                 h.click(timeout=2000)
         except Exception:  # noqa: BLE001 - a control that cannot be used is caught by the change test
             continue
+        if after_each is not None:
+            after_each()
 
 
 def check_illustrations(pages: dict[str, str], heights: dict[str, int]) -> dict[str, list[str]]:
