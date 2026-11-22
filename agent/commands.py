@@ -109,6 +109,9 @@ class CommandHandler:
         if command == "/summary":
             self.summary(arg)
             return TurnResult()
+        if command == "/model":
+            self.model(arg)
+            return TurnResult()
         if command == "/new":
             self.new()
             return TurnResult()
@@ -331,6 +334,45 @@ class CommandHandler:
             return False
         self.out(msg("commands.summary.saved"), style="green")
         self.out_path(str(path))
+        return True
+
+    # ---- /model ----------------------------------------------------------------------
+    def model(self, arg: str) -> bool:
+        """/model: the active profile and the models of each role. /model <profile>: switch, after
+        an explanation of what it costs and [Y/N]. Works between runs and at a gate (mid-run)."""
+        from agent import llm
+        from agent.gates import parse_decision
+
+        wanted = arg.strip().lower()
+        if not wanted:
+            self.out(msg("commands.model.profile", profile=llm.active_profile()))
+            for role in llm.ROLES:
+                self.out(msg("commands.model.role", role=msg(f"commands.model.roles.{role}"),
+                             models=", ".join(llm.load_models(role))))
+            self.out(msg("commands.model.how", profiles=" / ".join(llm.profiles())))
+            return False
+        if wanted not in llm.profiles():
+            self.out(msg("commands.model.unknown", profile=wanted, profiles=" / ".join(llm.profiles())), style="yellow")
+            return False
+        if wanted == llm.active_profile():
+            self.out(msg("commands.model.already", profile=wanted))
+            return False
+        self.out(msg(f"commands.model.explain.{wanted}" if msg_or_none(f"commands.model.explain.{wanted}")
+                     else "commands.model.explain_other", profile=wanted))
+        ask = self.ask_line
+        if ask is None:
+            from agent.console import ask as console_ask
+
+            ask = console_ask
+        try:
+            decision = parse_decision(ask(msg("commands.model.ask", profile=wanted)))
+        except (EOFError, KeyboardInterrupt):
+            decision = None
+        if decision is None or not decision.explicit or not decision.approved:
+            self.out(msg("commands.model.kept", profile=llm.active_profile()))
+            return False
+        llm.set_profile(wanted)
+        self.out(msg("commands.model.switched", profile=wanted), style="green")
         return True
 
     def cost(self) -> None:

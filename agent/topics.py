@@ -103,6 +103,7 @@ class TopicOut(BaseModel):
     name: str = Field(min_length=2)
     objective: str = Field(min_length=5)
     sources: list[str] = Field(min_length=1)
+    reason: str | None = None  # why this is a topic of its own (shown at gate 1, used to answer "why?")
 
 
 class TopicMapOut(BaseModel):
@@ -174,6 +175,7 @@ def parse_topic_map(text: str, units: list[Unit], objective_prefix: str) -> list
             "name": strip_internal_refs(t.name, files),
             "objective": objective,
             "sources": [dict(by_id[s].locator) for s in ids],
+            "reason": strip_internal_refs(t.reason, files) if t.reason else None,
         })
     return topics
 

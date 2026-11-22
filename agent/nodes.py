@@ -88,9 +88,10 @@ TOPIC_MAP_PROMPT = (
     "starts with \"{prefix}\" followed by a measurable verb. For each topic list the ids of "
     "the source units it is based on (for example \"U3\"); use only the given ids and give "
     "every topic at least one. The ids are internal: put them only in \"sources\", never in "
-    "a name or an objective. "
+    "a name or an objective. For each topic also give reason: one short Hebrew sentence, why this "
+    "is a topic of its own (what in the material makes it a separate decision or skill). "
     "Reply with only a JSON object and no other text, in exactly this shape: "
-    '{{"topics": [{{"name": "...", "objective": "...", "sources": ["U1", "U2"]}}]}}'
+    '{{"topics": [{{"name": "...", "objective": "...", "reason": "...", "sources": ["U1", "U2"]}}]}}'
 )
 
 # How the lesson type shapes the lesson (docs/SPEC.md, "two lesson types").
@@ -122,8 +123,14 @@ CLASSIFY_TYPE_PROMPT = (
     "equipment, customer service).\n"
     "COMPLIANCE - teaches rules the organisation requires people to follow (for example a "
     "code of ethics, a policy, legal or regulatory obligations).\n"
-    'Reply with only a JSON object: {"type": "training" or "compliance", "reason": "<short '
-    'English reason>"}' + SOURCE_DATA_RULE
+    "Also read the user's request for explicit requirements: a number of screens, a target audience, "
+    "an emphasis (what to stress) and a style. Write only what the request says; null when it says "
+    "nothing. audience_in_source: the audience the material itself names (for example 'drivers of the "
+    "company'), or null.\n"
+    'Reply with only a JSON object: {"type": "training" or "compliance", "reason": "<one short Hebrew '
+    'sentence: why this type, from the material>", "requirements": {"screens": <number or null>, '
+    '"audience": "<Hebrew or null>", "emphasis": "<Hebrew or null>", "style": "<Hebrew or null>"}, '
+    '"audience_in_source": "<Hebrew or null>"}' + SOURCE_DATA_RULE
 )
 
 PLAN_ATTEMPTS = 3
@@ -155,12 +162,14 @@ PLAN_STRUCTURE_PROMPT = (
     "list. Most screens have none, and the whole lesson has at most {max_illustrations}. decision_diagram (true only if the screen teaches an if/then "
     "decision process that appears in the source, where every question has at least two "
     "outcomes, such as yes and no; parallel cases of one rule are a list, not a diagram). "
+    "For each screen also give reason: one short Hebrew sentence, why this screen (and its "
+    "illustration or diagram, if any) is planned this way. "
     "Also give 2-3 descriptions in "
     "Hebrew, in words, of a visual motif for the whole lesson.\n"
     "Reply with only a JSON object and no other text, in exactly this shape: "
     '{{"screens": [{{"number": 1, "title": "...", "topic": "...", "points": [{{"text": "...", '
     '"sources": ["U1"]}}], "question_idea": "...", "illustration": "..." or null, '
-    '"decision_diagram": false}}], "motifs": ["...", "..."]}}'
+    '"decision_diagram": false, "reason": "..."}}], "motifs": ["...", "..."]}}'
 ) + SOURCE_DATA_RULE.replace("{", "{{").replace("}", "}}")
 
 ANSWER_PROMPT = (
@@ -222,6 +231,10 @@ class AgentState(TypedDict, total=False):
     fixed_illustrations: list[str] | None  # illustration pages rebuilt in the last fix (logic re-checked next)
     motif_candidates: list[dict] | None  # two motif candidates (agent/motif.py), shown at gate 2
     motif: dict | None  # the chosen motif {"description", "svg"}
+    requirements: dict | None  # the owner's explicit wishes: screens, audience, emphasis, style (agent/requirements.py)
+    audience_in_source: str | None  # the audience the material names, if any
+    reasons: dict | None  # the agent's reasons: {"type": "..."}; topics and screens carry their own "reason"
+    screens_note: dict | None  # the requested number of screens could not be met as asked (shown at gate 2)
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -535,7 +548,14 @@ def classify_type(state: AgentState, config: RunnableConfig) -> dict:
             data = {}
         proposed = str(data.get("type", "")).strip().lower()
         if proposed in LESSON_TYPES:
-            return {"lesson_type": proposed, "lesson_started": time.time()}
+            from agent.requirements import merge, parse_requirements
+
+            reasons = dict(state.get("reasons") or {})
+            if str(data.get("reason") or "").strip():
+                reasons["type"] = str(data["reason"]).strip()
+            return {"lesson_type": proposed, "lesson_started": time.time(), "reasons": reasons,
+                    "requirements": merge(state.get("requirements"), parse_requirements(data)),
+                    "audience_in_source": str(data.get("audience_in_source") or "").strip() or None}
         messages += [AIMessage(result.text), HumanMessage('Reply with only {"type": "training" or "compliance", "reason": "..."}.')]
     return {"lesson_type": TRAINING, "lesson_started": time.time()}  # unclear: propose training; the user confirms
 
@@ -543,7 +563,7 @@ def classify_type(state: AgentState, config: RunnableConfig) -> dict:
 def gate_type(state: AgentState, config: RunnableConfig) -> dict:
     """Short [Y/N] gate: confirm the proposed type, or switch to the other one."""
     proposed = _lesson_type(state)
-    reply = interrupt({"gate": "type", "lesson_type": proposed})
+    reply = interrupt({"gate": "type", "lesson_type": proposed, "reason": (state.get("reasons") or {}).get("type")})
     confirmed = reply.get("confirm", True) if isinstance(reply, dict) else bool(reply)
     lesson_type = proposed if confirmed else other_type(proposed)
     say(msg("gate.type.chosen", type=msg(f"lesson_types.{lesson_type}")))  # after interrupt: printed once
@@ -643,7 +663,12 @@ def topic_map(state: AgentState, config: RunnableConfig) -> dict:
         type_name=TYPE_NAMES[lesson_type], type_rules=TOPIC_RULES[lesson_type],
         min_topics=MIN_TOPICS, max_topics=MAX_TOPICS, prefix=prefix,
     ) + SOURCE_DATA_RULE
+    from agent.requirements import prompt_lines, topics_hint
+
     user = f"Source units:\n\n{format_units(units)}\n\nUser request: {state['question']}"
+    extra = "\n".join(x for x in (prompt_lines(state.get("requirements")), topics_hint(state.get("requirements"))) if x)
+    if extra:
+        user += "\n\n" + extra
     if state.get("topic_map") and state.get("feedback") is not None:
         feedback = state["feedback"] or "(no comment: propose a different, improved map)"
         user += (
@@ -669,7 +694,15 @@ def plan_structure(state: AgentState, config: RunnableConfig) -> dict:
     map_json = json.dumps(
         {"topics": [{"name": t["name"], "objective": t["objective"]} for t in topics]}, ensure_ascii=False
     )
-    user = f"Approved topic map (JSON):\n{map_json}\n\nSource units:\n\n{format_units(units)}"
+    from agent.requirements import prompt_lines, screens_target
+
+    target, note = screens_target(state.get("requirements"), len(topics))
+    user = (f"User request: {state.get('question') or ''}\n\nApproved topic map (JSON):\n{map_json}\n\n"
+            f"Source units:\n\n{format_units(units)}")
+    if prompt_lines(state.get("requirements")):
+        user += "\n\n" + prompt_lines(state.get("requirements"))
+    if target:
+        user += f"\n\nPlan exactly {target} screens in total."
     if state.get("structure") and state.get("feedback") is not None:
         feedback = state["feedback"] or "(no comment: propose a different, improved structure)"
         user += (
@@ -678,9 +711,9 @@ def plan_structure(state: AgentState, config: RunnableConfig) -> dict:
         )
     structure = _structured_call(
         "plan_structure", [SystemMessage(system), HumanMessage(user)], config,
-        lambda text: parse_structure(text, units, topics, lesson_type), PLAN_ATTEMPTS,
+        lambda text: parse_structure(text, units, topics, lesson_type, screens=target), PLAN_ATTEMPTS,
     )
-    update = {"structure": structure, "feedback": None, "approved": None, "gate_answer": None}
+    update = {"structure": structure, "feedback": None, "approved": None, "gate_answer": None, "screens_note": note}
     asked_for_motif = msg("gate.glossary.structure.motif") in (state.get("feedback") or "")
     if not state.get("motif_candidates") or asked_for_motif:
         update["motif_candidates"] = motif_candidates(state, structure, config)
@@ -885,6 +918,8 @@ def gate_structure(state: AgentState, config: RunnableConfig) -> dict:
     unverified = [{"id": f["id"], "fact": f["fact"], "url": f["url"], "reason": f.get("reason", "")}
                   for f in state.get("web_facts") or [] if f["status"] == UNVERIFIED]
     extra: dict = {"unverified": unverified} if unverified else {}
+    if state.get("screens_note"):
+        extra["screens_note"] = state["screens_note"]
     candidates = state.get("motif_candidates") or []
     if candidates:
         extra["motifs"] = candidates
@@ -1009,6 +1044,7 @@ def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
     lesson_type = _lesson_type(state)
     is_first, is_last = done == 0, done == len(groups) - 1
     (_, system), (_, user) = build_messages(plan, excerpts, lesson_type, is_first, is_last)
+    user = _with_requirements(user, state)
     result, model = _write_group(
         [SystemMessage(system), HumanMessage(user)], config,
         lambda text: parse_group(text, plan, excerpts, lesson_type, is_first, is_last),
@@ -1023,6 +1059,15 @@ def write_lesson(state: AgentState, config: RunnableConfig) -> dict:
     if is_last:
         update["lesson_summary"] = result["summary"]
     return update
+
+
+def _with_requirements(user: str, state: AgentState) -> str:
+    """The writer's prompt with the owner's request and requirements (audience, emphasis, style)."""
+    from agent.requirements import prompt_lines
+
+    lines = prompt_lines(state.get("requirements"))
+    return user + (f"\n\nUser request: {state.get('question') or ''}" if state.get("question") else "") + (
+        f"\n\n{lines}" if lines else "")
 
 
 def route_after_write(state: AgentState) -> str:
@@ -1408,6 +1453,7 @@ def fix_screens(state: AgentState, config: RunnableConfig) -> dict:
         current = [written[n] for n in group if n in written]
         (_, system), (_, user) = build_revision_messages(
             plan, excerpts, lesson_type, current, [f for f in todo if f["screen"] in group])
+        user = _with_requirements(user, state)
         try:
             result, model = _write_group(
                 [SystemMessage(system), HumanMessage(user)], config,

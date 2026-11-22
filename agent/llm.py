@@ -116,6 +116,19 @@ def set_role_models(role: str, models: list[str] | None) -> None:
         _role_overrides.pop(role, None)
 
 
+def set_profile(name: str) -> None:
+    """Switch the session to a profile of models.yaml (/model); the next model call uses it."""
+    global _profile_override
+    if name not in load_config()["profiles"]:
+        raise ValueError(f"unknown profile: {name}")
+    _profile_override = name
+    _unavailable.clear()  # a model skipped in one profile may be fine in the other
+
+
+def profiles() -> list[str]:
+    return list(load_config()["profiles"])
+
+
 def reset_model_state() -> None:
     """Forget unavailable models, the profile switch, the listing check and role overrides (tests)."""
     global _profile_override, _listed

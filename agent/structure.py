@@ -43,6 +43,7 @@ class ScreenOut(BaseModel):
     question_idea: str = Field(min_length=5)
     illustration: str | None = None
     decision_diagram: bool = False
+    reason: str | None = None  # why the screen is planned this way (used to answer "why?")
 
 
 class StructureOut(BaseModel):
@@ -61,8 +62,10 @@ def word_count(text: str) -> int:
     return len(re.findall(r"\S+", text))
 
 
-def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_type: str) -> dict:
-    """Validate the model's JSON and return the structure with locators. Raises ValueError."""
+def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_type: str,
+                    screens: int | None = None) -> dict:
+    """Validate the model's JSON and return the structure with locators. Raises ValueError.
+    `screens`: the exact number of screens the owner asked for (when it can be met)."""
     match = _JSON_BLOCK.search(text)
     if not match:
         raise ValueError("no JSON object found in the reply")
@@ -71,6 +74,8 @@ def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_typ
     except ValidationError as e:
         raise ValueError(f"JSON does not match the schema: {e.errors(include_url=False)}") from e
 
+    if screens and len(parsed.screens) != screens:
+        raise ValueError(f"plan exactly {screens} screens (the owner asked for {screens}); you gave {len(parsed.screens)}")
     by_id = {u.id: u for u in units}
     files = unit_file_names(units)
 
@@ -115,6 +120,7 @@ def parse_structure(text: str, units: list[Unit], topics: list[dict], lesson_typ
             "question_idea": clean(s.question_idea),
             "illustration": None if _no_illustration(s.illustration) else clean(s.illustration) or None,
             "decision_diagram": bool(s.decision_diagram),
+            "reason": clean(s.reason) if s.reason else None,
         })
     missing = [name for name in objective_of if name not in covered]
     if missing:

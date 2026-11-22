@@ -157,6 +157,12 @@ def structure_json_reply(user: str, extra: bool = False, ids=("U1",)) -> str:
     ]
     if extra:
         screens.append({**screens[0], "number": len(screens) + 1, "title": "EXTRA"})
+    import re as _re
+
+    wanted = _re.search(r"Plan exactly (\d+) screens", user)
+    while wanted and len(screens) < int(wanted.group(1)):  # a second screen for a topic, as asked
+        screens.append({**screens[len(screens) % len(topics)], "number": len(screens) + 1,
+                        "title": f"Screen {len(screens) + 1}"})
     return json.dumps({"screens": screens, "motifs": ["motif one", "motif two"]}, ensure_ascii=False)
 
 
@@ -310,7 +316,14 @@ class FakeModel:
         if kind == "scope":
             return make_result(text="BUILD_LESSON")
         if kind == "classify_type":
-            return make_result(text=json.dumps({"type": self.lesson_type, "reason": "fake"}))
+            import re as _re
+
+            request = user.split("User request:", 1)[-1]
+            screens = _re.search(r"(\d+) מסכים", request)
+            audience = "נהגים חדשים" if "נהגים חדשים" in request else None
+            return make_result(text=json.dumps({"type": self.lesson_type, "reason": "סיבה מזויפת",
+                                                "requirements": {"screens": int(screens.group(1)) if screens else None,
+                                                                 "audience": audience}}, ensure_ascii=False))
         if kind == "plan_structure":
             return make_result(text=structure_json_reply(first_user, extra=revising))
         if kind == "classify":

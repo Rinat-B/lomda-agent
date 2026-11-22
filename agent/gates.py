@@ -64,6 +64,7 @@ def format_topic_map(topics: list[dict]) -> str:
             "",
             msg("gate.topics.objective", objective=t["objective"]),
             "",
+            *([msg("gate.topics.reason", reason=t["reason"]), ""] if t.get("reason") else []),
             msg("gate.topics.sources", sources=sources),
             "",
         ]
@@ -119,6 +120,8 @@ def _read(ask: Callable[[str], str], prompt: str) -> str:
 def ask_type_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
     """Short [Y/N] gate for the lesson type: Y keeps the proposal, N switches type."""
     proposed = msg(f"lesson_types.{request['lesson_type']}")
+    if request.get("reason"):
+        say(msg("gate.type.reason", reason=request["reason"]))
     while True:
         decision = parse_decision(_read(ask, msg("gate.type.ask", type=proposed)))
         if decision is not None and decision.explicit:
@@ -182,6 +185,12 @@ def ask_accepted_facts(facts: list[dict], ask: Callable[[str], str], say: Callab
     return []
 
 
+def format_screens_note(note: dict) -> str:
+    """The requested number of screens could not be met as asked: say why and offer an alternative."""
+    key = "gate.structure.screens_note_topics" if note.get("why") == "topics" else "gate.structure.screens_note_max"
+    return msg(key, requested=note["requested"], used=note["used"], topics=note.get("topics", ""))
+
+
 def format_motifs(motifs: list[dict]) -> str:
     lines = [msg("gate.structure.motif_candidates_title"), ""]
     lines += [msg("gate.structure.motif_candidate", index=i, text=m["description"], icons=", ".join(m.get("icons") or []))
@@ -215,6 +224,8 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
         show(request["answer"])  # the item is unchanged; it is already on screen
     elif gate == "structure":
         show(format_structure(request["structure"]))
+        if request.get("screens_note"):
+            show(format_screens_note(request["screens_note"]))
         if request.get("unverified"):
             show(format_unverified(request["unverified"]))
         if request.get("motifs"):
