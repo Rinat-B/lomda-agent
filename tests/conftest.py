@@ -43,6 +43,7 @@ def no_web(monkeypatch):
 
     monkeypatch.setattr(research, "openrouter_search", no_search)
     monkeypatch.setattr(research, "fetch_page", no_fetch)
+    monkeypatch.setattr(research, "render_page", no_fetch)
 
 
 @pytest.fixture(autouse=True)

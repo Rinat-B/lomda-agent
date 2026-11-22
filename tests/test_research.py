@@ -255,3 +255,24 @@ def test_a_verified_fact_reaches_the_writer_and_the_report(monkeypatch, tmp_path
     report = (tmp_path / "output" / "deck" / "report.md").read_text(encoding="utf-8")
     assert msg("report.web_title") in report
     assert msg("report.web_summary", searches=1, verified=1, unverified=0, rejected=0) in report  # 1 open idea, no gap ideas
+
+
+def test_a_page_built_by_javascript_is_rendered_before_giving_up():
+    shell = "<html><body><div id='app'></div><script src='app.js'></script></body></html>"
+    rendered = []
+    out = verify_fact(fact(), lambda url: shell, None, render=lambda url: rendered.append(url) or f"Title\n{QUOTE}")
+    assert out["status"] == VERIFIED and out["rendered"] and rendered == [GOV]
+    assert verify_fact(fact(), lambda url: shell, None, render=lambda url: "other text")["status"] == UNVERIFIED
+
+
+def test_a_bot_protection_page_is_reported_as_blocked():
+    block = "<html><body><h1>Sorry, you have been blocked</h1></body></html>"
+    out = verify_fact(fact(), lambda url: block, None, render=lambda url: "Sorry, you have been blocked")
+    assert out["status"] == UNVERIFIED and out["reason"] == "the site blocks automated checks"
+
+
+def test_pdf_text_quirks_do_not_hide_a_real_quote():
+    year, word = "2024", "בשנת"  # "in the year"
+    page = f"{word}{year} , reported 8,315 road accidents with injuries"  # as pypdf extracts it
+    assert quote_in_page(f"{word} ,{year} reported 8,315 road accidents with injuries", normalize_text(page))
+    assert not quote_in_page(f"{word} {year} reported 9,999 road accidents with injuries", normalize_text(page))

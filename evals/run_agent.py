@@ -52,6 +52,8 @@ def _scripted(answers: list[str]):
             return "N"
         if prompt.startswith(browser_prefix):
             return "Y"  # evals run the browser check
+        if prompt == msg("gate.structure.unverified_ask"):
+            return ""  # unverified web facts are not accepted in evals
         answer = queue.pop(0) if queue else "Y"
         asked.append(answer)
         return answer
@@ -141,6 +143,7 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
         for task in graph.stream(payload, config, stream_mode="tasks"):
             if "input" in task:
                 starts[task["id"]] = (task["name"], time.monotonic())
+                print(f"{time.strftime('%H:%M:%S')} [INFO] Entering Node: {task['name']}", flush=True)
             elif task["id"] in starts:
                 name, t0 = starts.pop(task["id"])
                 node_seconds[name] += time.monotonic() - t0
@@ -185,11 +188,18 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
         "seconds_by_node": {k: round(v, 1) for k, v in node_seconds.items()},
         "runs_by_node": dict(node_runs),
         "usage_records": [vars(r) for r in records],
+        "research": values.get("research"),
+        "web_facts": values.get("web_facts"),
+        "illustration_notes": values.get("illustration_notes"),
     })
     if out_dir is not None:
         out_dir.mkdir(parents=True, exist_ok=True)
         if lesson:
+            from agent.lesson_export import export_lesson
+
             (out_dir / "lesson.json").write_text(json.dumps(lesson, ensure_ascii=False, indent=1), encoding="utf-8")
+            # the playable lesson, with the built illustrations (static descriptions for the rest)
+            export_lesson(lesson, out_dir / "lesson", placeholders=True, illustrations=values.get("illustrations"))
             report = build_report(dict(values), records, source_label, round(summary["duration_sec"] / 60))
             (out_dir / "report.md").write_text(report, encoding="utf-8")
         (out_dir / "run.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")

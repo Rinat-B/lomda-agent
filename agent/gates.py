@@ -162,8 +162,9 @@ def format_unverified(facts: list[dict]) -> str:
 
 
 def ask_accepted_facts(facts: list[dict], ask: Callable[[str], str], say: Callable[..., None]) -> list[str]:
-    """The unverified facts the owner marks to include: numbers, or Enter for none."""
-    while True:
+    """The unverified facts the owner marks to include: numbers, or Enter for none (after three
+    answers that are neither, none)."""
+    for _ in range(3):
         text = _read(ask, msg("gate.structure.unverified_ask")).strip()
         if not text:
             return []
@@ -171,6 +172,7 @@ def ask_accepted_facts(facts: list[dict], ask: Callable[[str], str], say: Callab
         if all(n.isdigit() and 1 <= int(n) <= len(facts) for n in numbers):
             return [facts[int(n) - 1]["id"] for n in dict.fromkeys(numbers)]
         say(msg("gate.structure.unverified_again"), style="yellow")
+    return []
 
 
 def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],

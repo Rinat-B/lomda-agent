@@ -94,9 +94,24 @@ def page_text(raw_html: str) -> str:
     return normalize_text(_TAGS.sub(" ", raw_html))
 
 
+_NOT_WORD = re.compile(r"[^\w]+")
+
+
+def _letters_and_digits(text: str) -> str:
+    """Only letters and digits, one space between words: punctuation that PDF text extraction
+    moves around Hebrew numbers ("2024," vs ",2024", "17-" vs "-17") does not matter."""
+    return re.sub(r"\s+", " ", _NOT_WORD.sub(" ", text.replace("_", " "))).strip()
+
+
 def quote_in_page(quote: str, text: str) -> bool:
     q = normalize_text(quote).strip(" .\"'")
-    return len(q) >= MIN_QUOTE_CHARS and q in text
+    if len(q) < MIN_QUOTE_CHARS:
+        return False
+    if q in text or _letters_and_digits(q) in _letters_and_digits(text):
+        return True
+    # PDF text extraction also drops the space between Hebrew words and numbers ("2024" glued to
+    # the word before it): compare the letters and digits alone, in the same order.
+    return _letters_and_digits(q).replace(" ", "") in _letters_and_digits(text).replace(" ", "")
 
 
 def page_paragraphs(raw_html: str) -> list[str]:
@@ -142,9 +157,58 @@ def fetch_page(url: str) -> str:
     if response.status_code >= 400:
         raise FetchError(f"HTTP {response.status_code}")
     content_type = response.headers.get("content-type", "")
+    if "pdf" in content_type or response.content[:5] == b"%PDF-":
+        return pdf_text(response.content)  # official reports and data are often PDF files
     if "html" not in content_type and "text" not in content_type:
-        raise FetchError(f"not an HTML page ({content_type or 'unknown type'})")
+        raise FetchError(f"not an HTML page or PDF ({content_type or 'unknown type'})")
     return response.text[:MAX_PAGE_BYTES]
+
+
+MAX_PDF_PAGES = 60
+
+
+def pdf_text(data: bytes) -> str:
+    """The text of a PDF (first pages), as one string the quote can be looked for in."""
+    import io
+
+    from pypdf import PdfReader
+
+    try:
+        reader = PdfReader(io.BytesIO(data[:20_000_000]))
+        return "\n".join((page.extract_text() or "") for page in reader.pages[:MAX_PDF_PAGES])
+    except Exception as e:  # noqa: BLE001 - a broken or encrypted PDF stays unverified
+        raise FetchError(f"PDF not readable ({type(e).__name__})") from e
+
+
+RENDER_TIMEOUT_MS = 30_000
+# Bot-protection pages (Cloudflare, Imperva and the like) answer 200 with one of these.
+BLOCK_MARKERS = ("you have been blocked", "access denied", "attention required", "captcha", "are you a robot",
+                 "request unsuccessful", "incapsula", "verify you are human", "checking your browser")
+
+
+def looks_blocked(text: str) -> bool:
+    low = text[:5000].lower()
+    return any(m in low for m in BLOCK_MARKERS)
+
+
+def render_page(url: str) -> str:
+    """The page as the installed Edge shows it (for pages built by JavaScript, like gov.il):
+    its visible text. Raises FetchError when the browser or the page is not available."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception as e:  # noqa: BLE001
+        raise FetchError("no browser to render the page") from e
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="msedge")
+            try:
+                page = browser.new_page()
+                page.goto(url, timeout=RENDER_TIMEOUT_MS, wait_until="networkidle")
+                return page.inner_text("body")
+            finally:
+                browser.close()
+    except Exception as e:  # noqa: BLE001 - timeouts, blocks, no Edge: the fact stays unverified
+        raise FetchError(f"rendering failed ({type(e).__name__})") from e
 
 
 # ---- searching ---------------------------------------------------------------------------------
@@ -276,7 +340,8 @@ def _search_idea(idea: dict, search: SearchCall, budget: Callable[[], bool], tri
     return found
 
 
-def verify_fact(fact: dict, fetch: Callable[[str], str], small: SmallCall | None) -> dict:
+def verify_fact(fact: dict, fetch: Callable[[str], str], small: SmallCall | None,
+                render: Callable[[str], str] | None = None) -> dict:
     """Status verified / unverified / rejected, with the reason."""
     tier, reason = classify_source(fact["url"], fact.get("kind", ""))
     fact = {**fact, "site": domain_of(fact["url"]), "tier": tier}
@@ -291,7 +356,19 @@ def verify_fact(fact: dict, fetch: Callable[[str], str], small: SmallCall | None
     except Exception as e:  # noqa: BLE001 - any failure to load is "not verified", not an error
         return {**fact, "status": UNVERIFIED, "reason": f"page not loaded: {type(e).__name__}"}
     if not quote_in_page(fact["quote"], page_text(raw)):
-        return {**fact, "status": UNVERIFIED, "reason": "the quote is not on the page"}
+        # Pages built by JavaScript (gov.il and others) are nearly empty as HTML: render them.
+        rendered = None
+        if render is not None:
+            try:
+                rendered = render(fact["url"])
+            except FetchError:
+                rendered = None
+        if rendered is None or not quote_in_page(fact["quote"], normalize_text(rendered)):
+            blocked = looks_blocked(raw) or (rendered is not None and looks_blocked(rendered))
+            reason = "the site blocks automated checks" if blocked else "the quote is not on the page"
+            return {**fact, "status": UNVERIFIED, "reason": reason}
+        raw = "<p>" + "</p><p>".join(rendered.splitlines()) + "</p>"
+        fact["rendered"] = True
     if small is not None:
         chunks = [{"text": p, "kind": "web", "locator": {"file": fact["site"], "paragraph": i}}
                   for i, p in enumerate(page_paragraphs(raw), 1)]
@@ -305,11 +382,13 @@ def verify_fact(fact: dict, fetch: Callable[[str], str], small: SmallCall | None
 
 
 def run_research(subject: str, material: str, small: SmallCall, search: SearchCall,
-                 fetch: Callable[[str], str] | None = None, config: dict | None = None) -> ResearchRun:
+                 fetch: Callable[[str], str] | None = None, config: dict | None = None,
+                 render: Callable[[str], str] | None = None) -> ResearchRun:
     """The whole research step. `subject` = the lesson's subject (titles, request); `material` =
     a sample of the owner's material."""
     config = config or research_config()
     fetch = fetch or (lambda url: fetch_page(url))  # looked up at call time (tests replace it)
+    render = render or (lambda url: render_page(url))
     run = ResearchRun()
 
     def budget() -> bool:
@@ -356,7 +435,7 @@ def run_research(subject: str, material: str, small: SmallCall, search: SearchCa
         if f.get("relation") == "same":
             run.notes.append(f"dropped (the material already says it): {f['fact'][:80]}")
             continue
-        run.facts.append({**verify_fact(f, fetch, small), "id": f"W{len(run.facts) + 1}"})
+        run.facts.append({**verify_fact(f, fetch, small, render), "id": f"W{len(run.facts) + 1}"})
     return run
 
 
