@@ -149,9 +149,10 @@ moves to the next model; a 503 or timeout skips the model for the session; a 402
 writer's.
 
 **Free-model limits.** OpenRouter allows 50 free-model requests a day on an account without
-credit, and 1000 a day after a one-time $10 credit purchase. A short lesson (5 slides, 7-8
-screens) takes about 30-45 model calls and 30-55 minutes on the free models (with web research
-and 3 illustrations), so without credit you can build about one lesson a day. Web searches cost
+credit, and 1000 a day after a one-time $10 credit purchase. A short lesson (5 slides, 5-8
+screens) takes about 40-60 model calls and 40-60 minutes on the free models (with web research,
+the motif, 2-3 illustrations and their logic check), so without credit you can build about one
+lesson a day. Web searches cost
 money even with free models (about $0.007 each). Free models also hit rate limits (429) at busy
 hours; the agent waits and falls back, and a check that could not run is reported, never
 counted as passed.

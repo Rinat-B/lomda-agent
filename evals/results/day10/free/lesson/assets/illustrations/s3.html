@@ -1,0 +1,297 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>תרגול החזרת השליטה בהחלקה</title>
+<style>
+  :root {
+    --bg:#FFFFFF;
+    --surface:#F3F6F9;
+    --text:#1F2933;
+    --muted:#4B5866;
+    --primary:#1D63A0;
+    --primary-text:#FFFFFF;
+    --accent:#256B5C;
+    --highlight:#FFF3BF;
+    --success:#1B6E3F;
+    --error:#A9231A;
+    --border:#C5CED8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .app {
+    width: 100%;
+    max-width: 360px;
+    height: 320px;
+    max-height: 100vh;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    overflow: hidden;
+  }
+  h1 { font-size: 15px; margin: 0; line-height: 1.2; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+  .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .badge {
+    font-size: 10px;
+    background: var(--primary);
+    color: var(--primary-text);
+    padding: 3px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .skid-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .skid-label { font-size: 11px; color: var(--muted); }
+  .skid-choice { display: flex; gap: 4px; flex-wrap: wrap; }
+  .skid-choice label {
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .skid-choice input { accent-color: var(--primary); margin: 0; }
+  .scene-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  svg { width: 100%; height: 100%; display: block; }
+  .scene-label {
+    position: absolute;
+    left: 6px;
+    bottom: 4px;
+    font-size: 10px;
+    color: var(--text);
+    background: var(--bg);
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .steer-row { display: flex; gap: 4px; direction: ltr; }
+  .steer-row button {
+    flex: 1;
+    font-size: 11px;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: var(--primary-text);
+    cursor: pointer;
+    direction: rtl;
+  }
+  .steer-row button:hover { background: var(--accent); border-color: var(--accent); }
+  .status {
+    font-size: 11px;
+    min-height: 30px;
+    line-height: 1.25;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+  }
+  .status.warn { background: var(--highlight); border-color: var(--error); }
+  .status.ok { border-color: var(--success); }
+  #steerStatus.ok { color: var(--success); font-weight: bold; }
+  #steerStatus.warn { color: var(--error); font-weight: bold; }
+  #brakeStatus { color: var(--accent); }
+  .bottom { display: flex; gap: 5px; align-items: center; }
+  .bottom button {
+    font-size: 11px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--primary-text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .bottom button:hover { background: var(--primary); border-color: var(--primary); }
+  .hint { font-size: 10px; color: var(--muted); line-height: 1.2; }
+  :focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+  @media (max-width: 360px) {
+    .app { border-radius: 0; border-left: none; border-right: none; }
+  }
+</style>
+</head>
+<body>
+<main class="app" aria-labelledby="title">
+  <header class="top">
+    <div>
+      <h1 id="title">תרגול החזרת השליטה בהחלקה</h1>
+      <div class="sub">כביש רטוב · החלקה</div>
+    </div>
+    <span class="badge">רכב עם ABS</span>
+  </header>
+
+  <div class="skid-row">
+    <span class="skid-label">סוג ההחלקה:</span>
+    <div class="skid-choice" role="radiogroup" aria-label="סוג ההחלקה">
+      <label><input type="radio" name="skid" value="rear" checked> החלקה אחורית</label>
+      <label><input type="radio" name="skid" value="front"> החלקה קדמית</label>
+    </div>
+  </div>
+
+  <div class="scene-wrap">
+    <svg viewBox="0 0 240 120" role="img" aria-label="המחשת רכב מלמעלה על כביש רטוב">
+      <rect width="240" height="120" fill="#F3F6F9"/>
+      <line x1="0" y1="60" x2="240" y2="60" stroke="#C5CED8" stroke-width="2" stroke-dasharray="12 8"/>
+      <line x1="0" y1="30" x2="240" y2="30" stroke="#C5CED8" stroke-width="1" opacity=".5"/>
+      <line x1="0" y1="90" x2="240" y2="90" stroke="#C5CED8" stroke-width="1" opacity=".5"/>
+
+      <g id="car" transform="rotate(10 120 60)">
+        <rect x="90" y="22" width="60" height="76" rx="14" fill="#1D63A0" stroke="#1F2933" stroke-width="2"/>
+        <rect x="96" y="28" width="48" height="14" rx="6" fill="#256B5C"/>
+        <rect x="96" y="78" width="48" height="12" rx="6" fill="#256B5C"/>
+        <rect x="84" y="32" width="6" height="16" rx="2" fill="#1F2933"/>
+        <rect x="150" y="32" width="6" height="16" rx="2" fill="#1F2933"/>
+        <rect x="84" y="72" width="6" height="16" rx="2" fill="#1F2933"/>
+        <rect x="150" y="72" width="6" height="16" rx="2" fill="#1F2933"/>
+        <line x1="120" y1="24" x2="120" y2="96" stroke="#FFFFFF" stroke-width="1" opacity=".35"/>
+      </g>
+
+      <g id="arrowRearLeft" transform="translate(0,25)">
+        <path d="M80 60 Q60 60 40 60" stroke="#A9231A" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M40 60 l10 -8 M40 60 l10 8" stroke="#A9231A" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </g>
+
+      <g id="arrowFrontLeft" transform="translate(0,-25)" style="display:none">
+        <path d="M40 60 Q60 60 80 60" stroke="#A9231A" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M80 60 l-10 -8 M80 60 l-10 8" stroke="#A9231A" stroke-width="4" fill="none" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <div class="scene-label" id="sceneLabel">החלקה אחורית</div>
+  </div>
+
+  <div class="steer-row" role="group" aria-label="בחירת פעולת הגה">
+    <button type="button" data-steer="left">שמאלה</button>
+    <button type="button" data-steer="straight">יישור מעט</button>
+    <button type="button" data-steer="right">ימינה</button>
+  </div>
+
+  <div class="status" id="status" role="status" aria-live="polite" aria-atomic="true">
+    <span id="steerStatus">בחרו פעולת הגה. הגז משוחרר.</span>
+    <span id="brakeStatus"></span>
+  </div>
+
+  <div class="bottom">
+    <button type="button" id="brakeBtn">בלום עם ABS</button>
+    <span class="hint" id="brakeHint">לחיצה חזקה ורציפה; הדוושה רוטטת.</span>
+  </div>
+</main>
+
+<script>
+(function() {
+  const skidRadios = document.querySelectorAll('input[name="skid"]');
+  const statusEl = document.getElementById('status');
+  const steerStatus = document.getElementById('steerStatus');
+  const brakeStatus = document.getElementById('brakeStatus');
+  const car = document.getElementById('car');
+  const arrowRearLeft = document.getElementById('arrowRearLeft');
+  const arrowFrontLeft = document.getElementById('arrowFrontLeft');
+  const sceneLabel = document.getElementById('sceneLabel');
+  const brakeBtn = document.getElementById('brakeBtn');
+  const brakeHint = document.getElementById('brakeHint');
+
+  let currentSkid = 'rear';
+
+  function setSteerStatus(text, type) {
+    steerStatus.textContent = text;
+    steerStatus.className = type || '';
+  }
+
+  function setBrakeStatus(text) {
+    brakeStatus.textContent = text;
+  }
+
+  function resetForSkid() {
+    const selected = document.querySelector('input[name="skid"]:checked');
+    currentSkid = selected ? selected.value : 'rear';
+    statusEl.className = 'status';
+
+    if (currentSkid === 'rear') {
+      setSteerStatus('החלקה אחורית: האחור מחליק שמאלה. הגז משוחרר. בחרו פעולת הגה.');
+      sceneLabel.textContent = 'החלקה אחורית';
+      arrowRearLeft.style.display = '';
+      arrowFrontLeft.style.display = 'none';
+      car.setAttribute('transform', 'rotate(10 120 60)');
+    } else {
+      setSteerStatus('החלקה קדמית: ההגה מסובב. הגז משוחרר. בחרו פעולת הגה.');
+      sceneLabel.textContent = 'החלקה קדמית';
+      arrowRearLeft.style.display = 'none';
+      arrowFrontLeft.style.display = '';
+      car.setAttribute('transform', 'rotate(-10 120 60)');
+    }
+
+    setBrakeStatus('');
+    brakeHint.textContent = 'לחיצה חזקה ורציפה; הדוושה רוטטת.';
+  }
+
+  skidRadios.forEach(function(radio) {
+    radio.addEventListener('change', resetForSkid);
+  });
+
+  document.querySelectorAll('[data-steer]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const steer = btn.getAttribute('data-steer');
+      statusEl.className = 'status';
+
+      if (currentSkid === 'rear') {
+        if (steer === 'left') {
+          car.setAttribute('transform', 'rotate(0 120 60)');
+          setSteerStatus('נכון: סובבו את ההגה בעדינות לכיוון ההחלקה. הגז משוחרר.', 'ok');
+          statusEl.classList.add('ok');
+        } else {
+          car.setAttribute('transform', 'rotate(10 120 60)');
+          setSteerStatus('הפעולה שנבחרה אינה מתאימה למצב ההחלקה. שימו לב לסוג ההחלקה ונסו שוב.', 'warn');
+          statusEl.classList.add('warn');
+        }
+      } else {
+        if (steer === 'straight') {
+          car.setAttribute('transform', 'rotate(0 120 60)');
+          setSteerStatus('נכון: שחררו את הגז ויישרו מעט את ההגה עד שחוזרת האחיזה לכביש.', 'ok');
+          statusEl.classList.add('ok');
+        } else {
+          car.setAttribute('transform', 'rotate(-10 120 60)');
+          setSteerStatus('הפעולה שנבחרה אינה מתאימה למצב ההחלקה. שימו לב לסוג ההחלקה ונסו שוב.', 'warn');
+          statusEl.classList.add('warn');
+        }
+      }
+    });
+  });
+
+  brakeBtn.addEventListener('click', function() {
+    brakeHint.textContent = 'לחיצה חזקה ורציפה; הדוושה רוטטת תחת הרגל.';
+    setBrakeStatus('רכב עם ABS: לחצו חזק ורצוף על הבלם, גם כאשר הדוושה רוטטת תחת הרגל.');
+  });
+
+  resetForSkid();
+})();
+</script>
+</body>
+</html>

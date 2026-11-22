@@ -1,0 +1,484 @@
+{
+ "experiment": "day10_free",
+ "source": "short_winter.pptx",
+ "profile": "free",
+ "models": {
+  "writer": [
+   "baidu/ernie-5.5-flash-preview:free",
+   "nvidia/nemotron-3.5-super-vl:free",
+   "nvidia/nemotron-3-ultra-550b-a55b:free"
+  ],
+  "checker": [
+   "google/gemma-4-31b-it:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "small": [
+   "nvidia/nemotron-3.5-lightning:free",
+   "google/gemma-4-26b-a4b-it:free",
+   "nvidia/nemotron-3.5-super-vl:free"
+  ]
+ },
+ "error": null,
+ "flagged_chunks": 0,
+ "duration_sec": 1748.8,
+ "gate_answers": [
+  "Y"
+ ],
+ "screens": 5,
+ "lesson_title": "נהיגה בטוחה בחורף",
+ "review_round": 2,
+ "findings_total": 27,
+ "findings_fixed": 26,
+ "open_findings": [
+  {
+   "check": "single_answer",
+   "category": "multiple_correct",
+   "screen": 4,
+   "where": "block 5 (multiple_choice), main",
+   "evidence": "לעצור על השול בעקומה",
+   "problem": "אנחנו מתקרבים לעקומה ונראים רק עמודה אחת, כלומר ראות מתחת ל-100 מ׳ אך לא בהכרח מתחת ל-50 מ׳; עצירה על השול בעקומה אסורה במפורש. עצירה בשול בעקומה אסורה במפורש, וראות מתחת ל-50 מ׳ אינה מוכחת מעמודה בודדת.",
+   "suggestion": "",
+   "id": "F27",
+   "status": "open",
+   "found_round": 2,
+   "fixed_round": null
+  }
+ ],
+ "coverage": {
+  "taught": 30,
+  "total": 30,
+  "missing": [],
+  "percent": 100
+ },
+ "review": {
+  "same_family": [
+   "baidu",
+   "nvidia"
+  ],
+  "failed": {}
+ },
+ "writer_models": [
+  "nvidia/nemotron-3.5-super-vl:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "nvidia/nemotron-3.5-super-vl:free",
+  "baidu/ernie-5.5-flash-preview:free",
+  "nvidia/nemotron-3.5-super-vl:free"
+ ],
+ "calls": 28,
+ "cost_usd": 0.0,
+ "usage_by_node": {
+  "build_illustrations": {
+   "calls": 2,
+   "prompt_tokens": 2335,
+   "completion_tokens": 82189,
+   "cost_usd": 0.0
+  },
+  "key_points": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 15671,
+   "cost_usd": 0.0
+  },
+  "evaluator": {
+   "calls": 17,
+   "prompt_tokens": 80223,
+   "completion_tokens": 224325,
+   "cost_usd": 0.0
+  },
+  "fix_screens": {
+   "calls": 8,
+   "prompt_tokens": 82262,
+   "completion_tokens": 136840,
+   "cost_usd": 0.0
+  }
+ },
+ "usage_by_model": {
+  "baidu/ernie-5.5-flash-preview:free": {
+   "calls": 6,
+   "prompt_tokens": 45024,
+   "completion_tokens": 157372,
+   "cost_usd": 0.0
+  },
+  "nvidia/nemotron-3.5-lightning:free": {
+   "calls": 1,
+   "prompt_tokens": 1275,
+   "completion_tokens": 15671,
+   "cost_usd": 0.0
+  },
+  "nvidia/nemotron-3.5-super-vl:free": {
+   "calls": 21,
+   "prompt_tokens": 119796,
+   "completion_tokens": 285982,
+   "cost_usd": 0.0
+  }
+ },
+ "seconds_by_node": {
+  "build_illustrations": 305.7,
+  "browser_check": 11.7,
+  "assemble_lesson": 0.4,
+  "evaluator": 727.1,
+  "fix_screens": 702.7,
+  "gate_review": 0.0,
+  "write_files": 0.0
+ },
+ "runs_by_node": {
+  "build_illustrations": 1,
+  "browser_check": 2,
+  "assemble_lesson": 3,
+  "evaluator": 3,
+  "fix_screens": 2,
+  "gate_review": 2,
+  "write_files": 2
+ },
+ "usage_records": [
+  {
+   "node": "build_illustrations",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1317,
+   "completion_tokens": 41859,
+   "cost": 0.0
+  },
+  {
+   "node": "build_illustrations",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 1018,
+   "completion_tokens": 40330,
+   "cost": 0.0
+  },
+  {
+   "node": "key_points",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "prompt_tokens": 1275,
+   "completion_tokens": 15671,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5905,
+   "completion_tokens": 4095,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 1295,
+   "completion_tokens": 5856,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7075,
+   "completion_tokens": 13693,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3492,
+   "completion_tokens": 15685,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2246,
+   "completion_tokens": 17609,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5909,
+   "completion_tokens": 17324,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7166,
+   "completion_tokens": 21191,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3856,
+   "completion_tokens": 11921,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2648,
+   "completion_tokens": 15040,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 13514,
+   "completion_tokens": 29458,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 19356,
+   "completion_tokens": 6447,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 12797,
+   "completion_tokens": 22244,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 18094,
+   "completion_tokens": 10311,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3401,
+   "completion_tokens": 8481,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 4282,
+   "completion_tokens": 16838,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5965,
+   "completion_tokens": 4719,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7135,
+   "completion_tokens": 6692,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 7226,
+   "completion_tokens": 16789,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2236,
+   "completion_tokens": 16936,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5972,
+   "completion_tokens": 24589,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 3887,
+   "completion_tokens": 12708,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "baidu/ernie-5.5-flash-preview:free",
+   "prompt_tokens": 5537,
+   "completion_tokens": 22440,
+   "cost": 0.0
+  },
+  {
+   "node": "fix_screens",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5281,
+   "completion_tokens": 20621,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 5991,
+   "completion_tokens": 1718,
+   "cost": 0.0
+  },
+  {
+   "node": "evaluator",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "prompt_tokens": 2219,
+   "completion_tokens": 17760,
+   "cost": 0.0
+  }
+ ],
+ "research": {
+  "searches": 3,
+  "ideas": [
+   {
+    "idea": "Current official winter driving regulations and safety recommendations issued by the Israeli Ministry of Transportation for the 2024-2025 season",
+    "kind": "guidance",
+    "query": "הנחיות משרד התחבורה לנהיגה בטוחה בחורף 2024-2025",
+    "round": "open"
+   },
+   {
+    "idea": "Recent Israeli national statistics on weather-related road accidents, focusing on wet roads, reduced visibility, and skidding during winter months",
+    "kind": "data",
+    "query": "נתוני תאונות דרכים חורף ישראל רשות הלאומית לבטיחות בדרכים",
+    "round": "open"
+   },
+   {
+    "idea": "Real documented incident from Israeli police or media reports involving loss of control on a slippery road during recent winter, highlighting skidding and visibility risks",
+    "kind": "incident",
+    "query": "תאונת דרכים בעקבות החלקה בכביש רטוב ישראל נובמבר 2024",
+    "round": "open"
+   }
+  ],
+  "notes": [
+   "gap comparison failed (NodeError)"
+  ]
+ },
+ "web_facts": [
+  {
+   "fact": "קיימת חובה לבצע בדיקת חורף לתקינות הרכב, ורכב שלא יבצע אותה ייאסר לשימוש.",
+   "quote": "החל מה – 1 בדצמבר 2025 ועד 31 במרץ 2026, רכב שלא יבצע בדיקת חורף ייאסר לשימוש ונהגו יועמד לדין.",
+   "url": "https://hasaot.org.il/%d7%a1%d7%93%d7%a8%d7%99-%d7%91%d7%98%d7%99%d7%97%d7%95%d7%aa-%d7%9c%d7%a7%d7%a8%d7%90%d7%aa-%d7%94%d7%97%d7%95%d7%a8%d7%a3-%d7%95%d7%94%d7%93%d7%a8%d7%9b%d7%94-%d7%9e%d7%a7%d7%a6%d7%95%d7%a2%d7%99/",
+   "title": "סדרי בטיחות לקראת החורף והדרכה מקצועית לנהגים מקצועיים - ארגון חברות ההסעה בישראל",
+   "kind": "guidance",
+   "idea": "Current official winter driving regulations and safety recommendations issued by the Israeli Ministry of Transportation for the 2024-2025 season",
+   "cited": true,
+   "id": "W1",
+   "relation": "new",
+   "site": "hasaot.org.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "hasaot.org.il: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "קיימת חובה להדליק אורות במשך כל זמן הנסיעה בתקופת החורף.",
+   "quote": "כמו כן, החל מה – 1 בנובמבר 2025 ועד 31 במרץ 2026, חלה חובה להדליק אורות במשך כל זמן הנסיעה.",
+   "url": "https://hasaot.org.il/%d7%a1%d7%93%d7%a8%d7%99-%d7%91%d7%98%d7%99%d7%97%d7%95%d7%aa-%d7%9c%d7%a7%d7%a8%d7%90%d7%aa-%d7%94%d7%97%d7%95%d7%a8%d7%a3-%d7%95%d7%94%d7%93%d7%a8%d7%9b%d7%94-%d7%9e%d7%a7%d7%a6%d7%95%d7%a2%d7%99/",
+   "title": "סדרי בטיחות לקראת החורף והדרכה מקצועית לנהגים מקצועיים - ארגון חברות ההסעה בישראל",
+   "kind": "guidance",
+   "idea": "Current official winter driving regulations and safety recommendations issued by the Israeli Ministry of Transportation for the 2024-2025 season",
+   "cited": true,
+   "id": "W2",
+   "relation": "new",
+   "site": "hasaot.org.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "hasaot.org.il: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "בעיריית אשדוד נאמר שבחורף תנאי מזג האוויר והדרך קשים יותר ולכן נדרשים נהגים לגלות ערנות ולנהוג במיומנות.",
+   "quote": "\"בחורף תנאי מזג האוויר ותנאי הדרך קשים יותר, לכן הנהגים נדרשים לגלות ערנות רבה, לנהוג במיומנות ולשמור על כללי זהירות ייחודיים לנהיגת חורף\" אומרים בעירייה.",
+   "url": "https://ashdod.muni.il/he-il/%D7%90%D7%AA%D7%A8-%D7%94%D7%A2%D7%99%D7%A8/%D7%90%D7%A8%D7%9B%D7%99%D7%95%D7%9D-%D7%97%D7%93%D7%A9%D7%95%D7%AA/%D7%97%D7%93%D7%A9%D7%95%D7%AA/2024/9/%D7%90%D7%95%D7%98%D7%95%D7%98%D7%95-%D7%97%D7%95%D7%A8%D7%A3-%D7%95%D7%91%D7%A2%D7%99%D7%A8%D7%99%D7%99%D7%94-%D7%9E%D7%AA%D7%9B%D7%95%D7%A0%D7%A0%D7%99%D7%9D-%D7%9C%D7%A0%D7%94%D7%99%D7%92%D7%94-%D7%A0%D7%9B%D7%95%D7%A0%D7%94/",
+   "title": "אוטוטו חורף ובעירייה מתכוננים לנהיגה נכונה",
+   "kind": "guidance",
+   "idea": "Current official winter driving regulations and safety recommendations issued by the Israeli Ministry of Transportation for the 2024-2025 season",
+   "cited": false,
+   "id": "W3",
+   "relation": "new",
+   "site": "ashdod.muni.il",
+   "tier": "government",
+   "status": "unverified",
+   "reason": "page not loaded: HTTP 404"
+  },
+  {
+   "fact": "בשנת 2025 נפצעו 408 אנשים בתאונות דרכים בכבישים רטובים ובוציים, בהם 18 הרוגים ו־60 פצועים קשה.",
+   "quote": "A total of 408 people were injured in accidents on wet and muddy roads across Israel in 2025, including 18 fatalities and 60 people seriously injured, according to data released by the Or Yarok road safety organization ahead of the winter rainy season.",
+   "url": "https://www.israelnationalnews.com/news/434826",
+   "title": "Rain, rain go away: The most dangerous cities for drivers during the rainy season | Israel National News",
+   "kind": "data",
+   "idea": "Recent Israeli national statistics on weather-related road accidents, focusing on wet roads, reduced visibility, and skidding during winter months",
+   "cited": true,
+   "id": "W4",
+   "relation": "new",
+   "site": "israelnationalnews.com",
+   "tier": null,
+   "status": "rejected",
+   "reason": "israelnationalnews.com: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "בחורף הקודם נהרגו 185 אנשים בתאונות דרכים בין נובמבר 2024 למרץ 2025.",
+   "quote": "לפי נתוני עמותת אור ירוק, המתבססים על נתוני הלמ\"ס, החורף הקודם הסתיים בנתון מצמרר: 185 בני אדם נהרגו בין נובמבר 2024 למרץ 2025 בתאונות דרכים.",
+   "url": "https://www.ice.co.il/auto/news/article/1094756",
+   "title": "סופת ביירון מתקרבת: אלו הערים שבהן נפגעו הכי הרבה אנשים בחורף  - אייס",
+   "kind": "data",
+   "idea": "Recent Israeli national statistics on weather-related road accidents, focusing on wet roads, reduced visibility, and skidding during winter months",
+   "cited": true,
+   "id": "W5",
+   "relation": "new",
+   "site": "ice.co.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "ice.co.il: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "הנתונים מצביעים על כך שהכבישים בחורף הופכים למלכודת בשל תנאי ראות קשים, החלקה והצפות.",
+   "quote": "הנתונים מצביעים על מגמה ברורה – הכבישים בחורף הופכים למלכודת, הן בשל תנאי ראות קשים והן בגלל החלקה, הצפות ותשתיות שלא תמיד מצליחות לעמוד בעומס.",
+   "url": "https://www.ice.co.il/auto/news/article/1094756",
+   "title": "סופת ביירון מתקרבת: אלו הערים שבהן נפגעו הכי הרבה אנשים בחורף  - אייס",
+   "kind": "data",
+   "idea": "Recent Israeli national statistics on weather-related road accidents, focusing on wet roads, reduced visibility, and skidding during winter months",
+   "cited": true,
+   "id": "W6",
+   "relation": "new",
+   "site": "ice.co.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "ice.co.il: not an official, academic or recognised safety/health source"
+  },
+  {
+   "fact": "בגשם הראשון בירושלים הפכו הכבישים למסוכנים ונהג כבן 30 נפצע קל בתאונה עצמית בשדרות גולדה מאיר.",
+   "quote": "הגשם הראשון שירד הבוקר בירושלים הפך במהרה את הכבישים למסוכנים, וגרם לשורת תאונות דרכים ברחבי העיר. בתאונה ראשונה שהתרחשה בשדרות גולדה מאיר, נפצע קל נהג כבן 30 בתאונה עצמית.",
+   "url": "https://www.jerusalemharedim.co.il/%d7%97%d7%93%d7%a9%d7%95%d7%aa/%d7%a0%d7%94%d7%92%d7%99%d7%9d-%d7%96%d7%94%d7%99%d7%a8%d7%95%d7%aa-%d7%9e%d7%94%d7%97%d7%9c%d7%a7%d7%94-%d7%92%d7%9c-%d7%aa%d7%90%d7%95%d7%a0%d7%95%d7%aa-%d7%91%d7%9b%d7%91%d7%99%d7%a9%d7%99%d7%9d-%d7%91%d7%a2%d7%a7%d7%91%d7%95%d7%aa-%d7%94%d7%92%d7%a9%d7%9d-604850",
+   "title": "נהגים, זהירות מהחלקה: גל תאונות בכבישי ירושלים בעקבות הגשם - ירושלים החרדית",
+   "kind": "incident",
+   "idea": "Real documented incident from Israeli police or media reports involving loss of control on a slippery road during recent winter, highlighting skidding and visibility risks",
+   "cited": true,
+   "id": "W7",
+   "relation": "new",
+   "site": "jerusalemharedim.co.il",
+   "tier": null,
+   "status": "rejected",
+   "reason": "jerusalemharedim.co.il: not an official, academic or recognised safety/health source"
+  }
+ ],
+ "illustration_notes": {
+  "assets/illustrations/s3.html": {
+   "screen": 3,
+   "title": "תרגול החזרת השליטה בהחלקה",
+   "status": "built",
+   "reason": "",
+   "check": "passed",
+   "logic_fixed": true
+  },
+  "assets/illustrations/s4.html": {
+   "screen": 4,
+   "title": "סימולטור ראות בערפל",
+   "status": "built",
+   "reason": "",
+   "check": "passed"
+  }
+ },
+ "cost_stop": null
+}

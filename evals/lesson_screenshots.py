@@ -1,4 +1,4 @@
-"""Screenshots of a run's lesson: the first screen (motif and title in the header) and every built
+r"""Screenshots of a run's lesson: the first screen (motif and title in the header) and every built
 illustration before and after using its controls, at 390 px, after animations ended.
 
     .venv\Scripts\python -m evals.lesson_screenshots evals/results/day10/free

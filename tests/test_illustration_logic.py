@@ -141,3 +141,11 @@ def test_the_report_names_the_illustration_in_hebrew():
 
     assert where_text("illustration assets/illustrations/s6.html") == msg(
         "report.where_illustration", file="assets/illustrations/s6.html")
+
+
+def test_every_graph_node_that_calls_a_model_has_a_hebrew_name_in_the_report():
+    from agent.messages import msg_or_none
+
+    for node in ("scope_check", "classify_type", "research", "topic_map", "plan_structure", "motif", "write_lesson",
+                 "build_illustrations", "browser_check", "key_points", "evaluator", "fix_screens"):
+        assert msg_or_none(f"report.nodes.{node}"), node

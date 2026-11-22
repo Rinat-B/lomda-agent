@@ -431,7 +431,13 @@
       "gate_structure": "שער 2",
       "gate_review": "שער 3",
       "answer": "תשובה לשאלה",
-      "key_points": "נקודות מהותיות במקור"
+      "key_points": "נקודות מהותיות במקור",
+      "research": "מחקר ברשת",
+      "build_illustrations": "בניית המחשות",
+      "browser_check": "בדיקת דפדפן",
+      "motif": "מוטיב",
+      "injection_guard": "שומר הזרקה",
+      "gate_type": "שער סוג"
     },
     "fix_failed": "- **תיקון שנכשל:** המסכים {screens} נשארו כמו שהיו (אף מודל כותב לא החזיר גרסה תקינה).",
     "web_title": "## מקורות מהרשת",
