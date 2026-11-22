@@ -18,6 +18,11 @@ class GateExit(Exception):
     """The user asked to quit while a gate was waiting. The conversation stays paused."""
 
 
+class CostPause(Exception):
+    """N at the cost gate before a whole lesson is written: the run stays paused at the gate
+    (its checkpoint is saved) and /resume asks again. The CLI keeps running."""
+
+
 @dataclass(frozen=True)
 class GateDecision:
     approved: bool
@@ -138,6 +143,8 @@ def format_review(summary: dict) -> str:
             lines.append(msg("gate.review.missing_item", point=point))
     if summary.get("budget_stop"):
         lines.append(msg("gate.review.budget_stop", **summary["budget_stop"]))
+    if summary.get("cost_stop"):
+        lines.append(msg("cost_cap.gate_line", **summary["cost_stop"]))
     lines += ["", msg("gate.review.open_title"), ""]
     open_ = summary["open"]
     if not open_:
@@ -260,6 +267,22 @@ def ask_browser_check_gate(request: dict, ask: Callable[[str], str], say: Callab
         say(msg("gate.browser_check.ask_again"), style="yellow")
 
 
+def ask_cost_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
+    """[Y/N] before a paid step that would cross the run's MAX_COST_USD: the cost so far and an
+    estimate for the rest. Y raises the cap for this run; N finishes in order, or pauses."""
+    say(msg("cost_cap.title", cap=request["cap"]), style="yellow")
+    say(msg("cost_cap.spent", spent=request["spent"], node=request["node"], estimate=request["estimate"]))
+    say(msg("cost_cap.rest", rest=request["rest"]))
+    say(msg("cost_cap.if_no_ready" if request.get("lesson_ready") else "cost_cap.if_no_pause"))
+    while True:
+        decision = parse_decision(_read(ask, msg("cost_cap.ask")))
+        if decision is not None and decision.explicit:
+            if not decision.approved and not request.get("lesson_ready"):
+                raise CostPause
+            return {"confirm": decision.approved}
+        say(msg("cost_cap.ask_again"), style="yellow")
+
+
 def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
              say: Callable[..., None], preview: Callable[[dict], None] | None = None,
              say_path: Callable[..., None] | None = None) -> dict:
@@ -270,4 +293,6 @@ def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], Non
         return ask_write_files_gate(request, ask, say, say_path)
     if request.get("gate") == "browser_check":
         return ask_browser_check_gate(request, ask, say, say_path)
+    if request.get("gate") == "cost_cap":
+        return ask_cost_gate(request, ask, say)
     return ask_review_gate(request, ask, show, say, preview)

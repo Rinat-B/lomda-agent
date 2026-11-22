@@ -23,6 +23,9 @@
                                                          write_files [Y/N] (+ report.md) -> END
 
 Each producing node continues only to its gate: no edge skips a gate.
+
+The paid nodes are wrapped by cost_guarded: before one starts, a [Y/N] gate if its estimated
+calls would cross the run's MAX_COST_USD (agent/cost_cap.py).
 """
 
 from langgraph.checkpoint.memory import InMemorySaver
@@ -35,6 +38,7 @@ from agent.nodes import (
     browser_check,
     build_illustrations,
     classify_type,
+    cost_guarded,
     evaluator,
     fix_screens,
     gate_review,
@@ -65,17 +69,17 @@ def build_graph(checkpointer=None):
     graph.add_node("answer", answer)
     graph.add_node("classify_type", classify_type)
     graph.add_node("gate_type", gate_type)
-    graph.add_node("research", research)
-    graph.add_node("topic_map", topic_map)
+    graph.add_node("research", cost_guarded("research", research))
+    graph.add_node("topic_map", cost_guarded("topic_map", topic_map))
     graph.add_node("gate_topics", gate_topics)
-    graph.add_node("plan_structure", plan_structure)
+    graph.add_node("plan_structure", cost_guarded("plan_structure", plan_structure))
     graph.add_node("gate_structure", gate_structure)
-    graph.add_node("write_lesson", write_lesson)
-    graph.add_node("build_illustrations", build_illustrations)
+    graph.add_node("write_lesson", cost_guarded("write_lesson", write_lesson))
+    graph.add_node("build_illustrations", cost_guarded("build_illustrations", build_illustrations))
     graph.add_node("browser_check", browser_check)
     graph.add_node("assemble_lesson", assemble_lesson_node)
-    graph.add_node("evaluator", evaluator)
-    graph.add_node("fix_screens", fix_screens)
+    graph.add_node("evaluator", cost_guarded("evaluator", evaluator))
+    graph.add_node("fix_screens", cost_guarded("fix_screens", fix_screens))
     graph.add_node("gate_review", gate_review)
     graph.add_node("write_files", write_files)
 

@@ -9,7 +9,7 @@ from agent.commands import CommandHandler
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, say_path, show_markdown
 from agent.errors import report_error, setup_logging
-from agent.gates import GateExit, ask_gate
+from agent.gates import CostPause, GateExit, ask_gate
 from agent.mcp_client import MCPManager, run_server
 from agent.messages import msg
 from agent.session import Session
@@ -57,6 +57,8 @@ FRESH_RUN = {
     "accepted_facts": None,
     "illustrations": None,
     "illustration_notes": None,
+    "cost_cap": None,
+    "cost_stop": None,
 }
 
 
@@ -98,7 +100,9 @@ def stream_until_pause(graph, payload, config: dict, resumed_node: str | None = 
     first node to start, and it is not printed a second time.
     """
     skip = resumed_node
-    for task in graph.stream(payload, config, stream_mode="tasks"):
+    # durability="sync": the checkpoint of each node is written before the next one starts, so a
+    # run stopped anywhere (the cost gate, Ctrl+C, a closed window) continues with /resume.
+    for task in graph.stream(payload, config, stream_mode="tasks", durability="sync"):
         if "input" not in task:  # a task result, not a task start
             continue
         if skip is not None and task["name"] == skip:
@@ -120,6 +124,10 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
     try:
         if payload is not None:
             stream_until_pause(graph, payload, config)
+        else:
+            snapshot = graph.get_state(config)
+            if snapshot.next and not snapshot.interrupts:  # stopped inside a node: run it again
+                stream_until_pause(graph, None, config)
         while True:
             snapshot = graph.get_state(config)
             if not snapshot.interrupts:
@@ -128,6 +136,9 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say,
                               preview=preview_lesson, say_path=say_path)
             stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
+    except CostPause:
+        say(msg("cost_cap.paused"), style="yellow")
+        return True
     except (GateExit, EOFError):
         say(msg("gate.paused"), style="yellow")
         return False

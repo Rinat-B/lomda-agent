@@ -11,6 +11,10 @@
 # checked against OpenRouter's model list (cached for a day); unknown ids are skipped.
 default_profile: free
 
+# The spending cap of one run (USD); MAX_COST_USD in .env wins. Before a paid step that would
+# cross it the agent asks [Y/N] (agent/cost_cap.py).
+max_cost_usd: 1.5
+
 profiles:
   free:
     # Order from evals/bench_writer.py (one group of 4 screens, 2 runs each, 19.11.2026):

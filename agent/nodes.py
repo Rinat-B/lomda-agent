@@ -217,6 +217,8 @@ class AgentState(TypedDict, total=False):
     illustrations: dict | None  # illustration file -> its built, cleaned HTML page
     illustration_notes: dict | None  # file -> {"screen", "title", "status", "reason", "check", "problems"}
     report_path: str | None
+    cost_cap: float | None  # this run's spending cap after a Y at the cost gate (else MAX_COST_USD)
+    cost_stop: dict | None  # {"node", "spent", "cap"} after an N at the cost gate: the orderly finish
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -252,6 +254,96 @@ def _call(
     if recorder:
         recorder(node, result)
     return result
+
+
+# ---- the run's spending cap (agent/cost_cap.py) --------------------------------------------------
+RESEARCH_CALLS_ESTIMATE = 8  # 2 small calls and about 6 searches
+
+
+def _node_calls(node: str, state: AgentState) -> int:
+    """How many model calls this paid node is about to make (an estimate)."""
+    from agent.checkers import MODEL_CHECKS, check_jobs
+    from agent.evaluation import actionable, fix_groups, recheck_jobs
+
+    if node == "research":
+        return RESEARCH_CALLS_ESTIMATE
+    if node == "build_illustrations":
+        built = set(state.get("illustrations") or {})
+        todo = [b for _, _, b in _illustration_blocks(state.get("written_screens") or []) if b["file"] not in built]
+        return min(len(todo), illustration_cap())
+    if node == "evaluator":
+        lesson = state.get("lesson")
+        if not lesson:
+            return 0
+        if state.get("findings") is None:
+            return len(check_jobs(lesson, tuple(MODEL_CHECKS))) + (state.get("key_points") is None)
+        return len(recheck_jobs(state["findings"], state.get("fixed_screens") or []))
+    if node == "fix_screens":
+        screens = sorted({f["screen"] for f in actionable(state.get("findings") or [])})
+        return max(1, len(fix_groups(screens)))
+    return 1
+
+
+def _after_cost_stop(node: str, state: AgentState, config: RunnableConfig) -> dict:
+    """What a paid node does after an N at the cost gate: no model call, keep the lesson."""
+    from agent.checkers import run_checkers
+    from agent.evaluation import finding_dict, reconcile_code_findings
+
+    if node == "build_illustrations":
+        built = set(state.get("illustrations") or {})
+        notes = {k: dict(v) for k, v in (state.get("illustration_notes") or {}).items()}
+        for number, _, block in _illustration_blocks(state.get("written_screens") or []):
+            if block["file"] not in built:
+                notes[block["file"]] = {"screen": number, "title": block["title"], "status": "static",
+                                        "reason": "cost cap"}
+        return {"illustration_notes": notes}
+    if node == "evaluator":
+        lesson = state["lesson"]
+        if state.get("findings") is None:  # the free code checks still run
+            report = run_checkers(lesson, _all_chunks(state, config), jobs_list=[])
+            findings = [finding_dict(f, f"F{i}", 0) for i, f in enumerate(report.findings, 1)]
+        else:
+            findings = reconcile_code_findings(list(state["findings"]), lesson, state.get("review_round") or 0)
+        return {"findings": findings, "fixed_screens": []}
+    if node == "fix_screens":
+        return {"feedback": None, "fixed_screens": [], "owner_request": None}
+    return {}
+
+
+def cost_guarded(node: str, fn: Callable[[AgentState, RunnableConfig], dict]):
+    """Wrap a paid node: before it starts, a [Y/N] gate if its estimated calls would cross the
+    run's cap (see agent/cost_cap.py). The check comes before any call, so resuming after the
+    gate repeats nothing."""
+    from agent import cost_cap
+    from agent.evaluation import CALL_BUDGET
+
+    def guarded(state: AgentState, config: RunnableConfig) -> dict:
+        if state.get("cost_stop"):
+            return _after_cost_stop(node, state, config)
+        records_fn = _configurable(config).get("usage_records")
+        records = records_fn() if records_fn else []
+        if not records:
+            return fn(state, config)
+        spent = sum(r.cost for r in records)
+        cap = cost_cap.run_cap(state)
+        node_estimate, rest = cost_cap.estimate(records, node, _node_calls(node, state), CALL_BUDGET - len(records))
+        if not cost_cap.crosses(spent, node_estimate, cap):
+            return fn(state, config)
+        request = cost_cap.gate_request(node, spent, node_estimate, rest, cap, node in cost_cap.LESSON_READY_NODES)
+        reply = interrupt(request)
+        while not request["lesson_ready"] and not (isinstance(reply, dict) and reply.get("confirm")):
+            reply = interrupt(request)  # no lesson to finish yet: N keeps the run paused here
+        if isinstance(reply, dict) and reply.get("confirm"):
+            new_cap = cost_cap.raised_cap(spent, rest, cap)
+            log(msg("cost_cap.raised", cap=new_cap))
+            return {"cost_cap": new_cap, **(fn({**state, "cost_cap": new_cap}, config) or {})}
+        stop = cost_cap.stop_note(request)
+        log(cost_cap.stop_line(stop))
+        return {"cost_stop": stop, **_after_cost_stop(node, {**state, "cost_stop": stop}, config)}
+
+    guarded.__name__ = getattr(fn, "__name__", node)
+    guarded.__doc__ = fn.__doc__
+    return guarded
 
 
 def scope_check(state: AgentState, config: RunnableConfig) -> dict:
@@ -1030,11 +1122,11 @@ def browser_check(state: AgentState, config: RunnableConfig) -> dict:
             notes.setdefault(file, {})["check"] = "no_browser"
         return {"illustration_notes": notes}
     failed = {f: p for f, p in results.items() if p}
-    for file, problems in failed.items():  # one fix with the error log
+    for file, problems in failed.items():  # one fix with the error log (none after a stop at the cost cap)
         messages = [SystemMessage(FIX_PROMPT.format(problems="\n".join(f"- {p}" for p in problems))),
                     HumanMessage(pages[file])]
         try:
-            fixed = extract_html(_ask_writer("browser_check", messages, config).text)
+            fixed = None if state.get("cost_stop") else extract_html(_ask_writer("browser_check", messages, config).text)
         except NodeError:
             fixed = None
         if fixed:
@@ -1208,7 +1300,7 @@ def evaluator(state: AgentState, config: RunnableConfig) -> dict:
 def route_after_evaluator(state: AgentState) -> str:
     from agent.evaluation import MAX_FIX_ROUNDS, actionable
 
-    if state.get("owner_request") or (state.get("review") or {}).get("budget_stop"):
+    if state.get("owner_request") or state.get("cost_stop") or (state.get("review") or {}).get("budget_stop"):
         return "gate_review"
     if actionable(state.get("findings") or []) and (state.get("review_round") or 0) < MAX_FIX_ROUNDS:
         return "fix_screens"
@@ -1304,6 +1396,7 @@ def review_summary(state: AgentState) -> dict:
            for n in (state.get("illustration_notes") or {}).values() if n.get("check") == "failed"],
         "coverage": coverage_summary(state.get("key_points"), state["lesson"]),
         "budget_stop": (state.get("review") or {}).get("budget_stop"),
+        "cost_stop": state.get("cost_stop"),
     }
 
 
@@ -1313,6 +1406,8 @@ def gate_review(state: AgentState, config: RunnableConfig) -> dict:
     update = _review_gate("review", state, config,
                           extra={"summary": review_summary(state), "illustrations": state.get("illustrations") or {}})
     update["owner_request"] = None
+    if update.get("feedback") is not None and state.get("cost_stop"):
+        update["cost_stop"] = None  # the owner asks for more work: the cost gate asks again
     if update.get("approved"):
         say(msg("gate.review.approved"))  # after interrupt: printed once
         update["approved"] = None  # write_files decides the end of this stage

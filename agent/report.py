@@ -123,6 +123,10 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         msg("report.files", files=", ".join(files) or "-"),
         msg("report.screens", count=len(lesson["screens"])), "",
     ]
+    stop = state.get("cost_stop")
+    if stop:  # said at the top: the owner must know the lesson was not fully checked and fixed
+        lines += [msg("report.cost_stop", node=stop["node"], spent=stop["spent"], cap=stop["cap"],
+                      open=len(open_)), ""]
     cov = coverage_summary(state.get("key_points"), lesson)
     lines += [msg("report.coverage_title"), ""]
     if cov:

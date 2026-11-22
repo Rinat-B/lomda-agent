@@ -10,6 +10,10 @@ models can be set from outside. Every run is tagged in LangSmith with the experi
 
 Returns (and saves in run.json): the final state summary, usage and cost per node and per
 model, time per node, open findings and coverage.
+
+With --out, the graph's checkpoints go to <out>/checkpoints.sqlite (written after every node),
+so a run that stopped (the cost gate, a closed window, an error) continues with --resume.
+The cost gate (MAX_COST_USD) is answered with --cost-answer (default N: the orderly finish).
 """
 
 import argparse
@@ -38,7 +42,7 @@ def read_answers(path: Path | None) -> list[str]:
     return [line.rstrip("\n") for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def _scripted(answers: list[str]):
+def _scripted(answers: list[str], cost_answer: str = "N"):
     """ask() for the gates: the next scripted answer, then Y; write_files always N."""
     from agent.messages import msg
 
@@ -54,6 +58,9 @@ def _scripted(answers: list[str]):
             return "Y"  # evals run the browser check
         if prompt == msg("gate.structure.unverified_ask"):
             return ""  # unverified web facts are not accepted in evals
+        if prompt == msg("cost_cap.ask"):
+            asked.append(f"cost:{cost_answer}")
+            return cost_answer
         answer = queue.pop(0) if queue else "Y"
         asked.append(answer)
         return answer
@@ -110,13 +117,14 @@ def configure_models(profile: str | None, writer: list[str] | None, checker: lis
 
 def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers: list[str] | None = None,
               profile: str | None = None, writer: list[str] | None = None, checker: list[str] | None = None,
-              small: list[str] | None = None, experiment: str = "manual", out_dir: Path | None = None) -> dict:
+              small: list[str] | None = None, experiment: str = "manual", out_dir: Path | None = None,
+              resume: bool = False, cost_answer: str = "N") -> dict:
     """Run the graph to the end (or an error) and return the run summary."""
     from langgraph.types import Command
 
     from agent.cli import FRESH_RUN, graph_config
     from agent.evaluation import coverage_summary
-    from agent.gates import ask_gate
+    from agent.gates import CostPause, ask_gate
     from agent.graph import build_graph
     from agent.llm import active_profile, load_models
     from agent.nodes import source_label
@@ -128,19 +136,30 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
                      "models": {r: load_models(r) for r in ("writer", "checker", "small")}, "error": None}
     session, flagged = load_session(source)
     summary["flagged_chunks"] = len(flagged)
-    graph = build_graph()
+    thread_file = out_dir / "thread_id.txt" if out_dir is not None else None
+    if out_dir is not None:
+        from agent.persistence import open_checkpointer
+
+        out_dir.mkdir(parents=True, exist_ok=True)
+        graph = build_graph(open_checkpointer(out_dir / "checkpoints.sqlite"))
+        if resume and thread_file.is_file():
+            session.thread_id = thread_file.read_text(encoding="utf-8").strip()
+        else:
+            thread_file.write_text(session.thread_id, encoding="utf-8")
+    else:
+        graph = build_graph()
     config = graph_config(session)
     config.update({"run_name": f"eval:{experiment}", "tags": ["eval", experiment],
                    "metadata": {"experiment": experiment, "writer": summary["models"]["writer"][0],
                                 "profile": summary["profile"]}})
     session.run_start = 0
-    ask = _scripted(answers or [])
+    ask = _scripted(answers or [], cost_answer)
     node_seconds: dict[str, float] = defaultdict(float)
     node_runs: dict[str, int] = defaultdict(int)
     starts: dict[str, tuple[str, float]] = {}
 
     def stream(payload) -> None:
-        for task in graph.stream(payload, config, stream_mode="tasks"):
+        for task in graph.stream(payload, config, stream_mode="tasks", durability="sync"):
             if "input" in task:
                 starts[task["id"]] = (task["name"], time.monotonic())
                 print(f"{time.strftime('%H:%M:%S')} [INFO] Entering Node: {task['name']}", flush=True)
@@ -153,7 +172,11 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
         return None
 
     try:
-        stream({**FRESH_RUN, "question": request or default_request(source)})
+        if resume and graph.get_state(config).next:
+            if not graph.get_state(config).interrupts:
+                stream(None)  # stopped inside a node: run it again
+        else:
+            stream({**FRESH_RUN, "question": request or default_request(source)})
         for _ in range(MAX_GATE_VISITS):
             snapshot = graph.get_state(config)
             if not snapshot.interrupts:
@@ -162,6 +185,8 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
             stream(Command(resume=resume))
         else:
             summary["error"] = f"stopped after {MAX_GATE_VISITS} gate visits"
+    except CostPause:
+        summary["error"] = "paused at the cost cap before the lesson was written (--resume continues)"
     except Exception as e:  # noqa: BLE001 - an eval records the failure and goes on
         summary["error"] = f"{type(e).__name__}: {e}"
 
@@ -191,6 +216,7 @@ def run_agent(source: Path = DEFAULT_SOURCE, request: str | None = None, answers
         "research": values.get("research"),
         "web_facts": values.get("web_facts"),
         "illustration_notes": values.get("illustration_notes"),
+        "cost_stop": values.get("cost_stop"),
     })
     if out_dir is not None:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -229,6 +255,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--small", help="small model id(s), comma separated")
     parser.add_argument("--experiment", default="manual")
     parser.add_argument("--out", type=Path, help="folder for lesson.json, run.json and report.md")
+    parser.add_argument("--resume", action="store_true", help="continue the run saved in --out")
+    parser.add_argument("--cost-answer", default="N", choices=("Y", "N"), help="the answer at the cost gate")
     args = parser.parse_args(argv)
 
     configure_stdio()
@@ -237,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
     setup_tracing()
     out = args.out or ROOT / "evals" / "results" / "runs" / args.experiment
     summary = run_agent(args.source, args.request, read_answers(args.answers), args.profile,
-                        _models(args.writer), _models(args.checker), _models(args.small), args.experiment, out)
+                        _models(args.writer), _models(args.checker), _models(args.small), args.experiment, out, args.resume, args.cost_answer)
     flush_traces()
     keys = ("experiment", "error", "duration_sec", "screens", "calls", "cost_usd", "review_round",
             "findings_total", "findings_fixed")

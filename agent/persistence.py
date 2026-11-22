@@ -133,15 +133,18 @@ class PausedConversation:
 
 
 def paused_conversations(graph, store: ConversationStore) -> list[PausedConversation]:
-    """Conversations whose graph is waiting at a gate, newest first."""
+    """Conversations whose graph is waiting at a gate, or stopped inside a node, newest first."""
     threads = {c.config["configurable"]["thread_id"] for c in graph.checkpointer.list(None)}
     paused = []
     for thread_id in threads:
         snapshot = graph.get_state({"configurable": {"thread_id": thread_id}})
-        if not snapshot.interrupts:
+        if snapshot.interrupts:
+            request = snapshot.interrupts[0].value
+            gate = request.get("gate", "") if isinstance(request, dict) else ""
+        elif snapshot.next and snapshot.values.get("question"):
+            gate = "stopped"  # stopped inside a node (closed, Ctrl+C, an error): continues there
+        else:
             continue
-        request = snapshot.interrupts[0].value
-        gate = request.get("gate", "") if isinstance(request, dict) else ""
         when = datetime.fromisoformat(snapshot.created_at).astimezone() if snapshot.created_at else datetime.now()
         data = store.load(thread_id) or {"files": []}
         paused.append(PausedConversation(thread_id, when, [Path(f).name for f in data["files"]], gate))

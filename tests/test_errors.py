@@ -210,7 +210,7 @@ class FailingGraph:
     def __init__(self, exc):
         self.exc = exc
 
-    def stream(self, payload, config=None, stream_mode=None):
+    def stream(self, payload, config=None, stream_mode=None, **kwargs):
         raise self.exc
 
     def get_state(self, config):
@@ -223,7 +223,7 @@ class AnsweringGraph:
     def __init__(self):
         self.values = {}
 
-    def stream(self, payload, config=None, stream_mode=None):
+    def stream(self, payload, config=None, stream_mode=None, **kwargs):
         record = config["configurable"]["usage_recorder"]
         for node in ("scope_check", "answer"):
             yield {"id": node, "name": node, "input": {}, "triggers": []}
