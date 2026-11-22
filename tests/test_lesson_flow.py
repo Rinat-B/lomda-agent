@@ -171,6 +171,26 @@ EMPTY_LOGIC_TABLE = ('{"source_rules": [], "decisions": [], "numbers": [], "choi
                      '"feedback": [], "situation": {"name_missing": ""}}')
 
 
+# Hebrew phrases the fake classifier understands (the real one is a small model; see
+# evals/conversation_eval.py for its accuracy). Anything else is a change request.
+FAKE_INTENTS = [
+    ("איפה אנחנו", {"decision": "STATUS"}),
+    ("עזוב", {"decision": "CANCEL"}),
+    ("תוריד את הנושא השלישי", {"decision": "BACK", "target": "topics", "change": "remove the third topic"}),
+    ("תחזור לנושאים", {"decision": "BACK", "target": "topics"}),
+    ("תחזור למבנה", {"decision": "BACK", "target": "structure"}),
+    ("למה", {"decision": "QUESTION"}),
+    ("מאשרת", {"decision": "APPROVE"}),
+]
+
+
+def fake_gate_intent(reply: str) -> dict:
+    for phrase, intent in FAKE_INTENTS:
+        if phrase in reply:
+            return intent
+    return {"decision": "CHANGE", "change": reply}
+
+
 def prompt_kind(system: str) -> str:
     if system.startswith("You are a gatekeeper"):
         return "scope"
@@ -328,7 +348,7 @@ class FakeModel:
             return make_result(text=structure_json_reply(first_user, extra=revising))
         if kind == "classify":
             reply = user.split("Reviewer reply: ", 1)[-1]
-            return make_result(text=json.dumps({"decision": "CHANGE", "change": reply}))
+            return make_result(text=json.dumps(fake_gate_intent(reply), ensure_ascii=False))
         if kind == "topic_map":
             if self.invalid_first:
                 self.invalid_first = False
@@ -350,6 +370,8 @@ class FakeModel:
             return make_result(text='{"ideas": []}')
         if kind == "research_gaps":
             return make_result(text='{"findings": [], "ideas": []}')
+        if kind == "answer":  # a question at a gate: echo what the answer was based on
+            return make_result(text="FAKE ANSWER" + (" | with run state" if "Run state:" in user else ""))
         raise AssertionError(f"unexpected prompt: {system[:70]}")
 
     def prompts_of(self, kind: str) -> list[str]:
@@ -452,7 +474,7 @@ def test_no_edge_bypasses_a_gate():
     # A gate goes back (change), to itself (question answered), or on (approved).
     assert successors("gate_topics") == {"topic_map", "gate_topics", "plan_structure"}
     assert successors("gate_structure") == {"plan_structure", "gate_structure", "write_lesson"}
-    assert successors("gate_type") == {"research", "topic_map"}  # research: training only
+    assert successors("gate_type") == {"gate_type", "research", "topic_map"}  # a question stays; research: training only
     assert successors("research") == {"topic_map"}
     assert successors("write_lesson") == {"write_lesson", "build_illustrations"}
     assert successors("build_illustrations") == {"browser_check"}

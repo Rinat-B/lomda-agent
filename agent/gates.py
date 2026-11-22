@@ -110,22 +110,49 @@ def format_structure(structure: dict) -> str:
     return "\n".join(lines).rstrip()
 
 
+# Commands that run directly at any gate (not sent to the classifier); then the gate asks again.
+GATE_COMMANDS = ("/cost", "/summary", "/help", "help", "?", "/model", "/files")
+_command_hook: Callable[[str], object] | None = None
+
+
+def set_command_hook(hook: Callable[[str], object] | None) -> None:
+    """The CLI's command handler, so a / command typed at a gate runs there and returns to the gate."""
+    global _command_hook
+    _command_hook = hook
+
+
+def is_gate_command(text: str) -> bool:
+    first = (text or "").strip().split(" ", 1)[0].lower()
+    return first in GATE_COMMANDS
+
+
 def _read(ask: Callable[[str], str], prompt: str) -> str:
-    text = ask(prompt)
-    if text.strip().lower() in EXIT_WORDS:
-        raise GateExit
-    return text
+    while True:
+        text = ask(prompt)
+        if text.strip().lower() in EXIT_WORDS:
+            raise GateExit
+        if _command_hook is not None and is_gate_command(text):
+            _command_hook(text.strip())
+            continue  # back to the same gate
+        return text
 
 
 def ask_type_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
     """Short [Y/N] gate for the lesson type: Y keeps the proposal, N switches type."""
     proposed = msg(f"lesson_types.{request['lesson_type']}")
-    if request.get("reason"):
+    if request.get("confirm"):
+        return ask_proposal(request["confirm"], ask, say)
+    if request.get("answer"):
+        say(request["answer"])
+    elif request.get("reason"):
         say(msg("gate.type.reason", reason=request["reason"]))
     while True:
-        decision = parse_decision(_read(ask, msg("gate.type.ask", type=proposed)))
+        text = _read(ask, msg("gate.type.ask", type=proposed))
+        decision = parse_decision(text)
         if decision is not None and decision.explicit:
             return {"confirm": decision.approved}
+        if text.strip():
+            return {"text": text.strip()}  # a question, "status", or the other type in words
         say(msg("gate.type.ask_again"), style="yellow")
 
 
@@ -185,6 +212,29 @@ def ask_accepted_facts(facts: list[dict], ask: Callable[[str], str], say: Callab
     return []
 
 
+class RunCancelled(Exception):
+    """The owner confirmed cancelling at a gate: the run stays paused there for /resume."""
+
+
+def ask_proposal(proposal: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
+    """[Y/N] on what the gate proposed. Going back: Y raises GoBack (the CLI forks the thread).
+    Cancelling: Y resumes with {"cancelled": True}; the CLI then stops and says how to continue."""
+    from agent.navigation import GoBack, describe_proposal
+
+    kind = proposal["kind"]
+    say(describe_proposal(proposal) if kind == "back" else msg("gate.cancel.title"), style="yellow")
+    for _ in range(3):
+        decision = parse_decision(_read(ask, msg(f"gate.{kind}.ask")))
+        if decision is not None and decision.explicit:
+            if not decision.approved:
+                return {"declined": True}
+            if kind == "back":
+                raise GoBack(proposal["target"], proposal.get("change") or "")
+            return {"cancelled": True}
+        say(msg("gate.proposal_again"), style="yellow")
+    return {"declined": True}
+
+
 def format_screens_note(note: dict) -> str:
     """The requested number of screens could not be met as asked: say why and offer an alternative."""
     key = "gate.structure.screens_note_topics" if note.get("why") == "topics" else "gate.structure.screens_note_max"
@@ -220,6 +270,8 @@ def ask_review_gate(request: dict, ask: Callable[[str], str], show: Callable[[st
     here, no model), or {"text"} for free text (classified by the gate node).
     """
     gate = request["gate"]
+    if request.get("confirm"):
+        return ask_proposal(request["confirm"], ask, say)
     if request.get("answer"):
         show(request["answer"])  # the item is unchanged; it is already on screen
     elif gate == "structure":

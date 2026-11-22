@@ -136,11 +136,14 @@ def test_n_at_the_type_gate_switches_type(monkeypatch, session_with_deck, output
     assert session_with_deck.lesson_type == COMPLIANCE
 
 
-def test_type_gate_wants_y_or_n(monkeypatch, session_with_deck, output):  # noqa: F811
+def test_free_text_at_the_type_gate_is_classified(monkeypatch, session_with_deck, output):  # noqa: F811
+    """Free text is no longer refused: the small model classifies it (the fake says CHANGE, which at
+    this gate means the other type); an empty reply still asks again."""
     model = FakeModel()
-    run_flow(monkeypatch, session_with_deck, ["maybe", "Y", "Y", "Y"], model)
+    run_flow(monkeypatch, session_with_deck, ["", "make it compliance", "Y", "Y", "Y"], model)
     assert msg("gate.type.ask_again") in output()
-    assert session_with_deck.lesson_type == TRAINING
+    assert "classify" in model.kinds
+    assert msg("gate.type.chosen", type=msg("lesson_types.compliance")) in output()
 
 
 @pytest.mark.parametrize("lesson_type", [TRAINING, COMPLIANCE])

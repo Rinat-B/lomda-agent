@@ -235,6 +235,7 @@ class AgentState(TypedDict, total=False):
     audience_in_source: str | None  # the audience the material names, if any
     reasons: dict | None  # the agent's reasons: {"type": "..."}; topics and screens carry their own "reason"
     screens_note: dict | None  # the requested number of screens could not be met as asked (shown at gate 2)
+    pending: dict | None  # a proposal the owner confirms at the gate: {"kind": "back" | "cancel", ...}
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -563,15 +564,37 @@ def classify_type(state: AgentState, config: RunnableConfig) -> dict:
 def gate_type(state: AgentState, config: RunnableConfig) -> dict:
     """Short [Y/N] gate: confirm the proposed type, or switch to the other one."""
     proposed = _lesson_type(state)
-    reply = interrupt({"gate": "type", "lesson_type": proposed, "reason": (state.get("reasons") or {}).get("type")})
+    request = {"gate": "type", "lesson_type": proposed, "reason": (state.get("reasons") or {}).get("type")}
+    if state.get("gate_answer"):
+        request["answer"] = state["gate_answer"]
+    if state.get("pending"):
+        request["confirm"] = state["pending"]
+    reply = interrupt(request)
+    if state.get("pending"):
+        if isinstance(reply, dict) and reply.get("cancelled"):
+            request.pop("confirm", None)
+            request["answer"] = msg("gate.cancel.resumed")
+            reply = interrupt(request)
+        elif isinstance(reply, dict) and "text" not in reply and "confirm" not in reply:
+            return {"pending": None, "gate_answer": msg("gate.cancel.declined") + "\n\n" + still_here("type")}
+    if isinstance(reply, dict) and "text" in reply:  # free text: a question, status, cancel, or a type
+        decision, _ = classify_gate_reply(reply["text"], "type", _gate_item_text("type", state), config)
+        if decision in ("question", "status", "cancel", "back_none") or decision.startswith("back:"):
+            update = _gate_text("type", state, config, reply["text"]) if decision != "back_none" else {
+                "gate_answer": msg("gate.back.none") + "\n\n" + still_here("type")}
+            return {k: v for k, v in update.items() if k in ("gate_answer", "pending")}
+        reply = {"confirm": decision == "approve"}  # a change at this gate = the other type
     confirmed = reply.get("confirm", True) if isinstance(reply, dict) else bool(reply)
     lesson_type = proposed if confirmed else other_type(proposed)
     say(msg("gate.type.chosen", type=msg(f"lesson_types.{lesson_type}")))  # after interrupt: printed once
-    return {"lesson_type": lesson_type}
+    return {"lesson_type": lesson_type, "gate_answer": None, "pending": None}
 
 
 def route_after_gate_type(state: AgentState) -> str:
-    """Training lessons research the web first; compliance lessons use only the owner's document."""
+    """A question or a proposal stays at the gate; then training lessons research the web first,
+    compliance lessons use only the owner's document."""
+    if state.get("gate_answer") or state.get("pending"):
+        return "gate_type"
     return "research" if _lesson_type(state) == TRAINING else "topic_map"
 
 
@@ -745,17 +768,27 @@ GATE_CLASSIFY_PROMPT = (
     "builder. Glossary for this gate: {glossary}\n"
     "Classify the reply as exactly one of:\n"
     "APPROVE - accepts the {subject} as it is.\n"
-    "CHANGE - asks to add, remove, merge, split, rename, reorder or reword something.\n"
-    "QUESTION - asks something about the {subject} or the material without requesting a change.\n"
+    "CHANGE - asks to add, remove, merge, split, rename, reorder or reword something of the {subject}.\n"
+    "QUESTION - asks something (why, what, which source) without requesting a change.\n"
+    "BACK - wants to return to an EARLIER stage: {back_targets}. Also a change that belongs to an "
+    "earlier stage (for example removing or merging a topic while the gate shows the structure or the "
+    "lesson) is BACK with that stage as target and the change.\n"
+    "STATUS - asks where the work stands, what is done or left, how long, how much it cost so far.\n"
+    "CANCEL - wants to stop or drop the lesson work now.\n"
     "Reply with only a JSON object: "
-    '{{"decision": "APPROVE" | "CHANGE" | "QUESTION", "change": "<for CHANGE: what to change, '
-    'in the reviewer\'s own language; otherwise empty>"}}'
+    '{{"decision": "APPROVE" | "CHANGE" | "QUESTION" | "BACK" | "STATUS" | "CANCEL", '
+    '"target": "<for BACK: topics or structure; otherwise empty>", "change": "<for CHANGE or BACK: '
+    'what to change, in the reviewer\'s own language; otherwise empty>"}}'
 )
+BACK_TARGETS = {"topics": "topics = the topic map (gate 1)", "structure": "structure = the lesson structure (gate 2)"}
+GATE_DECISIONS = ("APPROVE", "CHANGE", "QUESTION", "BACK", "STATUS", "CANCEL")
 GATE_QUESTION_PROMPT = (
     "You help a reviewer who is approving the {subject} of an e-learning lesson. Answer the "
-    "question briefly (one to three sentences) in Hebrew, using only the {subject} and the "
-    "source excerpts provided. Do not change the {subject} and do not propose a new one. If "
-    "the answer is not there, say so briefly."
+    "question briefly (one to three sentences) in Hebrew, using only what is given: the {subject} "
+    "(with the agent's reasons for its choices), the run's state (lesson type and why, the owner's "
+    "requirements, verified web facts, progress and cost) and the source excerpts. When asked why "
+    "the agent chose something, give the recorded reason. Do not change the {subject} and do not "
+    "propose a new one. If the answer is not there, say so briefly."
 ) + SOURCE_DATA_RULE.replace("{", "{{").replace("}", "}}")
 GATE_EXCERPTS_K = 4
 
@@ -777,6 +810,10 @@ GLOSSARY = {
         "diagram": "the decision-diagram flag of a screen",
         "motif": "the visual motif descriptions for the whole lesson (not a screen's illustration)",
     },
+    "type": {
+        "training": "a training lesson (skills and know-how)",
+        "compliance": "a compliance lesson (rules people must follow)",
+    },
     "review": {
         "lesson": "the whole written lesson",
         "screen": "one screen of the lesson, by its number",
@@ -786,7 +823,9 @@ GLOSSARY = {
         "diagram": "the decision diagram of a screen",
     },
 }
-SUBJECTS = {"topics": "topic map", "structure": "lesson structure", "review": "written lesson"}
+SUBJECTS = {"topics": "topic map", "structure": "lesson structure", "review": "written lesson",
+            "type": "lesson type"}
+GATE_NUMBERS = {"type": 0, "topics": 1, "structure": 2, "review": 3}
 ITEM_KEYS = {"topics": "topic_map", "structure": "structure", "review": "lesson"}
 
 
@@ -802,7 +841,8 @@ def _topics_for_prompt(topics: list[dict]) -> str:
     lines = []
     for i, t in enumerate(topics, 1):
         sources = "; ".join(describe_unit(Unit("", loc, "")) for loc in t["sources"])
-        lines.append(f"{i}. {t['name']} | objective: {t['objective']} | sources: {sources}")
+        reason = f" | reason: {t['reason']}" if t.get("reason") else ""
+        lines.append(f"{i}. {t['name']} | objective: {t['objective']} | sources: {sources}{reason}")
     return "\n".join(lines)
 
 
@@ -814,6 +854,7 @@ def _structure_for_prompt(structure: dict) -> str:
             f"Screen {s['number']}: {s['title']} | topic: {s['topic']} | points: {points} | "
             f"question: {s['question_idea']} | illustration: {s['illustration'] or 'none'} | "
             f"decision diagram: {'yes' if s['decision_diagram'] else 'no'}"
+            + (f" | reason: {s['reason']}" if s.get("reason") else "")
         )
     lines.append("Motifs: " + " / ".join(structure["motifs"]))
     return "\n".join(lines)
@@ -829,6 +870,8 @@ def _review_for_prompt(state: AgentState) -> str:
 
 
 def _gate_item_text(gate: str, state: AgentState) -> str:
+    if gate == "type":
+        return f"Proposed type: {_lesson_type(state)}. Reason: {(state.get('reasons') or {}).get('type') or '-'}"
     if gate == "topics":
         return _topics_for_prompt(state["topic_map"])
     if gate == "review":
@@ -837,11 +880,16 @@ def _gate_item_text(gate: str, state: AgentState) -> str:
 
 
 def classify_gate_reply(text: str, gate: str, item_text: str, config: RunnableConfig | None) -> tuple[str, str]:
-    """Free text at a gate -> ("approve" | "change" | "question", change text).
-    Falls back to a change request with the whole text if the model's reply is unusable."""
+    """Free text at a gate -> (intent, change text). Intents: approve, change, question, status,
+    cancel, and back:<target> (an earlier gate this gate can return to). Falls back to a change
+    request with the whole text if the model's reply is unusable."""
+    from agent.navigation import ALLOWED
+
     subject = SUBJECTS[gate]
+    targets = ALLOWED.get(gate, ())
+    back = "; ".join(BACK_TARGETS[t] for t in targets) or "none from this gate (it is the first one)"
     messages: list = [
-        SystemMessage(GATE_CLASSIFY_PROMPT.format(subject=subject, glossary=glossary_text(gate))),
+        SystemMessage(GATE_CLASSIFY_PROMPT.format(subject=subject, glossary=glossary_text(gate), back_targets=back)),
         HumanMessage(f"Current {subject}:\n{item_text}\n\nReviewer reply: {text}"),
     ]
     for _ in range(GATE_CLASSIFY_ATTEMPTS):
@@ -852,9 +900,14 @@ def classify_gate_reply(text: str, gate: str, item_text: str, config: RunnableCo
         except json.JSONDecodeError:
             data = {}
         decision = str(data.get("decision", "")).strip().upper()
-        if decision in ("APPROVE", "CHANGE", "QUESTION"):
-            change = str(data.get("change") or "").strip() or text
-            return decision.lower(), change if decision == "CHANGE" else ""
+        if decision in GATE_DECISIONS:
+            change = str(data.get("change") or "").strip()
+            if decision == "BACK":
+                target = str(data.get("target") or "").strip().lower()
+                if target not in targets:  # nowhere to go back to from here: answer as a question
+                    return "back_none", ""
+                return f"back:{target}", change
+            return decision.lower(), (change or text) if decision == "CHANGE" else ""
         messages += [
             AIMessage(result.text),
             HumanMessage('Invalid reply. Answer with only the JSON object {"decision": ..., "change": ...}.'),
@@ -862,13 +915,40 @@ def classify_gate_reply(text: str, gate: str, item_text: str, config: RunnableCo
     return "change", text
 
 
-def answer_gate_question(question: str, gate: str, item_text: str, config: RunnableConfig | None) -> str:
-    """A short answer from the reviewed item and the closest excerpts; nothing is changed."""
+def _run_context(state: AgentState, config: RunnableConfig | None) -> str:
+    """The run's state for answering questions: type and why, requirements, web facts, progress, cost."""
+    from agent.requirements import prompt_lines
+
+    lines = []
+    if state.get("lesson_type"):
+        lines.append(f"Lesson type: {state['lesson_type']}; reason: {(state.get('reasons') or {}).get('type') or '-'}")
+    if prompt_lines(state.get("requirements")):
+        lines.append(prompt_lines(state.get("requirements")))
+    verified = [f for f in state.get("web_facts") or [] if f.get("status") == "verified"]
+    if state.get("research"):
+        lines.append(f"Web research: {state['research'].get('searches', 0)} searches, {len(verified)} verified facts:")
+        lines += [f"- {f['fact']} ({f.get('site') or f.get('url', '')})" for f in verified]
+    records_fn = _configurable(config).get("usage_records")
+    records = records_fn() if records_fn else []
+    lines.append(f"So far in this run: {len(records)} model calls, ${sum(r.cost for r in records):.4f}.")
+    findings = state.get("findings")
+    if findings is not None:
+        lines.append(f"Review: {state.get('review_round') or 0} fix rounds; {len(findings)} findings, "
+                     f"{sum(f['status'] == 'fixed' for f in findings)} fixed.")
+    return "\n".join(lines)
+
+
+def answer_gate_question(question: str, gate: str, item_text: str, config: RunnableConfig | None,
+                         state: AgentState | None = None) -> str:
+    """A short answer from the reviewed item (with the agent's reasons), the run's state and the
+    closest excerpts (RAG); nothing is changed."""
     index = _index(config)
     hits = index.retrieve(question, k=GATE_EXCERPTS_K) if index is not None else []
     excerpts = format_excerpts(hits) if hits else "(no matching excerpts)"
     subject = SUBJECTS[gate]
-    user = f"{subject.capitalize()}:\n{item_text}\n\nSource excerpts:\n{excerpts}\n\nQuestion: {question}"
+    context = _run_context(state or {}, config)
+    user = (f"{subject.capitalize()}:\n{item_text}\n\nRun state:\n{context}\n\nSource excerpts:\n{excerpts}"
+            f"\n\nQuestion: {question}")
     system = GATE_QUESTION_PROMPT.format(subject=subject)
     return _call(f"gate_{gate}", [SystemMessage(system), HumanMessage(user)], config).text
 
@@ -885,21 +965,61 @@ def _review_gate(gate: str, state: AgentState, config: RunnableConfig, extra: di
     request: dict = {"gate": gate, item_key: state[item_key], **(extra or {})}
     if state.get("gate_answer"):
         request["answer"] = state["gate_answer"]
+    if state.get("pending"):  # a proposal the CLI confirms with [Y/N]: going back, or cancelling
+        request["confirm"] = state["pending"]
     reply = interrupt(request)
     if not isinstance(reply, dict):
         reply = {"text": str(reply)}
+    if state.get("pending"):
+        if reply.get("cancelled"):  # stays paused at this gate (a fresh interrupt); /resume shows it again
+            request.pop("confirm", None)
+            request["answer"] = msg("gate.cancel.resumed")
+            reply = interrupt(request)
+            if not isinstance(reply, dict):
+                reply = {"text": str(reply)}
+        elif "text" not in reply and "approved" not in reply:  # the owner said N to the proposal
+            return {"pending": None, "approved": None,
+                    "gate_answer": msg(f"gate.{state['pending']['kind']}.declined") + "\n\n" + still_here(gate)}
 
     if "text" in reply:
-        item_text = _gate_item_text(gate, state)
-        decision, change = classify_gate_reply(reply["text"], gate, item_text, config)
-        if decision == "question":
-            return {"approved": None, "gate_answer": answer_gate_question(reply["text"], gate, item_text, config)}
-        reply = {"approved": decision == "approve", "feedback": change}
+        return _gate_text(gate, state, config, reply["text"])
 
+    return _gate_decision(reply)
+
+
+def _gate_decision(reply: dict) -> dict:
     extra_update = {k: reply[k] for k in ("accepted_facts", "motif_choice") if k in reply}
     if reply.get("approved"):
-        return {"approved": True, "feedback": None, "gate_answer": None, **extra_update}
-    return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None, **extra_update}
+        return {"approved": True, "feedback": None, "gate_answer": None, "pending": None, **extra_update}
+    return {"approved": False, "feedback": reply.get("feedback") or "", "gate_answer": None, "pending": None,
+            **extra_update}
+
+
+def still_here(gate: str) -> str:
+    return msg(f"gate.still_here.{gate}")
+
+
+def _gate_text(gate: str, state: AgentState, config: RunnableConfig, text: str) -> dict:
+    """Free text at a gate: classified, then answered, proposed (back, cancel) or applied."""
+    from agent.navigation import back_proposal, status_text
+
+    item_text = _gate_item_text(gate, state)
+    decision, change = classify_gate_reply(text, gate, item_text, config)
+    records_fn = _configurable(config).get("usage_records")
+    records = records_fn() if records_fn else []
+    stay = {"approved": None, "feedback": None}
+    if decision == "question":
+        answer = answer_gate_question(text, gate, item_text, config, state)
+        return {**stay, "gate_answer": answer + "\n\n" + still_here(gate)}
+    if decision == "back_none":
+        return {**stay, "gate_answer": msg("gate.back.none") + "\n\n" + still_here(gate)}
+    if decision == "status":
+        return {**stay, "gate_answer": status_text(state, gate, records) + "\n\n" + still_here(gate)}
+    if decision == "cancel":
+        return {**stay, "gate_answer": None, "pending": {"kind": "cancel"}}
+    if decision.startswith("back:"):
+        return {**stay, "gate_answer": None, "pending": back_proposal(decision.split(":", 1)[1], change, records)}
+    return _gate_decision({"approved": decision == "approve", "feedback": change})
 
 
 def gate_topics(state: AgentState, config: RunnableConfig) -> dict:
@@ -1624,9 +1744,10 @@ def route_after_scope_check(state: AgentState) -> str:
 
 
 def _route_after_review(state: AgentState, gate_node: str, redo_node: str, next_node: str) -> str:
-    """A question returns to the same gate (item unchanged); a change request goes back to
-    the node that produced the item; approval moves on. Nothing skips a gate."""
-    if state.get("gate_answer"):
+    """A question, a status request or a proposal to confirm returns to the same gate (item
+    unchanged); a change request goes back to the node that produced the item; approval moves on.
+    Nothing skips a gate."""
+    if state.get("gate_answer") or state.get("pending"):
         return gate_node
     if state.get("feedback") is not None:
         return redo_node

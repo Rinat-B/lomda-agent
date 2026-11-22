@@ -9,7 +9,8 @@ from agent.commands import CommandHandler
 from agent.config import configure_stdio, ensure_openrouter_key, load_env
 from agent.console import ask, log, say, say_path, show_markdown
 from agent.errors import report_error, setup_logging
-from agent.gates import CostPause, GateExit, ask_gate
+from agent.gates import CostPause, GateExit, ask_gate, set_command_hook
+from agent.navigation import GoBack
 from agent.mcp_client import MCPManager, run_server
 from agent.messages import msg
 from agent.session import Session
@@ -61,6 +62,7 @@ FRESH_RUN = {
     "audience_in_source": None,
     "reasons": None,
     "screens_note": None,
+    "pending": None,
     "cost_cap": None,
     "cost_stop": None,
     "fixed_illustrations": None,
@@ -161,9 +163,19 @@ def run_graph(session: Session, graph, payload, ask_fn: Callable[[str], str] = a
             if not snapshot.interrupts:
                 break
             paused_node = snapshot.next[0] if snapshot.next else None
-            resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say,
-                              preview=preview_lesson, say_path=say_path, motif_preview=preview_motifs)
+            try:
+                resume = ask_gate(snapshot.interrupts[0].value, ask_fn, show_markdown, say,
+                                  preview=preview_lesson, say_path=say_path, motif_preview=preview_motifs)
+            except GoBack as back:  # confirmed: fork the thread at the earlier gate (agent/navigation.py)
+                from agent.navigation import go_back
+
+                say(msg(f"gate.back.going.{back.target}"))
+                stream_until_pause(graph, None, go_back(graph, config, back.target, back.change))
+                continue
             stream_until_pause(graph, Command(resume=resume), config, resumed_node=paused_node)
+            if isinstance(resume, dict) and resume.get("cancelled"):
+                say(msg("gate.cancel.done"), style="yellow")
+                break
     except CostPause:
         say(msg("cost_cap.paused"), style="yellow")
         return True
@@ -291,6 +303,7 @@ def main(argv: list[str] | None = None) -> None:
     graph = build_graph(open_checkpointer())
     mcp = MCPManager()
     handler = CommandHandler(Session(), mcp=mcp, store=ConversationStore(), graph=graph)
+    set_command_hook(handler.handle)  # /cost, /summary, /model, help typed at a gate run there
     say(msg("cli.welcome"))
 
     while True:

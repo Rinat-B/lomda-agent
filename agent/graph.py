@@ -90,7 +90,8 @@ def build_graph(checkpointer=None):
     )
     graph.add_edge("answer", END)
     graph.add_edge("classify_type", "gate_type")
-    graph.add_conditional_edges("gate_type", route_after_gate_type, {"research": "research", "topic_map": "topic_map"})
+    graph.add_conditional_edges("gate_type", route_after_gate_type,
+                                {"gate_type": "gate_type", "research": "research", "topic_map": "topic_map"})
     graph.add_edge("research", "topic_map")
     graph.add_edge("topic_map", "gate_topics")
     graph.add_conditional_edges(
