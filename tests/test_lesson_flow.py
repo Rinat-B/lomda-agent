@@ -218,6 +218,8 @@ def prompt_kind(system: str) -> str:
         return "illustration_fix"
     if system.startswith("You check the decision diagrams"):
         return "check"
+    if system.startswith("The owner of an e-learning lesson answered"):
+        return "clarify"
     if system.startswith("You design the visual motif"):
         return "motif"
     if system.startswith("You check the LOGIC of one interactive illustration"):
@@ -305,6 +307,8 @@ def scripted(answers, save: str = "N", review: str = "Y"):
             return review
         if prompt.startswith(msg("gate.browser_check.ask", count=0).split("0")[0]):
             return "N"  # unit tests do not start a browser
+        if prompt == msg("conversation.ask"):
+            return ""  # the clarification question: the defaults
         if prompt.startswith(msg("gate.structure.motif_ask", count=0).split("0")[0]):
             return ""  # the first motif candidate
         return next(asked)
@@ -370,6 +374,14 @@ class FakeModel:
             return make_result(text='{"ideas": []}')
         if kind == "research_gaps":
             return make_result(text='{"findings": [], "ideas": []}')
+        if kind == "clarify":  # the owner's answer to the clarification: a number and an audience
+            import re as _re
+
+            answer = user.split("Answer:", 1)[-1]
+            number = _re.search(r"\d+", answer)
+            return make_result(text=json.dumps({"audience": answer.split(",")[0].strip() if "," in answer else None,
+                                                "screens": int(number.group(0)) if number else None,
+                                                "wider_search": "חיפוש" in answer}, ensure_ascii=False))
         if kind == "answer":  # a question at a gate: echo what the answer was based on
             return make_result(text="FAKE ANSWER" + (" | with run state" if "Run state:" in user else ""))
         raise AssertionError(f"unexpected prompt: {system[:70]}")
@@ -474,7 +486,8 @@ def test_no_edge_bypasses_a_gate():
     # A gate goes back (change), to itself (question answered), or on (approved).
     assert successors("gate_topics") == {"topic_map", "gate_topics", "plan_structure"}
     assert successors("gate_structure") == {"plan_structure", "gate_structure", "write_lesson"}
-    assert successors("gate_type") == {"gate_type", "research", "topic_map"}  # a question stays; research: training only
+    assert successors("gate_type") == {"gate_type", "clarify"}  # a question stays at the gate
+    assert successors("clarify") == {"research", "topic_map"}  # research: training only
     assert successors("research") == {"topic_map"}
     assert successors("write_lesson") == {"write_lesson", "build_illustrations"}
     assert successors("build_illustrations") == {"browser_check"}

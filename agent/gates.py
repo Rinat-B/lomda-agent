@@ -111,7 +111,7 @@ def format_structure(structure: dict) -> str:
 
 
 # Commands that run directly at any gate (not sent to the classifier); then the gate asks again.
-GATE_COMMANDS = ("/cost", "/summary", "/help", "help", "?", "/model", "/files")
+GATE_COMMANDS = ("/cost", "/summary", "/help", "help", "?", "/model", "/files", "/add")
 _command_hook: Callable[[str], object] | None = None
 
 
@@ -175,6 +175,8 @@ def format_review(summary: dict) -> str:
         lines.append(msg("gate.review.budget_stop", **summary["budget_stop"]))
     if summary.get("cost_stop"):
         lines.append(msg("cost_cap.gate_line", **summary["cost_stop"]))
+    if summary.get("suggestion"):
+        lines += ["", summary["suggestion"]]
     lines += ["", msg("gate.review.open_title"), ""]
     open_ = summary["open"]
     if not open_:
@@ -373,6 +375,22 @@ def ask_cost_gate(request: dict, ask: Callable[[str], str], say: Callable[..., N
         say(msg("cost_cap.ask_again"), style="yellow")
 
 
+def ask_clarify_gate(request: dict, ask: Callable[[str], str], say: Callable[..., None]) -> dict:
+    """One question at the start: what is missing, with the defaults (Enter or Y accepts them), and the
+    agent's suggestion when the material is thin. /add works here too."""
+    defaults = request["defaults"]
+    if request.get("suggestion"):
+        say(request["suggestion"]["text"], style="yellow")
+    if request.get("missing"):
+        parts = [msg(f"conversation.ask_{m}") for m in request["missing"]]
+        say(msg("conversation.question", parts=" ".join(parts), audience=defaults["audience"], screens=defaults["screens"]))
+    text = _read(ask, msg("conversation.ask")).strip()
+    decision = parse_decision(text)
+    if not text or (decision is not None and decision.explicit and decision.approved and not decision.feedback):
+        return {"accept": True}
+    return {"text": text}
+
+
 def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], None],
              say: Callable[..., None], preview: Callable[[dict], None] | None = None,
              say_path: Callable[..., None] | None = None, motif_preview: Callable[[list, dict], None] | None = None) -> dict:
@@ -385,4 +403,6 @@ def ask_gate(request: dict, ask: Callable[[str], str], show: Callable[[str], Non
         return ask_browser_check_gate(request, ask, say, say_path)
     if request.get("gate") == "cost_cap":
         return ask_cost_gate(request, ask, say)
+    if request.get("gate") == "clarify":
+        return ask_clarify_gate(request, ask, say)
     return ask_review_gate(request, ask, show, say, preview, motif_preview)

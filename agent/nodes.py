@@ -236,6 +236,9 @@ class AgentState(TypedDict, total=False):
     reasons: dict | None  # the agent's reasons: {"type": "..."}; topics and screens carry their own "reason"
     screens_note: dict | None  # the requested number of screens could not be met as asked (shown at gate 2)
     pending: dict | None  # a proposal the owner confirms at the gate: {"kind": "back" | "cancel", ...}
+    clarified: bool | None  # the clarification question was asked (or not needed) in this run
+    suggestions: list[dict] | None  # the agent's suggestions {"when", "text", "reason", "answer"} (report.md)
+    research_wide: bool | None  # the owner accepted a wider web search (thin material, training)
 
 
 def _configurable(config: RunnableConfig | None) -> dict:
@@ -554,11 +557,99 @@ def classify_type(state: AgentState, config: RunnableConfig) -> dict:
             reasons = dict(state.get("reasons") or {})
             if str(data.get("reason") or "").strip():
                 reasons["type"] = str(data["reason"]).strip()
+            requirements = merge(state.get("requirements"), parse_requirements(data))
+            _say_opening(requirements, proposed, len(units))
             return {"lesson_type": proposed, "lesson_started": time.time(), "reasons": reasons,
-                    "requirements": merge(state.get("requirements"), parse_requirements(data)),
+                    "requirements": requirements,
                     "audience_in_source": str(data.get("audience_in_source") or "").strip() or None}
         messages += [AIMessage(result.text), HumanMessage('Reply with only {"type": "training" or "compliance", "reason": "..."}.')]
     return {"lesson_type": TRAINING, "lesson_started": time.time()}  # unclear: propose training; the user confirms
+
+
+def _say_opening(requirements: dict, lesson_type: str, units: int) -> None:
+    """What will happen: the stages, the gates, and about how many calls and minutes (no gate yet)."""
+    from agent.conversation import default_screens, opening_message
+    from agent.llm import active_profile
+
+    screens = requirements.get("screens") or requirements.get("screens_about") or default_screens(units)
+    say(opening_message(screens, lesson_type, active_profile(), units))
+
+
+CLARIFY_PROMPT = (
+    "The owner of an e-learning lesson answered a question about the target audience, the length "
+    "(number of screens) and, maybe, whether to widen the web search. Extract what the answer says. "
+    'Reply with only a JSON object: {"audience": "<Hebrew or null>", "screens": <number or null>, '
+    '"wider_search": true or false}'
+)
+
+
+def clarify(state: AgentState, config: RunnableConfig) -> dict:
+    """One question at the start, only when needed: the audience and the length when neither the
+    request nor the material gives them (with defaults: Enter accepts them), and, when the material
+    is thin, the agent's suggestion (training: a wider web search or another file; compliance:
+    another file). Answered once per run; defaults the owner accepted are not asked again."""
+    from agent.conversation import default_screens, is_thin, material_chars, missing, thin_suggestion
+
+    if state.get("clarified"):
+        return {}
+    index = _index(config)
+    chunks = _owner_chunks(index.chunks if index is not None else [])
+    units = len(_units(config, "clarify")) if index is not None else 0
+    lesson_type = _lesson_type(state)
+    need = missing(state.get("requirements"), state.get("audience_in_source"))
+    suggestion = thin_suggestion(lesson_type, material_chars(chunks)) if is_thin(chunks) else None
+    if not need and not suggestion:
+        return {"clarified": True}
+    defaults = {"audience": state.get("audience_in_source") or msg("conversation.default_audience"),
+                "screens": default_screens(units)}
+    reply = interrupt({"gate": "clarify", "missing": need, "defaults": defaults, "lesson_type": lesson_type,
+                       "suggestion": suggestion})
+    text = (reply.get("text") or "").strip() if isinstance(reply, dict) else str(reply or "").strip()
+    extracted = _clarify_answer(text, config) if text else {}
+    requirements = dict(state.get("requirements") or {})
+    if "audience" in need:
+        requirements["audience"] = extracted.get("audience") or defaults["audience"]
+    if "screens" in need:
+        if extracted.get("screens"):
+            requirements["screens"] = extracted["screens"]
+        else:
+            requirements["screens_about"] = defaults["screens"]  # a default: about, not exactly
+    suggestions = list(state.get("suggestions") or [])
+    wide = bool(extracted.get("wider_search")) and lesson_type == TRAINING
+    if suggestion:
+        suggestions.append({**suggestion, "answer": msg("conversation.thin.accepted" if wide else "conversation.thin.kept")})
+    say(msg("conversation.clarified", audience=requirements.get("audience") or "-",
+            screens=requirements.get("screens") or msg("conversation.about", n=requirements.get("screens_about") or "-")))
+    return {"requirements": requirements, "clarified": True, "suggestions": suggestions, "research_wide": wide}
+
+
+def _clarify_answer(text: str, config: RunnableConfig) -> dict:
+    """The owner's free answer -> {"audience", "screens", "wider_search"} (small model; a number in
+    the text is the number of screens if the model fails)."""
+    try:
+        result = _call("clarify", [SystemMessage(CLARIFY_PROMPT), HumanMessage(f"Answer: {text}")], config, role="small")
+        match = re.search(r"\{.*\}", result.text, re.DOTALL)
+        data = json.loads(match.group(0)) if match else {}
+    except (NodeError, json.JSONDecodeError):
+        data = {}
+    out: dict = {}
+    if str(data.get("audience") or "").strip().lower() not in ("", "null", "none"):
+        out["audience"] = str(data["audience"]).strip()
+    number = data.get("screens")
+    if number in (None, "", "null"):
+        found = re.search(r"\d+", text)
+        number = found.group(0) if found else None
+    try:
+        out["screens"] = int(number) if number is not None and int(number) > 0 else None
+    except (TypeError, ValueError):
+        pass
+    out["wider_search"] = data.get("wider_search") is True or str(data.get("wider_search")).lower() == "true"
+    return out
+
+
+def route_after_clarify(state: AgentState) -> str:
+    """Training lessons research the web first; compliance lessons use only the owner's document."""
+    return "research" if _lesson_type(state) == TRAINING else "topic_map"
 
 
 def gate_type(state: AgentState, config: RunnableConfig) -> dict:
@@ -595,7 +686,7 @@ def route_after_gate_type(state: AgentState) -> str:
     compliance lessons use only the owner's document."""
     if state.get("gate_answer") or state.get("pending"):
         return "gate_type"
-    return "research" if _lesson_type(state) == TRAINING else "topic_map"
+    return "clarify"
 
 
 def _research_subject(state: AgentState, chunks: list[dict]) -> tuple[str, str]:
@@ -635,7 +726,13 @@ def research(state: AgentState, config: RunnableConfig) -> dict:
             return result
         raise error or RuntimeError("no writer model")
 
-    run = run_research(subject, material, small, search)
+    config_research = None
+    if state.get("research_wide"):  # the owner accepted a wider search (thin material)
+        from agent.conversation import settings
+        from agent.research import research_config
+
+        config_research = {**research_config(), "open_ideas": settings()["wide_research_ideas"]}
+    run = run_research(subject, material, small, search, config=config_research)
     verified = [f for f in run.facts if f["status"] == VERIFIED]
     log(msg("research.done", searches=run.searches, verified=len(verified),
             unverified=sum(f["status"] not in (VERIFIED, REJECTED) for f in run.facts),
@@ -1689,8 +1786,20 @@ def review_summary(state: AgentState) -> dict:
 def gate_review(state: AgentState, config: RunnableConfig) -> dict:
     """Gate 3: the content owner sees a summary and a preview in the browser (opened by the
     CLI), then approves (-> write_files), asks for a change (-> fix_screens) or asks a question."""
+    from agent.conversation import review_suggestion
+
+    summary = review_summary(state)
+    suggestion = review_suggestion(len(summary["open"]))
+    if suggestion:
+        summary["suggestion"] = suggestion["text"]
     update = _review_gate("review", state, config,
-                          extra={"summary": review_summary(state), "illustrations": state.get("illustrations") or {}})
+                          extra={"summary": summary, "illustrations": state.get("illustrations") or {}})
+    if suggestion:
+        answered = msg("conversation.review_approved") if update.get("approved") else (
+            msg("conversation.review_changed") if update.get("feedback") else None)
+        if answered:
+            kept = [s for s in state.get("suggestions") or [] if s.get("when") != "review"]
+            update["suggestions"] = kept + [{**suggestion, "answer": answered}]
     update["owner_request"] = None
     if update.get("feedback") is not None and state.get("cost_stop"):
         update["cost_stop"] = None  # the owner asks for more work: the cost gate asks again

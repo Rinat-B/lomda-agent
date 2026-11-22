@@ -175,10 +175,11 @@ def test_usable_facts_and_their_chunks():
 
 # ---- graph and gates ---------------------------------------------------------------------------
 def test_compliance_skips_research():
-    from agent.nodes import route_after_gate_type
+    from agent.nodes import route_after_clarify, route_after_gate_type
 
-    assert route_after_gate_type({"lesson_type": "compliance"}) == "topic_map"
-    assert route_after_gate_type({"lesson_type": "training"}) == "research"
+    assert route_after_gate_type({"lesson_type": "compliance"}) == "clarify"  # then the clarification
+    assert route_after_clarify({"lesson_type": "compliance"}) == "topic_map"
+    assert route_after_clarify({"lesson_type": "training"}) == "research"
 
 
 def test_gate_2_shows_unverified_facts_and_takes_the_owners_choice():

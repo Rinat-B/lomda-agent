@@ -59,3 +59,13 @@ research:
 illustrations:
   free: 3
   balanced: 5
+
+# The conversation around the flow (agent/conversation.py).
+conversation:
+  seconds_per_call:      # for the opening estimate, from the measured runs (day 9-10 free: ~55 s a call)
+    free: 55
+    balanced: 20
+  thin_material_chars: 2500   # less owner material than this: the agent suggests more (web or a file)
+  default_screens_min: 5      # the default length offered in the clarification: source units + 3,
+  default_screens_max: 12     # within these bounds
+  wide_research_ideas: 5      # open research ideas when the owner accepts a wider search (default 3)

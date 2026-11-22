@@ -160,6 +160,11 @@ def build_report(state: dict, usage: list, source_label, elapsed_minutes: int | 
         lines.append(msg("report.budget_stop", **review["budget_stop"]))
     lines.append("")
 
+    if state.get("suggestions"):  # what the agent proposed, why, and what the owner chose
+        lines += [msg("report.suggestions_title"), ""]
+        lines += [msg("report.agent_suggestion", text=_one_line(s["text"]), reason=_one_line(s.get("reason")),
+                      answer=_one_line(s.get("answer") or "-")) for s in state["suggestions"]]
+        lines.append("")
     lines += [msg("report.open_title"), ""]
     if open_:
         for f in sorted(open_, key=lambda f: (f.get("screen") or 0)):

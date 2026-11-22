@@ -48,6 +48,9 @@ def prompt_lines(req: dict | None) -> str:
     lines = []
     if req.get("screens"):
         lines.append(f"- number of screens: {req['screens']}")
+    elif req.get("screens_about"):
+        lines.append(f"- about {req['screens_about']} screens (a default the owner accepted; one screen per "
+                     "topic, and a second only for a separate decision, is fine)")
     for key, label in (("audience", "target audience"), ("emphasis", "emphasis"), ("style", "style")):
         if req.get(key):
             lines.append(f"- {label}: {req[key]}")

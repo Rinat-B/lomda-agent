@@ -37,6 +37,7 @@ from agent.nodes import (
     assemble_lesson_node,
     browser_check,
     build_illustrations,
+    clarify,
     classify_type,
     cost_guarded,
     evaluator,
@@ -51,6 +52,7 @@ from agent.nodes import (
     route_after_evaluator,
     route_after_gate_review,
     route_after_gate_topics,
+    route_after_clarify,
     route_after_gate_type,
     route_after_scope_check,
     route_after_write,
@@ -69,6 +71,7 @@ def build_graph(checkpointer=None):
     graph.add_node("answer", answer)
     graph.add_node("classify_type", classify_type)
     graph.add_node("gate_type", gate_type)
+    graph.add_node("clarify", clarify)
     graph.add_node("research", cost_guarded("research", research))
     graph.add_node("topic_map", cost_guarded("topic_map", topic_map))
     graph.add_node("gate_topics", gate_topics)
@@ -90,8 +93,8 @@ def build_graph(checkpointer=None):
     )
     graph.add_edge("answer", END)
     graph.add_edge("classify_type", "gate_type")
-    graph.add_conditional_edges("gate_type", route_after_gate_type,
-                                {"gate_type": "gate_type", "research": "research", "topic_map": "topic_map"})
+    graph.add_conditional_edges("gate_type", route_after_gate_type, {"gate_type": "gate_type", "clarify": "clarify"})
+    graph.add_conditional_edges("clarify", route_after_clarify, {"research": "research", "topic_map": "topic_map"})
     graph.add_edge("research", "topic_map")
     graph.add_edge("topic_map", "gate_topics")
     graph.add_conditional_edges(
