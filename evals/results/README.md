@@ -124,6 +124,36 @@ findings are still false alarms (a hint after a crash, "no post seen means under
 100 m" as a number), and each one can cost a page rebuild in a fix round; the owner sees them
 at gate 3. Report: `illustration_logic_free.txt` (round 2: `illustration_logic_free_round2.txt`).
 
+## Conversation (`evals/conversation_eval.py`)
+
+30 Hebrew replies at gates 1-3 (`evals/fixtures/conversation_intents.json`, some vague) through the real
+gate classifier in the free profile ($0), and three scripted conversations with a fake model
+(`tests/test_conversation_scenarios.py`). Files: `conversation_eval.csv`, `conversation_eval_summary.md`.
+
+Gate classifier (nvidia/nemotron-3.5-lightning:free, google/gemma-4-26b-a4b-it:free, nvidia/nemotron-3.5-super-vl:free): 28/30 correct (93%).
+
+| intent | correct |
+| --- | --- |
+| approve | 6/6 |
+| back | 4/4 |
+| cancel | 3/4 |
+| change | 6/7 |
+| question | 5/5 |
+| status | 4/4 |
+
+Misread:
+
+- (structure) "הממ, לא בטוחה לגבי המבנה": expected change, got question
+- (review) "לא משנה, נוותר": expected cancel, got approve
+
+| scripted conversation (fake model) | result |
+| --- | --- |
+| test_scenario_1_five_screens_a_question_and_back_to_the_topics | passed |
+| test_scenario_2_cancel_then_resume_in_a_new_program | passed |
+| test_scenario_3_a_change_after_saving | passed |
+
+The risky misread is "never mind, let's drop it" read as approval at gate 3. The file-writing [Y/N] that follows gate 3 still stops it: nothing is saved without an explicit Y.
+
 ## Day 10: real run with the new checks
 
 A free run that was stopped mid-way and resumed from its checkpoint, compared with day 9:

@@ -1,0 +1,31 @@
+gate,text,expected,got,correct,error,seconds
+topics,"נראה מצוין, אפשר להמשיך",approve,approve,True,,6.0
+topics,סבבה,approve,approve,True,,3.3
+topics,תאחד את הנושאים 2 ו-3,change,change,True,,4.4
+topics,חסר לי נושא על דיווח אחרי החלקה,change,change,True,,5.8
+topics,למה הפרדת בין בלימה להחלקה?,question,question,True,,4.8
+topics,מאיפה לקחת את הנושא של הראות?,question,question,True,,7.4
+topics,איפה אנחנו בתהליך?,status,status,True,,2.6
+topics,כמה זה עלה עד עכשיו?,status,status,True,,3.5
+topics,"עזוב, לא צריך את הלומדה הזו",cancel,cancel,True,,5.0
+topics,בוא נעצור כאן להיום,cancel,cancel,True,,15.1
+structure,מאשרת את המבנה,approve,approve,True,,2.8
+structure,בסדר מבחינתי,approve,approve,True,,3.2
+structure,תוסיף המחשה למסך 3,change,change,True,,3.7
+structure,המסך החמישי מיותר,change,change,True,,5.9
+structure,למה יש תרשים החלטה דווקא במסך 4?,question,question,True,,3.4
+structure,תחזור לנושאים,back:topics,back:topics,True,,7.8
+structure,"רגע, תוריד את הנושא השלישי",back:topics,back:topics,True,,23.2
+structure,מה עוד נשאר לעשות?,status,status,True,,4.2
+structure,תבטל את כל זה,cancel,cancel,True,,4.3
+structure,"הממ, לא בטוחה לגבי המבנה",change,question,False,,15.3
+review,"מעולה, תשמור",approve,approve,True,,6.7
+review,אפשר לסגור את זה,approve,approve,True,,5.6
+review,תתקן את השאלה במסך 4,change,change,True,,3.0
+review,הניסוח במסך 2 ארוך מדי,change,change,True,,4.4
+review,למה השאלה במסך 4 לא תוקנה?,question,question,True,,3.6
+review,בוא נחזור למבנה ונוסיף מסך,back:structure,back:structure,True,,4.8
+review,אני רוצה לשנות את מפת הנושאים,back:topics,back:topics,True,,5.0
+review,כמה קריאות היו בסך הכל?,status,status,True,,5.1
+review,"לא משנה, נוותר",cancel,approve,False,,4.3
+review,ומה אם נשאיר ככה?,question,question,True,,4.1
