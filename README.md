@@ -41,9 +41,10 @@ flowchart TD
     START([start]) --> scope_check
     scope_check -->|question| answer --> END1([end])
     scope_check -->|out of scope / no files| END2([end])
-    scope_check -->|build lesson| classify_type --> gate_type
-    gate_type -->|training| research --> topic_map
-    gate_type -->|compliance| topic_map
+    scope_check -->|build lesson| classify_type --> gate_type --> clarify
+    scope_check -->|change the saved lesson| edit_lesson --> fix_screens
+    clarify -->|training| research --> topic_map
+    clarify -->|compliance| topic_map
     topic_map --> gate_topics
     gate_topics -->|change| topic_map
     gate_topics -->|question| gate_topics
@@ -125,13 +126,26 @@ with `powershell -ExecutionPolicy Bypass -File scripts\build.ps1`.
 | `/files` | the files in this conversation |
 | `/mcp`, `/mcp auth <name>` | the MCP servers and their tools; enter credentials in a hidden prompt |
 | `/cost` | calls, tokens and cost so far, by node and model (also printed after every task) |
-| `/summary [path]` | save a summary of the conversation (files, requests and outcomes, cost) to a text file, after `[Y/N]` |
+| `/summary [path]` | save a summary of the conversation (files, requests and outcomes, cost) to a text file, after `[Y/N]`; complete after `/resume` too |
+| `/model [free\|balanced]` | the profile and the models of each role; switch the profile after an explanation of the cost and `[Y/N]`, also mid-run at a gate |
 | `/resume` | continue a conversation that stopped at a gate, at the cost cap, or inside a node |
 | `/new`, `/quit` | new conversation, exit |
 | `agent.exe --check-browser` | check that the illustration browser test can run on this machine (installed Edge) |
 
-At a gate: `Y` approves, `N` + comment asks for a change, free text is classified by a small
-model (approve / change / question), `exit` pauses at the gate.
+At a gate: `Y` approves, `N` + comment asks for a change, and free text is classified by a small
+model as approve, change, question (answered from the item, the agent's reasons, the run's state and
+the source), back (to the topics or the structure: the agent says what will run again and asks
+`[Y/N]`, then forks the thread from that gate's checkpoint), status (where we are, what is done and
+left, calls and cost) or cancel (after `[Y/N]` the conversation stays at the gate for `/resume`).
+`/cost`, `/summary`, `/help`, `/model`, `/files` and `/add` typed at a gate run there and the gate asks
+again. `exit` pauses at the gate.
+
+**Talking to the agent.** The request's own requirements are kept and honoured ("a lesson of 5
+screens for new drivers" gives 5 screens; a request that cannot be met, such as fewer screens than
+topics, is said at gate 2 with an alternative). When the audience or the length is missing, one
+question with defaults comes first; thin material gets a suggestion (a wider web search or another
+file). After a lesson was saved, the next message can change it ("on screen 4 replace the
+question"): only that screen is rewritten and checked, and a new version is saved.
 
 ## Profiles and keys
 

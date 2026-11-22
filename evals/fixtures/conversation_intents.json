@@ -1,0 +1,40 @@
+{
+ "_note": "Hebrew replies at the gates with the intent a careful reader would give them. expected: approve | change | question | status | cancel | back:topics | back:structure. Some are deliberately vague.",
+ "items": {
+  "topics": "1. בדיקת צמיגים | מטרה: הלומד יוכל להחליט אם לצאת עם צמיג שחוק\n2. מרחקי בלימה | מטרה: הלומד יוכל לבחור מרווח\n3. החלקה | מטרה: הלומד יוכל להגיב להחלקה\n4. ראות מוגבלת | מטרה: הלומד יוכל להחליט מתי לעצור בצד",
+  "structure": "מסך 1: צמיגים | מסך 2: מרחקי בלימה (המחשה) | מסך 3: החלקה | מסך 4: ערפל (תרשים החלטה) | מסך 5: סיכום",
+  "review": "לומדה של 5 מסכים: צמיגים, בלימה, החלקה, ערפל, סיכום. ממצא פתוח: שאלה במסך 4 עם יותר מתשובה נכונה אחת."
+ },
+ "cases": [
+  {"gate": "topics", "text": "נראה מצוין, אפשר להמשיך", "expected": "approve"},
+  {"gate": "topics", "text": "סבבה", "expected": "approve"},
+  {"gate": "topics", "text": "תאחד את הנושאים 2 ו-3", "expected": "change"},
+  {"gate": "topics", "text": "חסר לי נושא על דיווח אחרי החלקה", "expected": "change"},
+  {"gate": "topics", "text": "למה הפרדת בין בלימה להחלקה?", "expected": "question"},
+  {"gate": "topics", "text": "מאיפה לקחת את הנושא של הראות?", "expected": "question"},
+  {"gate": "topics", "text": "איפה אנחנו בתהליך?", "expected": "status"},
+  {"gate": "topics", "text": "כמה זה עלה עד עכשיו?", "expected": "status"},
+  {"gate": "topics", "text": "עזוב, לא צריך את הלומדה הזו", "expected": "cancel"},
+  {"gate": "topics", "text": "בוא נעצור כאן להיום", "expected": "cancel"},
+  {"gate": "structure", "text": "מאשרת את המבנה", "expected": "approve"},
+  {"gate": "structure", "text": "בסדר מבחינתי", "expected": "approve"},
+  {"gate": "structure", "text": "תוסיף המחשה למסך 3", "expected": "change"},
+  {"gate": "structure", "text": "המסך החמישי מיותר", "expected": "change"},
+  {"gate": "structure", "text": "למה יש תרשים החלטה דווקא במסך 4?", "expected": "question"},
+  {"gate": "structure", "text": "תחזור לנושאים", "expected": "back:topics"},
+  {"gate": "structure", "text": "רגע, תוריד את הנושא השלישי", "expected": "back:topics"},
+  {"gate": "structure", "text": "מה עוד נשאר לעשות?", "expected": "status"},
+  {"gate": "structure", "text": "תבטל את כל זה", "expected": "cancel"},
+  {"gate": "structure", "text": "הממ, לא בטוחה לגבי המבנה", "expected": "change"},
+  {"gate": "review", "text": "מעולה, תשמור", "expected": "approve"},
+  {"gate": "review", "text": "אפשר לסגור את זה", "expected": "approve"},
+  {"gate": "review", "text": "תתקן את השאלה במסך 4", "expected": "change"},
+  {"gate": "review", "text": "הניסוח במסך 2 ארוך מדי", "expected": "change"},
+  {"gate": "review", "text": "למה השאלה במסך 4 לא תוקנה?", "expected": "question"},
+  {"gate": "review", "text": "בוא נחזור למבנה ונוסיף מסך", "expected": "back:structure"},
+  {"gate": "review", "text": "אני רוצה לשנות את מפת הנושאים", "expected": "back:topics"},
+  {"gate": "review", "text": "כמה קריאות היו בסך הכל?", "expected": "status"},
+  {"gate": "review", "text": "לא משנה, נוותר", "expected": "cancel"},
+  {"gate": "review", "text": "ומה אם נשאיר ככה?", "expected": "question"}
+ ]
+}
