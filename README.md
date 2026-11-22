@@ -15,11 +15,14 @@ design and the decisions behind it are in [docs/SPEC.md](docs/SPEC.md) (Hebrew).
 2. **Scope**: every message goes through `scope_check`: questions about the material are
    answered with RAG (BM25 with Hebrew-aware tokens, cited sources); requests to build a
    lesson start the lesson flow; anything else is politely refused.
-3. **Plan**: lesson type (training or compliance, gate), topic map with learning objectives
-   (gate 1), screen structure with a decision question per screen (gate 2).
+3. **Plan**: lesson type (training or compliance, gate), web research (training only),
+   topic map with learning objectives (gate 1), screen structure with a decision question per
+   screen and two visual-motif candidates to choose from (gate 2).
 4. **Write and review**: screens are written 3-4 at a time; checkers (code and model)
    look for ungrounded facts, Hebrew errors, questions with more than one right answer,
-   recall questions, weak distractors, repeated facts, weak illustrations and diagram logic;
+   recall questions, weak distractors, repeated facts, weak illustrations, decision diagrams
+   (both ways against the source) and the logic of every interactive illustration (its
+   thresholds, numbers, choices and feedback against the source);
    only the screens with findings are rewritten (at most 2 rounds), and each finding is
    checked again by the checker that found it. Coverage is measured against the source's key
    points.
@@ -38,7 +41,10 @@ flowchart TD
     START([start]) --> scope_check
     scope_check -->|question| answer --> END1([end])
     scope_check -->|out of scope / no files| END2([end])
-    scope_check -->|build lesson| classify_type --> gate_type --> topic_map --> gate_topics
+    scope_check -->|build lesson| classify_type --> gate_type
+    gate_type -->|training| research --> topic_map
+    gate_type -->|compliance| topic_map
+    topic_map --> gate_topics
     gate_topics -->|change| topic_map
     gate_topics -->|question| gate_topics
     gate_topics -->|approve| plan_structure --> gate_structure
@@ -46,7 +52,7 @@ flowchart TD
     gate_structure -->|question| gate_structure
     gate_structure -->|approve| write_lesson
     write_lesson -->|next group| write_lesson
-    write_lesson -->|all written| assemble_lesson --> evaluator
+    write_lesson -->|all written| build_illustrations --> browser_check --> assemble_lesson --> evaluator
     evaluator -->|open findings, round < 2, fits the budget| fix_screens --> assemble_lesson
     evaluator -->|done| gate_review
     gate_review -->|owner's change| fix_screens
@@ -55,9 +61,17 @@ flowchart TD
 ```
 
 `injection_guard` runs at `/add`, outside the graph. Every gate pauses the graph with
-`interrupt()`; the state is saved in `data/checkpoints.sqlite`, so `/resume` continues a
-conversation that stopped at a gate. The CLI prints `[INFO] Entering Node: <name>` for every
-node.
+`interrupt()`; the state is saved in `data/checkpoints.sqlite` after every node, so `/resume`
+continues a conversation that stopped at a gate, at the cost cap, or in the middle of a node
+(Ctrl+C, a closed window). The CLI prints `[INFO] Entering Node: <name>` for every node.
+
+**Spending cap.** The paid nodes (research, topic_map, plan_structure, write_lesson,
+build_illustrations, evaluator, fix_screens) are wrapped by a cost check: before one starts, if
+the run's cost so far plus the node's estimate would cross `MAX_COST_USD` (default 1.5), the
+agent asks `[Y/N]` and shows the cost so far and an estimate for the rest. `Y` raises the cap
+for this run; `N` finishes in order (no more fix rounds or paid checks, the lesson is kept and
+saved after gate 3, and `report.md` says the run stopped at the cap) or, before the lesson is
+written, pauses the run for `/resume`. While nodes run, Windows is kept awake.
 
 ## Extensions
 
@@ -66,7 +80,7 @@ node.
 | **MCP**: `source-reader` server (stdio, FastMCP) for pptx, docx, pdf, txt, md; `/mcp`, `/mcp auth` | built |
 | **RAG**: BM25 over the source chunks, Hebrew prefixes and niqqud handled, answers cite slide/page | built |
 | **Web search**: training lessons only; OpenRouter's web plugin (Exa, 3 results, at most 12 searches a lesson); every fact needs a quote that the agent finds on the downloaded page (HTML, PDF, or the page rendered in Edge); official sources only (`agent/assets/web_sources.json`); unverified facts go to the owner at gate 2 | built |
-| **Code execution**: one writer call per interactive illustration builds a self-contained HTML page, cleaned in code (no network, no eval), then, after `[Y/N]`, checked in the installed Edge at 390 and 1280 px (loads, no console errors, no sideways scroll, Tab reaches every control, a control changes the page); the player runs it in `<iframe sandbox="allow-scripts">` | built |
+| **Code execution**: one writer call per interactive illustration builds a self-contained HTML page, cleaned in code (no network, no eval), then, after `[Y/N]`, checked in the installed Edge at 390 and 1280 px (loads, no console errors, no sideways scroll, Tab reaches every control, using the controls changes the text the learner reads, read after animations end, no state shown as a pressed button); the player runs it in `<iframe sandbox="allow-scripts">`. A model check then compares the page's logic with the source, and a finding rebuilds the page | built |
 
 ## Install and run
 
@@ -111,7 +125,8 @@ with `powershell -ExecutionPolicy Bypass -File scripts\build.ps1`.
 | `/files` | the files in this conversation |
 | `/mcp`, `/mcp auth <name>` | the MCP servers and their tools; enter credentials in a hidden prompt |
 | `/cost` | calls, tokens and cost so far, by node and model (also printed after every task) |
-| `/resume` | continue a conversation that stopped at a gate |
+| `/summary [path]` | save a summary of the conversation (files, requests and outcomes, cost) to a text file, after `[Y/N]` |
+| `/resume` | continue a conversation that stopped at a gate, at the cost cap, or inside a node |
 | `/new`, `/quit` | new conversation, exit |
 | `agent.exe --check-browser` | check that the illustration browser test can run on this machine (installed Edge) |
 
@@ -126,6 +141,7 @@ model (approve / change / question), `exit` pauses at the gate.
 | `PROFILE` | no | `free` (default) or `balanced` (paid models); see `agent/models.yaml` |
 | `LANGSMITH_API_KEY`, `LANGSMITH_TRACING`, `LANGSMITH_PROJECT` | no | tracing; without a key the agent runs and says tracing is off |
 | `HEBREW_BIDI` | no | Hebrew order in the terminal: `auto` (default), `on`, `off` |
+| `MAX_COST_USD` | no | the spending cap of one run in USD (default 1.5, `max_cost_usd` in `agent/models.yaml`); crossing it asks `[Y/N]` |
 
 Each role (`writer`, `checker`, `small`) has 2-3 fallback models per profile. A 429 or error
 moves to the next model; a 503 or timeout skips the model for the session; a 402 in
@@ -174,11 +190,15 @@ agent/
   graph.py, nodes.py                           LangGraph workflow and nodes
   writer.py, structure.py, topics.py           writing, structure and topic-map prompts/parsing
   checkers.py, evaluation.py, report.py        checkers, review loop, report.md
+  illustration_logic.py, diagram_check.py      illustration logic and diagram-vs-source checkers
+  research.py, illustrations.py                web research; illustrations, cleaner, browser check
+  motif.py, svg_clean.py                       motif candidates from Lucide icons; SVG cleaner
+  cost_cap.py, keep_awake.py, summary.py       MAX_COST_USD gate; no sleep while running; /summary
   llm.py, models.yaml, errors.py               OpenRouter calls, models per role/profile, errors
   guards.py, tools.py, mcp_client.py           injection guard, RAG, MCP client
   mcp_servers/source_reader.py                 the MCP server
   lesson_schema.py, lesson_export.py           lesson.json schema and export
-  assets/                                      lesson.schema.json, player/, Hebrew messages
+  assets/                                      lesson.schema.json, player/, Hebrew messages, lucide/ (icons, ISC)
 evals/                                         eval scripts, rubric, fixtures, results/
 tests/                                         unit tests (pytest)
 examples/sample_lesson/                        a small hand-made lesson for the player
@@ -191,6 +211,4 @@ QUICKSTART.txt                                 download, first run, key and limi
 
 ## Not built yet
 
-- decision diagrams beyond the current SVG drawing, visual motif, `/summary`, `MAX_COST_USD`
-  ceiling per run (day 10)
 - `/model` command; optional narration; the desktop app (bonus track)

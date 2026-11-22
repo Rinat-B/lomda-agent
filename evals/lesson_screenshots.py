@@ -1,0 +1,50 @@
+"""Screenshots of a run's lesson: the first screen (motif and title in the header) and every built
+illustration before and after using its controls, at 390 px, after animations ended.
+
+    .venv\Scripts\python -m evals.lesson_screenshots evals/results/day10/free
+"""
+
+import sys
+from pathlib import Path
+
+
+def shoot(run_dir: Path) -> list[Path]:
+    from playwright.sync_api import sync_playwright
+
+    from agent.illustrations import _use_first_control, wait_until_still
+
+    out = run_dir / "screenshots"
+    out.mkdir(parents=True, exist_ok=True)
+    saved = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(channel="msedge")
+        context = browser.new_context(offline=True, viewport={"width": 390, "height": 760})
+        context.route("**/*", lambda r: r.continue_() if r.request.url.startswith("file:") else r.abort())
+        page = context.new_page()
+        page.goto((run_dir / "lesson" / "index.html").resolve().as_uri())
+        page.wait_for_timeout(600)
+        first = out / "lesson-first-screen.png"
+        page.screenshot(path=str(first))
+        saved.append(first)
+        context.close()
+        for page_path in sorted((run_dir / "lesson" / "assets" / "illustrations").glob("*.html")):
+            context = browser.new_context(offline=True, viewport={"width": 390, "height": 560})
+            context.route("**/*", lambda r: r.continue_() if r.request.url.startswith("file:") else r.abort())
+            page = context.new_page()
+            page.goto(page_path.resolve().as_uri())
+            wait_until_still(page)
+            before = out / f"{page_path.stem}-before.png"
+            page.screenshot(path=str(before), full_page=True)
+            _use_first_control(page)
+            wait_until_still(page)
+            after = out / f"{page_path.stem}-after.png"
+            page.screenshot(path=str(after), full_page=True)
+            saved += [before, after]
+            context.close()
+        browser.close()
+    return saved
+
+
+if __name__ == "__main__":
+    for path in shoot(Path(sys.argv[1])):
+        print(path)
